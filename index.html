@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="BASED" />
+<meta name="theme-color" content="#1a1f2e" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<title>BASED</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --navy:#1a1f2e;--navy-mid:#252b3d;--navy-light:#2f3650;
+  --gold:#c9a84c;--gold-light:#e8c97a;
+  --text-on-dark:#e8e4dc;--text-muted:#8a8fa8;
+  --green:#6fcf97;--red:#eb5757;
+  --serif:Georgia,'Times New Roman',serif;
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify-content:center;font-family:var(--sans);}
+.app-shell{
+  background:var(--navy);
+  width:100%;max-width:430px;
+  height:100%;max-height:100%;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  position:relative;
+}
+@media(min-width:431px){
+  .app-shell{height:90vh;max-height:900px;border-radius:40px;border:1px solid rgba(255,255,255,0.08);}
+  body{background:#0a0d16;}
+}
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden;}
+.screen.active{display:flex;}
+.app-header{
+  padding:calc(var(--safe-top) + 14px) 20px 13px;
+  border-bottom:0.5px solid rgba(255,255,255,0.08);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;background:var(--navy);
+}
+.logo-mark{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:6px 12px;}
+.logo-text{font-family:var(--serif);font-size:16px;color:var(--text-on-dark);letter-spacing:0.5px;}
+.logo-icon,.logo-mic{color:var(--text-muted);font-size:13px;}
+.btn-back{background:transparent;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;line-height:1;}
+.btn-primary{background:var(--gold);color:var(--navy);border:none;border-radius:13px;padding:14px 20px;font-size:16px;font-weight:600;cursor:pointer;width:100%;font-family:var(--sans);}
+.btn-primary:active{opacity:0.85;}
+.btn-ghost{background:transparent;color:var(--text-muted);border:0.5px solid rgba(255,255,255,0.15);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;width:100%;font-family:var(--sans);}
+.btn-ghost:active{background:rgba(255,255,255,0.05);}
+.scrollable{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;}
+.form-input{width:100%;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);border-radius:11px;padding:13px 14px;color:var(--text-on-dark);font-size:16px;font-family:var(--sans);outline:none;-webkit-appearance:none;appearance:none;}
+.form-input:focus{border-color:var(--gold);}
+.form-input::placeholder{color:rgba(255,255,255,0.22);}
+.sex-btn{flex:1;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);border-radius:11px;padding:13px;color:var(--text-on-dark);font-size:15px;cursor:pointer;text-align:center;font-family:var(--sans);}
+.sex-btn.selected{background:rgba(201,168,76,0.15);border-color:var(--gold);color:var(--gold);}
+.banner-note{background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:11px;padding:12px 14px;font-size:13px;color:var(--gold-light);line-height:1.5;font-style:italic;}
+.q-slider{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:5px;background:rgba(255,255,255,0.12);outline:none;cursor:pointer;}
+.q-slider::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--gold);cursor:pointer;border:2.5px solid var(--navy);}
+.profile-card{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:17px;padding:15px;display:flex;align-items:center;gap:13px;cursor:pointer;position:relative;}
+.profile-card:active{background:rgba(255,255,255,0.05);}
+.profile-card.locked{opacity:0.4;pointer-events:none;filter:blur(2px);}
+.compat-track{flex:1;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;}
+.compat-fill{height:3px;border-radius:2px;background:var(--gold);}
+.based-badge{position:absolute;top:11px;right:13px;font-size:10px;color:var(--gold);border:0.5px solid rgba(201,168,76,0.3);border-radius:6px;padding:2px 7px;}
+.tab-bar{display:flex;border-bottom:0.5px solid rgba(255,255,255,0.08);flex-shrink:0;background:var(--navy);}
+.tab-btn{flex:1;background:transparent;border:none;padding:13px 8px;font-size:12px;color:var(--text-muted);cursor:pointer;font-family:var(--sans);border-bottom:2px solid transparent;display:flex;align-items:center;justify-content:center;gap:5px;}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+.photo-upload-area{border:1.5px dashed rgba(255,255,255,0.2);border-radius:15px;padding:30px 20px;text-align:center;cursor:pointer;overflow:hidden;}
+.photo-upload-area.has-photo{border-style:solid;border-color:rgba(201,168,76,0.4);padding:0;height:190px;}
+.photo-preview{width:100%;height:190px;object-fit:cover;border-radius:13px;display:block;}
+.avatar{width:50px;height:50px;border-radius:50%;background:var(--navy-light);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:17px;color:var(--gold);flex-shrink:0;border:1.5px solid rgba(201,168,76,0.3);overflow:hidden;}
+.avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.avatar-lg{width:72px;height:72px;border-radius:50%;background:var(--navy-light);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--gold);flex-shrink:0;border:2px solid rgba(201,168,76,0.4);overflow:hidden;}
+.avatar-lg img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.action-btn-row{display:flex;gap:8px;margin-top:16px;}
+.act-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-radius:14px;padding:13px 8px;font-size:11px;cursor:pointer;font-family:var(--sans);flex:1;border:0.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:var(--text-muted);}
+.act-btn i{font-size:22px;}
+.act-btn.interested{border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.1);color:var(--gold);}
+.act-btn.expressed{border-color:rgba(201,168,76,0.5);background:rgba(201,168,76,0.12);color:var(--gold);pointer-events:none;}
+.act-btn.hide-profile{border-color:rgba(235,87,87,0.3);color:var(--red);background:rgba(235,87,87,0.06);}
+.act-btn:active{opacity:0.75;}
+.msg-bubble{border-radius:16px;padding:11px 15px;font-size:14px;line-height:1.5;max-width:82%;}
+.msg-bubble.mine{background:rgba(201,168,76,0.18);color:var(--text-on-dark);align-self:flex-end;border-bottom-right-radius:4px;}
+.msg-bubble.theirs{background:rgba(255,255,255,0.07);color:var(--text-on-dark);align-self:flex-start;border-bottom-left-radius:4px;}
+.notif-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;margin-left:2px;}
+.toggle-track{width:46px;height:26px;border-radius:13px;background:rgba(255,255,255,0.12);position:relative;cursor:pointer;transition:background 0.25s;flex-shrink:0;}
+.toggle-track.on{background:var(--green);}
+.toggle-thumb{width:20px;height:20px;border-radius:50%;background:white;position:absolute;top:3px;left:3px;transition:left 0.25s;}
+.toggle-track.on .toggle-thumb{left:23px;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:0.5px solid rgba(255,255,255,0.07);}
+.modal-backdrop{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(8,11,22,0.88);display:flex;align-items:center;justify-content:center;z-index:100;border-radius:inherit;}
+.modal-box{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.15);border-radius:20px;padding:28px 22px;margin:24px;text-align:center;width:100%;}
+.bottom-safe{padding-bottom:calc(var(--safe-bottom) + 12px);}
+</style>
+</head>
+<body>
+<div class="app-shell" id="app-shell">
+
+<!-- WELCOME -->
+<div id="screen-welcome" class="screen active">
+  <div class="app-header">
+    <div class="logo-mark"><span class="logo-icon"><i class="ti ti-search"></i></span><span class="logo-text">BASED</span><span class="logo-mic"><i class="ti ti-microphone"></i></span></div>
+    <span style="font-size:11px;color:var(--text-muted)">on values that matter.</span>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 28px;text-align:center">
+    <div style="background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);border-radius:17px;padding:14px 26px;margin-bottom:26px;display:flex;align-items:center;gap:10px">
+      <span style="color:var(--text-muted);font-size:22px"><i class="ti ti-search"></i></span>
+      <span style="font-family:var(--serif);font-size:30px;color:var(--text-on-dark);letter-spacing:2px">BASED</span>
+      <span style="color:var(--text-muted);font-size:18px"><i class="ti ti-microphone"></i></span>
+    </div>
+    <p style="color:var(--text-on-dark);font-size:17px;margin-bottom:8px">Find someone who shares what matters.</p>
+    <p style="color:var(--text-muted);font-size:14px;line-height:1.6;max-width:270px;margin-bottom:44px">No height. No job title. Just honest answers to honest questions.</p>
+    <div style="display:flex;flex-direction:column;gap:12px;width:100%">
+      <button class="btn-primary" onclick="goTo('screen-details')">Create my profile</button>
+      <button class="btn-ghost" onclick="goTo('screen-main')">Browse matches</button>
+    </div>
+  </div>
+</div>
+
+<!-- PERSONAL DETAILS -->
+<div id="screen-details" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goTo('screen-welcome')"><i class="ti ti-arrow-left"></i></button>
+    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div style="width:28px"></div>
+  </div>
+  <div class="scrollable" style="padding:22px 20px">
+    <p style="font-family:var(--serif);font-size:22px;color:var(--text-on-dark);margin-bottom:5px">About you</p>
+    <p style="font-size:14px;color:var(--text-muted);margin-bottom:22px;line-height:1.5">Just the basics. The rest is for conversation.</p>
+    <div style="margin-bottom:20px">
+      <label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:9px;display:block">Your photo <span style="color:var(--gold)">*</span></label>
+      <div class="photo-upload-area" id="upload-area" onclick="document.getElementById('photo-input').click()">
+        <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)" />
+        <div id="upload-placeholder">
+          <i class="ti ti-camera" style="font-size:32px;color:var(--text-muted);margin-bottom:12px;display:block"></i>
+          <p style="font-size:14px;color:var(--text-on-dark);margin-bottom:5px">Upload a photo</p>
+          <p style="font-size:13px;color:var(--text-muted)">Tap to choose from your camera roll</p>
+        </div>
+        <img id="upload-preview" style="display:none" class="photo-preview" alt="Your profile photo" />
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:7px">A photo is required to create your profile.</p>
+    </div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" placeholder="Your first name" id="inp-name" autocomplete="given-name" /></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="date" id="inp-dob" /></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Where are you now?</label><input class="form-input" type="text" placeholder="Postcode or city name" id="inp-location" autocomplete="postal-code" /></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Biological sex</label><div style="display:flex;gap:10px"><button class="sex-btn" id="sex-male" onclick="selectSex('male')">Male</button><button class="sex-btn" id="sex-female" onclick="selectSex('female')">Female</button></div></div>
+    <div class="banner-note" style="margin-bottom:22px">We don't want to rob you of conversation, so you can figure out the rest.</div>
+    <button class="btn-primary bottom-safe" onclick="tryDetails()">Continue to questions</button>
+    <p style="font-size:12px;color:var(--red);text-align:center;margin-top:9px;display:none" id="details-error">Please upload a photo before continuing.</p>
+  </div>
+</div>
+
+<!-- QUESTIONS -->
+<div id="screen-questions" class="screen">
+  <div class="app-header">
+    <button class="btn-back" id="q-back-btn"><i class="ti ti-arrow-left"></i></button>
+    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div style="width:28px"></div>
+  </div>
+  <div style="padding:0 20px;margin-top:5px;flex-shrink:0">
+    <div style="height:2px;background:rgba(255,255,255,0.1);border-radius:2px"><div style="height:2px;background:var(--gold);border-radius:2px;transition:width 0.4s" id="q-progress"></div></div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:right" id="q-progress-label">1 of 12</div>
+  </div>
+  <div style="padding:18px 20px;flex:1;display:flex;flex-direction:column">
+    <div class="banner-note" id="q-banner" style="margin-bottom:16px">Don't answer what you think others will want to hear. Your authenticity matters.</div>
+    <p style="font-size:11px;color:var(--gold);letter-spacing:1px;margin-bottom:7px" id="q-number">Question 1</p>
+    <p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);line-height:1.4;margin-bottom:10px" id="q-text"></p>
+    <button onclick="toggleInfo()" style="background:transparent;border:0.5px solid rgba(255,255,255,0.15);border-radius:20px;padding:5px 11px;font-size:12px;color:var(--text-muted);cursor:pointer;margin-bottom:5px;display:inline-flex;align-items:center;gap:6px;font-family:var(--sans);width:auto;align-self:flex-start"><i class="ti ti-info-circle"></i> What does this mean?</button>
+    <div id="q-info-expand" style="background:rgba(255,255,255,0.04);border-radius:9px;padding:11px 13px;font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:9px;display:none"></div>
+    <div style="margin-top:auto;padding-top:16px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted);margin-bottom:10px"><span>No</span><span style="font-size:11px;color:rgba(255,255,255,0.2)">|</span><span>Yes</span></div>
+      <input type="range" class="q-slider" id="q-slider" min="-10" max="10" step="1" value="0" oninput="updateSliderDisplay()" />
+      <div style="text-align:center;margin-top:12px;font-size:28px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums" id="slider-val">0</div>
+      <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:3px" id="slider-label">Neutral</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;padding:14px 20px;flex-shrink:0" class="bottom-safe">
+    <button class="btn-ghost" style="flex:1" onclick="skipQuestion()">Skip</button>
+    <button class="btn-primary" style="flex:2" id="q-next-btn" onclick="nextQuestion()">Next</button>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="screen-results" class="screen">
+  <div class="app-header">
+    <div style="width:28px"></div>
+    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div style="width:28px"></div>
+  </div>
+  <div style="padding:28px 24px;flex:1;display:flex;flex-direction:column;align-items:center">
+    <p style="font-family:var(--serif);font-size:24px;color:var(--text-on-dark);text-align:center;margin-bottom:6px">Your Based Score</p>
+    <p style="font-size:14px;color:var(--text-muted);text-align:center;margin-bottom:30px">Calculated from your 12 answers</p>
+    <div style="position:relative;width:160px;height:160px;margin:0 auto 30px">
+      <svg width="160" height="160" viewBox="0 0 160 160" style="transform:rotate(-90deg)">
+        <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="9"/>
+        <circle cx="80" cy="80" r="68" fill="none" stroke="#c9a84c" stroke-width="9" stroke-linecap="round" stroke-dasharray="427" id="score-arc" stroke-dashoffset="427"/>
+      </svg>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
+        <div style="font-size:36px;font-weight:700;color:var(--gold);font-family:var(--serif)" id="score-pct-display">—</div>
+        <div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;width:100%" class="bottom-safe">
+      <button class="btn-primary" onclick="goTo('screen-main')">Find my matches</button>
+      <button class="btn-ghost" onclick="goTo('screen-questions');resetQuestions()">Redo questions</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN (tabbed) -->
+<div id="screen-main" class="screen">
+  <div class="app-header">
+    <div class="logo-mark"><span class="logo-icon"><i class="ti ti-search"></i></span><span class="logo-text">BASED</span><span class="logo-mic"><i class="ti ti-microphone"></i></span></div>
+    <button id="settings-btn" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:22px;padding:4px"><i class="ti ti-settings"></i></button>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-browse" onclick="switchTab('browse')"><i class="ti ti-users" style="font-size:15px"></i> Browse</button>
+    <button class="tab-btn" id="tab-matches" onclick="switchTab('matches')"><i class="ti ti-heart" style="font-size:15px"></i> Matches <span id="matches-notif" style="display:none" class="notif-dot"></span></button>
+    <button class="tab-btn" id="tab-messages" onclick="switchTab('messages')"><i class="ti ti-message" style="font-size:15px"></i> Messages <span id="msg-notif" style="display:none" class="notif-dot"></span></button>
+  </div>
+  <div id="tab-browse-content" class="scrollable" style="padding:16px">
+    <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:13px;padding:13px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:11px">Filter matches</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
+        <span style="font-size:13px;color:var(--text-on-dark);min-width:90px">Min compatibility</span>
+        <input type="range" class="q-slider" style="flex:1" min="0" max="100" step="5" value="0" id="filter-min" oninput="updateFilter()" />
+        <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-min-val">0%</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:13px;color:var(--text-on-dark);min-width:90px">Distance</span>
+        <input type="range" class="q-slider" style="flex:1" min="5" max="100" step="5" value="25" id="filter-dist" oninput="updateFilter()" />
+        <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-dist-val">25 mi</span>
+      </div>
+    </div>
+    <div id="profile-cards"></div>
+  </div>
+  <div id="tab-matches-content" class="scrollable" style="padding:16px;display:none">
+    <p style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:14px">Mutual matches</p>
+    <div id="mutual-matches-list"></div>
+    <p style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin:20px 0 12px">Interests expressed</p>
+    <div id="expressed-list"></div>
+  </div>
+  <div id="tab-messages-content" class="scrollable" style="padding:16px;display:none">
+    <p style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:14px">Conversations</p>
+    <div id="conversations-list"></div>
+  </div>
+</div>
+
+<!-- PROFILE VIEW -->
+<div id="screen-profile" class="screen">
+  <div class="app-header">
+    <button class="btn-back" id="profile-back-btn" onclick="goTo('screen-main')"><i class="ti ti-arrow-left"></i></button>
+    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div style="width:28px"></div>
+  </div>
+  <div class="scrollable" style="padding:20px" id="profile-detail-body"></div>
+</div>
+
+<!-- CHAT -->
+<div id="screen-chat" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goTo('screen-main');switchTab('messages')"><i class="ti ti-arrow-left"></i></button>
+    <div style="display:flex;align-items:center;gap:11px">
+      <div id="chat-avatar-header" class="avatar" style="width:36px;height:36px;font-size:13px"></div>
+      <div><p style="font-size:15px;color:var(--text-on-dark);font-weight:600" id="chat-name-header"></p><p style="font-size:11px;color:var(--green)">Mutual match</p></div>
+    </div>
+    <div style="width:28px"></div>
+  </div>
+  <div class="scrollable" style="padding:16px;display:flex;flex-direction:column;gap:11px" id="chat-messages"></div>
+  <div style="padding:12px 16px;border-top:0.5px solid rgba(255,255,255,0.08);display:flex;gap:10px;flex-shrink:0" class="bottom-safe">
+    <input class="form-input" type="text" placeholder="Write a message…" id="chat-input" style="flex:1" onkeydown="if(event.key==='Enter')sendMessage()" />
+    <button onclick="sendMessage()" style="background:var(--gold);border:none;border-radius:11px;padding:0 18px;cursor:pointer;color:var(--navy);font-size:18px;flex-shrink:0"><i class="ti ti-send"></i></button>
+  </div>
+</div>
+
+<!-- MY PROFILE / EDIT -->
+<div id="screen-edit-profile" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goTo('screen-main')"><i class="ti ti-arrow-left"></i></button>
+    <span style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark)">My profile</span>
+    <button onclick="saveProfile()" style="background:transparent;border:none;font-size:14px;color:var(--gold);cursor:pointer;font-family:var(--sans);font-weight:600">Save</button>
+  </div>
+  <div class="scrollable" style="padding:20px">
+    <div id="hidden-banner" style="display:none;background:rgba(235,87,87,0.08);border:0.5px solid rgba(235,87,87,0.3);border-radius:11px;padding:12px 15px;margin-bottom:18px">
+      <p style="font-size:13px;color:var(--red);line-height:1.5"><i class="ti ti-eye-off" style="margin-right:7px"></i>Your profile is hidden. Other users cannot find you.</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:17px;margin-bottom:24px">
+      <div class="avatar-lg" id="edit-avatar-wrap"><span id="edit-avatar-initials">?</span><img id="edit-avatar-img" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%" alt="" /></div>
+      <button onclick="document.getElementById('edit-photo-input').click()" style="background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.2);border-radius:11px;padding:11px 17px;color:var(--text-on-dark);font-size:14px;cursor:pointer;font-family:var(--sans)"><i class="ti ti-camera" style="margin-right:7px"></i>Change photo</button>
+      <input type="file" id="edit-photo-input" accept="image/*" style="display:none" onchange="handleEditPhoto(this)" />
+    </div>
+    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" id="edit-name" /></div>
+    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="date" id="edit-dob" /></div>
+    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Location</label><input class="form-input" type="text" id="edit-location" /></div>
+    <div style="margin-bottom:22px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Biological sex</label><div style="display:flex;gap:10px"><button class="sex-btn" id="edit-sex-male" onclick="selectEditSex('male')">Male</button><button class="sex-btn" id="edit-sex-female" onclick="selectEditSex('female')">Female</button></div></div>
+    <div style="border-top:0.5px solid rgba(255,255,255,0.08);padding-top:20px;display:flex;flex-direction:column;gap:2px">
+      <div class="toggle-row">
+        <div style="flex:1;padding-right:16px">
+          <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:4px">Hide my profile</p>
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.4">Pause while you're seeing someone. You won't appear in searches.</p>
+        </div>
+        <div class="toggle-track" id="hide-toggle" onclick="toggleHideProfile()"><div class="toggle-thumb"></div></div>
+      </div>
+      <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
+        <button class="btn-ghost" onclick="goTo('screen-questions')" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px"></i>Retake my questions</button>
+      </div>
+      <div style="padding-top:18px" class="bottom-safe">
+        <button onclick="confirmDelete()" style="background:rgba(235,87,87,0.07);border:0.5px solid rgba(235,87,87,0.3);border-radius:13px;padding:14px 20px;font-size:15px;color:var(--red);cursor:pointer;width:100%;font-family:var(--sans);display:flex;align-items:center;justify-content:center;gap:9px"><i class="ti ti-trash"></i>Delete my account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAYWALL -->
+<div id="screen-paywall" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goTo('screen-main')"><i class="ti ti-arrow-left"></i></button>
+    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div style="width:28px"></div>
+  </div>
+  <div class="scrollable" style="padding:24px 22px">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="width:64px;height:64px;border-radius:50%;background:rgba(201,168,76,0.12);border:0.5px solid rgba(201,168,76,0.35);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-crown" style="font-size:28px;color:var(--gold)"></i></div>
+      <p style="font-family:var(--serif);font-size:24px;color:var(--text-on-dark);line-height:1.3;margin-bottom:9px">You've seen your 5 free profiles</p>
+      <p style="font-size:14px;color:var(--text-muted);line-height:1.6;max-width:300px;margin:0 auto">Your matches are waiting. Unlock unlimited browsing for less than a coffee a month.</p>
+    </div>
+    <div style="background:rgba(201,168,76,0.06);border:0.5px solid rgba(201,168,76,0.25);border-radius:17px;padding:22px;margin-bottom:20px;text-align:center">
+      <div style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Unlimited access</div>
+      <div style="font-family:var(--serif);font-size:44px;color:var(--gold);font-weight:700;line-height:1">£4.99</div>
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:20px">per month — less than a coffee</div>
+      <button class="btn-primary" onclick="activatePremium()" style="font-size:16px;padding:15px">Unlock unlimited — £4.99/month</button>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:10px">Cancel anytime. No commitment.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:13px;margin-bottom:22px">
+      <div style="display:flex;align-items:flex-start;gap:13px"><div style="width:32px;height:32px;border-radius:9px;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-infinity" style="font-size:15px;color:var(--gold)"></i></div><div><p style="font-size:14px;color:var(--text-on-dark);margin-bottom:3px">Unlimited profile views</p><p style="font-size:13px;color:var(--text-muted)">Browse as many matches as you like, every day</p></div></div>
+      <div style="display:flex;align-items:flex-start;gap:13px"><div style="width:32px;height:32px;border-radius:9px;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-message" style="font-size:15px;color:var(--gold)"></i></div><div><p style="font-size:14px;color:var(--text-on-dark);margin-bottom:3px">Send messages</p><p style="font-size:13px;color:var(--text-muted)">Start conversations with your mutual matches</p></div></div>
+      <div style="display:flex;align-items:flex-start;gap:13px"><div style="width:32px;height:32px;border-radius:9px;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-filter" style="font-size:15px;color:var(--gold)"></i></div><div><p style="font-size:14px;color:var(--text-on-dark);margin-bottom:3px">Advanced filters</p><p style="font-size:13px;color:var(--text-muted)">Refine by distance, Based Score, and compatibility</p></div></div>
+    </div>
+    <button class="btn-ghost bottom-safe" onclick="goTo('screen-main')">Maybe later</button>
+  </div>
+</div>
+
+</div><!-- /app-shell -->
+
+<script>
+const QUESTIONS=[{text:"Do you believe there are only two biological sexes, men and women?",info:"This question is about biological science — whether you accept the binary classification of male and female based on chromosomes, hormones, and anatomy."},{text:"Do you think open borders damage our country?",info:"Do you believe that unrestricted immigration has a net negative impact on national culture, economy, and security?"},{text:"Do you believe in the God of the Bible?",info:"This refers specifically to the Judeo-Christian God as described in the Bible — not spirituality in general, but that specific faith tradition."},{text:"Is starting a family in your future plan?",info:"Are marriage and/or having children something you actively want and are working towards in your life plans?"},{text:"Is your own family a core part of your life?",info:"Do you prioritise and maintain close relationships with your immediate and extended family? Is family a central pillar of your identity and time?"},{text:"Do you believe in small government?",info:"Do you think the state should play a minimal role in citizens' lives — lower taxes, fewer regulations, and more individual freedom over government intervention?"},{text:"Do you believe in freedom of speech?",info:"Do you support the right of individuals to express views — including controversial or unpopular ones — without legal or social censure, beyond direct incitement to violence?"},{text:"Are you happy to openly discuss difficult or controversial subjects?",info:"Are you comfortable having frank conversations about topics others might avoid — politics, religion, morality, culture — without feeling offended or shutting down?"},{text:"Do you believe in working and self-reliance?",info:"Do you value personal responsibility, hard work, and independence over reliance on the state or others to provide for your needs?"},{text:"Do you believe in traditional gender roles?",info:"Do you think there is value in the complementary roles men and women have historically played in family and society — provider, nurturer, etc. — even if not rigidly applied?"},{text:"Are you good with personal finances?",info:"Regardless of your income from work, assets, or investments — do you budget accordingly and enjoy life whilst living within your means?"},{text:"Are you against abortion and euthanasia?",info:"Do you hold a pro-life position on both the termination of pregnancy and medically assisted dying?"}];
+const Q_SHORT=["Two biological sexes","Open borders are harmful","Belief in God of the Bible","Starting a family","Family is central to life","Small government","Freedom of speech","Open about controversy","Work & self-reliance","Traditional gender roles","Good with finances","Against abortion & euthanasia"];
+const PROFILES=[{initials:"SH",name:"Sarah H.",age:28,location:"Leeds",basedScore:91,answers:[9,8,10,9,10,7,9,8,8,9,7,10]},{initials:"EW",name:"Emily W.",age:31,location:"York",basedScore:84,answers:[8,7,9,10,8,6,8,9,7,8,8,9]},{initials:"LM",name:"Laura M.",age:26,location:"Harrogate",basedScore:78,answers:[10,6,7,8,9,5,9,7,8,6,9,7]},{initials:"KT",name:"Kate T.",age:34,location:"Sheffield",basedScore:72,answers:[7,9,5,7,6,8,7,10,9,4,6,5]},{initials:"AN",name:"Amy N.",age:29,location:"Hull",basedScore:65,answers:[6,5,8,6,7,4,6,5,7,7,5,6]},{initials:"RB",name:"Rachel B.",age:27,location:"Middlesbrough",basedScore:58,answers:[5,7,4,5,6,6,8,4,6,3,7,4]},{initials:"JF",name:"Jess F.",age:33,location:"Bradford",basedScore:52,answers:[4,3,6,4,5,3,5,6,5,2,4,3]}];
+const FREE_LIMIT=5;
+let viewedProfiles=new Set(),isPremium=false,profileHidden=false,currentQ=0,myAnswers=new Array(12).fill(0),infoOpen=false;
+let myProfile={name:'',dob:'',location:'',sex:'',photo:null};
+let expressedInterest=new Set(),mutualMatches=new Set(),hiddenForever=new Set(),passedProfiles=new Set(),conversations={},activeChatName='';
+const theyLikedMe=new Set(['Sarah H.','Laura M.','Kate T.']);
+
+function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function showModal(html){removeModal();const bd=document.createElement('div');bd.className='modal-backdrop';bd.id='modal-bd';bd.innerHTML=`<div class="modal-box">${html}</div>`;document.getElementById('app-shell').appendChild(bd);}
+function removeModal(){const m=document.getElementById('modal-bd');if(m)m.remove();}
+function selectSex(s){document.getElementById('sex-male').classList.toggle('selected',s==='male');document.getElementById('sex-female').classList.toggle('selected',s==='female');myProfile.sex=s;}
+function selectEditSex(s){document.getElementById('edit-sex-male').classList.toggle('selected',s==='male');document.getElementById('edit-sex-female').classList.toggle('selected',s==='female');myProfile.sex=s;}
+function handlePhotoUpload(input){const file=input.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{myProfile.photo=e.target.result;document.getElementById('upload-placeholder').style.display='none';const pr=document.getElementById('upload-preview');pr.src=myProfile.photo;pr.style.display='block';document.getElementById('upload-area').classList.add('has-photo');};r.readAsDataURL(file);}
+function handleEditPhoto(input){const file=input.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{myProfile.photo=e.target.result;const img=document.getElementById('edit-avatar-img');img.src=myProfile.photo;img.style.display='block';document.getElementById('edit-avatar-initials').style.display='none';};r.readAsDataURL(file);}
+function tryDetails(){const err=document.getElementById('details-error');if(!myProfile.photo){err.style.display='block';return;}err.style.display='none';myProfile.name=document.getElementById('inp-name').value||'You';myProfile.dob=document.getElementById('inp-dob').value;myProfile.location=document.getElementById('inp-location').value;startQuestions();}
+function startQuestions(){currentQ=0;myAnswers=new Array(12).fill(0);loadQuestion(0);goTo('screen-questions');}
+function resetQuestions(){currentQ=0;myAnswers=new Array(12).fill(0);loadQuestion(0);}
+function loadQuestion(i){const q=QUESTIONS[i];document.getElementById('q-number').textContent='Question '+(i+1);document.getElementById('q-text').textContent=q.text;document.getElementById('q-info-expand').textContent=q.info;document.getElementById('q-info-expand').style.display='none';infoOpen=false;document.getElementById('q-slider').value=myAnswers[i];updateSliderDisplay();document.getElementById('q-progress').style.width=Math.round(((i+1)/12)*100)+'%';document.getElementById('q-progress-label').textContent=(i+1)+' of 12';document.getElementById('q-banner').style.display=i===0?'block':'none';document.getElementById('q-next-btn').textContent=i===11?'See my score':'Next';document.getElementById('q-back-btn').onclick=i===0?()=>goTo('screen-details'):prevQuestion;}
+function updateSliderDisplay(){const v=parseInt(document.getElementById('q-slider').value);document.getElementById('slider-val').textContent=v>0?'+'+v:String(v);const lbls=['Strongly No','Strongly No','No','No','Leaning No','Leaning No','Neutral','Leaning Yes','Leaning Yes','Yes','Yes','Strongly Yes','Strongly Yes'];document.getElementById('slider-label').textContent=lbls[v+10]||'Neutral';const f=((v+10)/20)*100;document.getElementById('q-slider').style.background=`linear-gradient(to right,rgba(201,168,76,0.6) 0%,rgba(201,168,76,0.9) ${f}%,rgba(255,255,255,0.12) ${f}%)`;}
+function toggleInfo(){infoOpen=!infoOpen;document.getElementById('q-info-expand').style.display=infoOpen?'block':'none';}
+function nextQuestion(){myAnswers[currentQ]=parseInt(document.getElementById('q-slider').value);if(currentQ<11){currentQ++;loadQuestion(currentQ);}else showResults();}
+function prevQuestion(){if(currentQ>0){myAnswers[currentQ]=parseInt(document.getElementById('q-slider').value);currentQ--;loadQuestion(currentQ);}}
+function skipQuestion(){myAnswers[currentQ]=0;if(currentQ<11){currentQ++;loadQuestion(currentQ);}else showResults();}
+function showResults(){const raw=myAnswers.reduce((a,b)=>a+b,0);const pct=Math.round(((raw+120)/240)*100);document.getElementById('score-pct-display').textContent=pct+'%';const circ=2*Math.PI*68;document.getElementById('score-arc').style.strokeDashoffset=circ*(1-pct/100);document.getElementById('score-arc').style.strokeDasharray=circ;goTo('screen-results');renderProfiles(0);}
+function calcCompat(pa){let d=0;for(let i=0;i<12;i++)d+=Math.abs(myAnswers[i]-pa[i]);return Math.round((1-d/240)*100);}
+function updateFilter(){const v=parseInt(document.getElementById('filter-min').value);const d=parseInt(document.getElementById('filter-dist').value);document.getElementById('filter-min-val').textContent=v+'%';document.getElementById('filter-dist-val').textContent=d+' mi';renderProfiles(v);}
+function renderProfiles(minPct){
+  if(minPct===undefined)minPct=0;
+  const container=document.getElementById('profile-cards');
+  const list=PROFILES.map(p=>({...p,compat:calcCompat(p.answers)})).filter(p=>p.compat>=minPct&&!hiddenForever.has(p.name)&&!passedProfiles.has(p.name));
+  if(!list.length){container.innerHTML='<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px 0">No profiles match your filters.</p>';return;}
+  let html='';
+  if(!isPremium){const used=viewedProfiles.size;const dots=Array.from({length:FREE_LIMIT},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<used?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px"><span style="font-size:13px;color:var(--text-muted)">${FREE_LIMIT-used} free view${FREE_LIMIT-used===1?'':'s'} remaining</span><span>${dots}</span></div>`;}
+  else{html+=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:13px;background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:9px;padding:8px 12px"><i class="ti ti-crown" style="font-size:14px;color:var(--gold)"></i><span style="font-size:13px;color:var(--gold-light)">Unlimited access active</span></div>`;}
+  list.forEach(p=>{
+    const isLocked=!isPremium&&!viewedProfiles.has(p.name)&&viewedProfiles.size>=FREE_LIMIT;
+    const isMutual=mutualMatches.has(p.name);const theyLiked=theyLikedMe.has(p.name);const hasInterest=expressedInterest.has(p.name);
+    const badge=isMutual?`<span style="font-size:10px;color:var(--green);border:0.5px solid rgba(111,207,151,0.4);border-radius:5px;padding:2px 7px;margin-left:5px"><i class="ti ti-heart" style="font-size:10px"></i> Match</span>`:theyLiked&&!hasInterest?`<span style="font-size:10px;color:var(--gold);border:0.5px solid rgba(201,168,76,0.4);border-radius:5px;padding:2px 7px;margin-left:5px"><i class="ti ti-star" style="font-size:10px"></i> Likes you</span>`:'';
+    const aStr=JSON.stringify(p.answers).replace(/"/g,'&quot;');
+    if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="goTo('screen-paywall')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:7px">Upgrade to view</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%"></div></div><span style="font-size:13px;font-weight:600;color:var(--gold);min-width:38px;text-align:right">${p.compat}%</span></div></div></div>`;}
+    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${aStr}',${p.compat},${p.basedScore},'${p.initials}','${p.name}',${p.age},'${p.location}')"><div class="avatar">${p.initials}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">${p.location}${badge}</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%"></div></div><span style="font-size:13px;font-weight:600;color:var(--gold);min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
+  });
+  if(!isPremium&&viewedProfiles.size>=FREE_LIMIT){html+=`<div style="background:rgba(15,18,30,0.95);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;padding:22px;margin-top:6px;text-align:center"><i class="ti ti-crown" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:8px">You've seen your 5 free profiles</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">Unlock unlimited browsing for less than a coffee a month.</p><button class="btn-primary" onclick="goTo('screen-paywall')" style="font-size:15px;padding:14px">Unlock unlimited — £4.99/month</button></div>`;}
+  container.innerHTML=html;
+}
+function handleProfileTap(aStr,compat,basedScore,initials,name,age,location){
+  if(!isPremium&&!viewedProfiles.has(name)&&viewedProfiles.size>=FREE_LIMIT){goTo('screen-paywall');return;}
+  let answers;try{answers=JSON.parse(aStr.replace(/&quot;/g,'"'));}catch(e){answers=new Array(12).fill(0);}
+  viewedProfiles.add(name);
+  openProfile(answers,compat,basedScore,initials,name,age,location);
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+}
+function openProfile(answers,compat,basedScore,initials,name,age,location){
+  const hasInterest=expressedInterest.has(name),isMutual=mutualMatches.has(name),theyLiked=theyLikedMe.has(name);
+  const scoreColor=compat>=80?'var(--green)':compat>=60?'var(--gold)':'var(--red)';
+  const qRows=Q_SHORT.map((q,i)=>{const diff=Math.abs(myAnswers[i]-answers[i]);const col=diff<=2?'var(--green)':diff<=6?'var(--gold)':'var(--red)';const bw=Math.round(((answers[i]+10)/20)*100);return `<div style="margin-bottom:13px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:13px;color:var(--text-muted);flex:1;padding-right:9px">${q}</span><span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${col}22;color:${col};border:0.5px solid ${col}55;white-space:nowrap">${diff<=2?'Aligned':diff<=6?'Close':'Differs'}</span></div><div style="height:4px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden"><div style="height:4px;width:${bw}%;background:${col};border-radius:4px"></div></div></div>`;}).join('');
+  let topBanner='';
+  if(isMutual)topBanner=`<div style="background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.35);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px"><i class="ti ti-heart" style="font-size:22px;color:var(--green)"></i><div><p style="font-size:15px;color:var(--green);font-weight:600">It's a match!</p><p style="font-size:13px;color:var(--text-muted)">You both expressed interest. You can now message each other.</p></div></div>`;
+  else if(theyLiked&&!hasInterest)topBanner=`<div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.3);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px"><i class="ti ti-star" style="font-size:20px;color:var(--gold)"></i><p style="font-size:14px;color:var(--gold-light)">This person has already expressed interest in you.</p></div>`;
+  const aEncoded=JSON.stringify(answers).replace(/"/g,'&quot;');
+  let actionRow='';
+  if(isMutual){
+    actionRow=`<div style="margin-top:18px;display:flex;flex-direction:column;gap:11px"><button class="btn-primary" onclick="openChat('${name}','${initials}')"><i class="ti ti-message" style="margin-right:7px"></i>Send a message</button><div class="action-btn-row"><button class="act-btn hide-profile" onclick="hideForever('${name}')"><i class="ti ti-eye-off"></i>Don't show again</button></div></div>`;
+  } else {
+    const intCls=hasInterest?'act-btn expressed':'act-btn interested';
+    const intClick=hasInterest?'':` onclick="doExpressInterest('${name}','${initials}','${aEncoded}',${compat},${basedScore},'${age}','${location}')"`;
+    actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}"${intClick}><i class="ti ti-heart"></i>Interested</button><button class="act-btn" onclick="moveOn('${name}')"><i class="ti ti-arrow-right"></i>Move on</button><button class="act-btn hide-profile" onclick="hideForever('${name}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
+  }
+  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px"><div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4)">${initials}</div><div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}</div><div style="font-size:14px;color:var(--text-muted);margin-top:3px"><i class="ti ti-map-pin" style="font-size:13px;vertical-align:-1px"></i> ${location}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">COMPATIBILITY</div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">BASED SCORE</div><div style="font-size:28px;font-weight:700;color:var(--gold);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
+  goTo('screen-profile');
+}
+function doExpressInterest(name,initials,aEncoded,compat,basedScore,age,location){
+  expressedInterest.add(name);
+  let answers;try{answers=JSON.parse(aEncoded.replace(/&quot;/g,'"'));}catch(e){answers=new Array(12).fill(0);}
+  if(theyLikedMe.has(name)){mutualMatches.add(name);if(!conversations[name])conversations[name]=[];updateMatchNotifs();}
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  openProfile(answers,compat,basedScore,initials,name,age,location);
+}
+function moveOn(name){passedProfiles.add(name);renderProfiles(parseInt(document.getElementById('filter-min').value)||0);goTo('screen-main');}
+function hideForever(name){hiddenForever.add(name);passedProfiles.delete(name);renderProfiles(parseInt(document.getElementById('filter-min').value)||0);goTo('screen-main');}
+function toggleHideProfile(){profileHidden=!profileHidden;document.getElementById('hide-toggle').classList.toggle('on',profileHidden);document.getElementById('hidden-banner').style.display=profileHidden?'block':'none';}
+function confirmDelete(){
+  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(235,87,87,0.1);border:0.5px solid rgba(235,87,87,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-trash" style="font-size:24px;color:var(--red)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;line-height:1.3">Delete your profile?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Do you want to delete your profile and all your data held on the BASED app?${isPremium?' Your £4.99/month subscription will be cancelled immediately.':''}</p><div style="display:flex;flex-direction:column;gap:11px"><button onclick="executeDelete()" style="background:var(--red);color:white;border:none;border-radius:13px;padding:14px 20px;font-size:15px;font-weight:600;cursor:pointer;width:100%;font-family:var(--sans)">Yes, delete everything</button><button onclick="removeModal()" style="background:transparent;color:var(--text-muted);border:0.5px solid rgba(255,255,255,0.15);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;width:100%;font-family:var(--sans)">Cancel</button></div>`);
+}
+function executeDelete(){
+  removeModal();isPremium=false;myProfile={name:'',dob:'',location:'',sex:'',photo:null};myAnswers=new Array(12).fill(0);
+  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();conversations={};profileHidden=false;
+  document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
+  ['inp-name','inp-dob','inp-location'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sex-male').classList.remove('selected');document.getElementById('sex-female').classList.remove('selected');
+  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-check" style="font-size:24px;color:var(--green)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px">Account deleted</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Your profile and all data have been permanently removed. Your subscription has been cancelled. We hope to see you again someday.</p><button onclick="removeModal();goTo('screen-welcome')" class="btn-primary">Back to home</button>`);
+}
+function openEditProfile(){
+  document.getElementById('edit-name').value=myProfile.name||'';document.getElementById('edit-dob').value=myProfile.dob||'';document.getElementById('edit-location').value=myProfile.location||'';
+  const init=(myProfile.name||'?').charAt(0).toUpperCase();document.getElementById('edit-avatar-initials').textContent=init;
+  if(myProfile.photo){document.getElementById('edit-avatar-img').src=myProfile.photo;document.getElementById('edit-avatar-img').style.display='block';document.getElementById('edit-avatar-initials').style.display='none';}
+  else{document.getElementById('edit-avatar-img').style.display='none';document.getElementById('edit-avatar-initials').style.display='block';}
+  document.getElementById('edit-sex-male').classList.toggle('selected',myProfile.sex==='male');document.getElementById('edit-sex-female').classList.toggle('selected',myProfile.sex==='female');
+  document.getElementById('hide-toggle').classList.toggle('on',profileHidden);document.getElementById('hidden-banner').style.display=profileHidden?'block':'none';
+  goTo('screen-edit-profile');
+}
+function saveProfile(){myProfile.name=document.getElementById('edit-name').value||myProfile.name;myProfile.dob=document.getElementById('edit-dob').value||myProfile.dob;myProfile.location=document.getElementById('edit-location').value||myProfile.location;goTo('screen-main');}
+function updateMatchNotifs(){document.getElementById('matches-notif').style.display=mutualMatches.size>0?'inline-block':'none';document.getElementById('msg-notif').style.display=Object.keys(conversations).length>0?'inline-block':'none';}
+function renderMatchesTab(){
+  const me=document.getElementById('mutual-matches-list'),ee=document.getElementById('expressed-list');
+  if(!mutualMatches.size){me.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No mutual matches yet.</p>';}
+  else{me.innerHTML=Array.from(mutualMatches).map(n=>{const p=PROFILES.find(x=>x.name===n);return `<div style="background:var(--navy-mid);border:0.5px solid rgba(111,207,151,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${n}','${p.initials}')"><div class="avatar" style="border-color:rgba(111,207,151,0.4)">${p.initials}</div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--green);margin-top:3px"><i class="ti ti-heart" style="font-size:13px"></i> Mutual match</div></div><i class="ti ti-message" style="font-size:20px;color:var(--text-muted)"></i></div>`;}).join('');}
+  const exp=Array.from(expressedInterest).filter(n=>!mutualMatches.has(n));
+  if(!exp.length){ee.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">You haven\'t expressed interest in anyone yet.</p>';}
+  else{ee.innerHTML=exp.map(n=>{const p=PROFILES.find(x=>x.name===n);return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px"><div class="avatar">${p.initials}</div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">Waiting for them to respond…</div></div><i class="ti ti-clock" style="font-size:18px;color:var(--text-muted)"></i></div>`;}).join('');}
+}
+function renderConversationsTab(){
+  const el=document.getElementById('conversations-list'),names=Object.keys(conversations);
+  if(!names.length){el.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet. Match with someone to start chatting.</p>';return;}
+  el.innerHTML=names.map(n=>{const p=PROFILES.find(x=>x.name===n);const msgs=conversations[n];const last=msgs.length?msgs[msgs.length-1]:null;return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${n}','${p.initials}')"><div class="avatar">${p.initials}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${last?(last.mine?'You: ':'')+last.text:'Say hello!'}</div></div></div>`;}).join('');
+}
+function switchTab(tab){['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?(t==='browse'?'block':'block'):'none';});if(tab==='matches')renderMatchesTab();if(tab==='messages')renderConversationsTab();}
+function openChat(name,initials){activeChatName=name;if(!conversations[name])conversations[name]=[];document.getElementById('chat-name-header').textContent=name;document.getElementById('chat-avatar-header').textContent=initials;renderChatMessages();goTo('screen-chat');updateMatchNotifs();}
+function renderChatMessages(){const msgs=conversations[activeChatName]||[];const el=document.getElementById('chat-messages');if(!msgs.length){el.innerHTML=`<div style="text-align:center;padding:32px 18px"><div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:14px;padding:18px"><i class="ti ti-heart" style="font-size:24px;color:var(--gold);margin-bottom:10px;display:block"></i><p style="font-size:14px;color:var(--gold-light);margin-bottom:5px">It's a match!</p><p style="font-size:13px;color:var(--text-muted)">Say hello to ${activeChatName} — you share the values that matter.</p></div></div>`;return;}el.innerHTML=msgs.map(m=>`<div style="display:flex;justify-content:${m.mine?'flex-end':'flex-start'}"><div class="msg-bubble ${m.mine?'mine':'theirs'}">${m.text}</div></div>`).join('');el.scrollTop=el.scrollHeight;}
+function sendMessage(){const input=document.getElementById('chat-input');const text=input.value.trim();if(!text)return;if(!conversations[activeChatName])conversations[activeChatName]=[];conversations[activeChatName].push({mine:true,text});input.value='';renderChatMessages();updateMatchNotifs();setTimeout(()=>{const rs=["That's a great point!","I completely agree.","Tell me more about that.","Ha! Same here.","I'd love to hear your thoughts on that."];conversations[activeChatName].push({mine:false,text:rs[Math.floor(Math.random()*rs.length)]});renderChatMessages();},1200);}
+function activatePremium(){isPremium=true;goTo('screen-main');renderProfiles(parseInt(document.getElementById('filter-min').value)||0);}
+
+document.getElementById('settings-btn').addEventListener('click',openEditProfile);
+renderProfiles(0);
+updateSliderDisplay();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').then(r=>console.log('SW registered')).catch(e=>console.log('SW failed',e));
+  });
+}
+</script>
+</body>
+</html>
