@@ -605,6 +605,7 @@ function renderProfiles(minPct){
   const excluded=new Set([...hiddenForever,...passedProfiles]);
   const maxDist=parseInt(document.getElementById('filter-dist').value)||50;
   const myLat=myProfile.lat,myLng=myProfile.lng;
+  console.log('renderProfiles: myLat='+myLat+' myLng='+myLng+' maxDist='+maxDist+' profiles='+browseProfiles.length);
   const list=browseProfiles
     .map(p=>({...p,compat:calcCompat(p.answers)}))
     .filter(p=>{
@@ -613,7 +614,10 @@ function renderProfiles(minPct){
       // Distance filter — skip if neither user has coordinates, or if within range
       if(myLat!=null&&myLng!=null&&p.lat!=null&&p.lng!=null){
         const dist=haversineDistance(myLat,myLng,p.lat,p.lng);
+        console.log(p.name+': '+dist.toFixed(1)+' miles (max '+maxDist+') lat='+p.lat+' lng='+p.lng);
         if(dist>maxDist)return false;
+      } else {
+        console.log(p.name+': no coords (myLat='+myLat+' p.lat='+p.lat+')');
       }
       return true;
     });
