@@ -463,28 +463,42 @@ async function signUpAndSave(){
     return;
   }
   userId=signUpData.user.id;currentUser=signUpData.user;
-  // Upload photo
+  // Upload photo (non-blocking — proceed even if it fails)
   let photo_url='';
-  if(myProfile.photo_file){
-    const ext=myProfile.photo_file.name.split('.').pop();
-    const path=`${userId}/avatar.${ext}`;
-    const {error:upErr}=await sb.storage.from('avatars').upload(path,myProfile.photo_file,{upsert:true});
-    if(!upErr){const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;}
-  }
+  try{
+    if(myProfile.photo_file){
+      const ext=myProfile.photo_file.name.split('.').pop();
+      const path=`${userId}/avatar.${ext}`;
+      const {error:upErr}=await sb.storage.from('avatars').upload(path,myProfile.photo_file,{upsert:true});
+      if(upErr){console.warn('Photo upload failed:',upErr.message);}
+      else{const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;}
+    }
+  }catch(e){console.warn('Photo upload exception:',e);}
+
   const raw=myAnswers.reduce((a,b)=>a+b,0);
   const based_score=Math.round(((raw+120)/240)*100);
+
   // Geocode postcode
   let lat=null,lng=null;
-  const geo=await geocodePostcode(myProfile.location);
-  if(geo){lat=geo.lat;lng=geo.lng;}
+  try{
+    const geo=await geocodePostcode(myProfile.location);
+    if(geo){lat=geo.lat;lng=geo.lng;}
+  }catch(e){console.warn('Geocode failed:',e);}
 
+  console.log('Saving profile for user:', userId, {name:myProfile.name,email,lat,lng});
   const {error:profileErr}=await sb.from('profiles').upsert({
     id:userId,name:myProfile.name,dob:myProfile.dob,location:myProfile.location,
     sex:myProfile.sex,photo_url,based_score,answers:myAnswers,
     is_hidden:false,is_premium:false,lat,lng,
     email:email
   });
-  if(profileErr){removeModal();showToast('Profile save error: '+profileErr.message,true);return;}
+  if(profileErr){
+    console.error('Profile save error:', profileErr);
+    removeModal();
+    showToast('Profile save error: '+profileErr.message,true);
+    return;
+  }
+  console.log('Profile saved successfully');
   removeModal();
   isPremium=false;profileHidden=false;
   await loadMyInteractions();
