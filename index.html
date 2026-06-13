@@ -436,13 +436,12 @@ async function signUpAndSave(){
   // Try sign up first
   const {data:signUpData,error:signUpErr}=await sb.auth.signUp({email,password:pass});
   if(signUpErr){
-    // Maybe already exists — try sign in
-    const {data:signInData,error:signInErr}=await sb.auth.signInWithPassword({email,password:pass});
-    if(signInErr){removeModal();showToast('Account error: '+signInErr.message,true);return;}
-    userId=signInData.user.id;currentUser=signInData.user;
-  } else {
-    userId=signUpData.user.id;currentUser=signUpData.user;
+    removeModal();
+    if(signUpErr.status===429){showToast('Too many attempts — please wait a few minutes and try again.',true);}
+    else{showToast('Sign up error: '+signUpErr.message,true);}
+    return;
   }
+  userId=signUpData.user.id;currentUser=signUpData.user;
   // Upload photo
   let photo_url='';
   if(myProfile.photo_file){
