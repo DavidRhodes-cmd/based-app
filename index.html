@@ -97,6 +97,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 .modal-box{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.15);border-radius:20px;padding:28px 22px;margin:24px;text-align:center;width:100%;}
 .bottom-safe{padding-bottom:calc(var(--safe-bottom) + 12px);}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="app-shell" id="app-shell">
@@ -117,7 +118,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
     <p style="color:var(--text-muted);font-size:14px;line-height:1.6;max-width:270px;margin-bottom:44px">No height. No job title. Just honest answers to honest questions.</p>
     <div style="display:flex;flex-direction:column;gap:12px;width:100%">
       <button class="btn-primary" onclick="goTo('screen-details')">Create my profile</button>
-      <button class="btn-ghost" onclick="goTo('screen-main')">Browse matches</button>
+      <button class="btn-ghost" onclick="goTo('screen-signin')">Sign in</button>
     </div>
   </div>
 </div>
@@ -148,6 +149,8 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" placeholder="Your first name" id="inp-name" autocomplete="given-name" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="date" id="inp-dob" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Where are you now?</label><input class="form-input" type="text" placeholder="Postcode or city name" id="inp-location" autocomplete="postal-code" /></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="inp-email" autocomplete="email" /></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><input class="form-input" type="password" placeholder="Min. 6 characters" id="inp-password" autocomplete="new-password" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Biological sex</label><div style="display:flex;gap:10px"><button class="sex-btn" id="sex-male" onclick="selectSex('male')">Male</button><button class="sex-btn" id="sex-female" onclick="selectSex('female')">Female</button></div></div>
     <div class="banner-note" style="margin-bottom:22px">We don't want to rob you of conversation, so you can figure out the rest.</div>
     <button class="btn-primary bottom-safe" onclick="tryDetails()">Continue to questions</button>
@@ -345,136 +348,531 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
   </div>
 </div>
 
+
+<!-- SIGN IN -->
+<div id="screen-signin" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goTo('screen-welcome')"><i class="ti ti-arrow-left"></i></button>
+    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div style="width:28px"></div>
+  </div>
+  <div class="scrollable" style="padding:28px 22px">
+    <p style="font-family:var(--serif);font-size:22px;color:var(--text-on-dark);margin-bottom:5px">Welcome back</p>
+    <p style="font-size:14px;color:var(--text-muted);margin-bottom:28px;line-height:1.5">Sign in to your BASED account.</p>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="signin-email" autocomplete="email" /></div>
+    <div style="margin-bottom:22px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><input class="form-input" type="password" placeholder="Your password" id="signin-password" autocomplete="current-password" /></div>
+    <button class="btn-primary bottom-safe" onclick="trySignIn()">Sign in</button>
+    <p style="font-size:12px;color:var(--red);text-align:center;margin-top:9px;display:none" id="signin-error"></p>
+    <p style="font-size:13px;color:var(--text-muted);text-align:center;margin-top:18px">Don't have an account? <span style="color:var(--gold);cursor:pointer" onclick="goTo('screen-details')">Create one</span></p>
+  </div>
+</div>
+
 </div><!-- /app-shell -->
 
 <script>
+// ─── Supabase ────────────────────────────────────────────────────────────────
+const { createClient } = supabase;
+const sb = createClient(
+  'https://okubbpsvaogqzdtajiqz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rdWJicHN2YW9ncXpkdGFqaXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyOTYwMTQsImV4cCI6MjA5Njg3MjAxNH0.IpsSIU3C9JOJC5JDS7-WlzrOy1QnSxWiPEy6LMLYEoA'
+);
+
+// ─── Questions & short labels (unchanged) ────────────────────────────────────
 const QUESTIONS=[{text:"Do you believe there are only two biological sexes, men and women?",info:"This question is about biological science — whether you accept the binary classification of male and female based on chromosomes, hormones, and anatomy."},{text:"Do you think open borders damage our country?",info:"Do you believe that unrestricted immigration has a net negative impact on national culture, economy, and security?"},{text:"Do you believe in the God of the Bible?",info:"This refers specifically to the Judeo-Christian God as described in the Bible — not spirituality in general, but that specific faith tradition."},{text:"Is starting a family in your future plan?",info:"Are marriage and/or having children something you actively want and are working towards in your life plans?"},{text:"Is your own family a core part of your life?",info:"Do you prioritise and maintain close relationships with your immediate and extended family? Is family a central pillar of your identity and time?"},{text:"Do you believe in small government?",info:"Do you think the state should play a minimal role in citizens' lives — lower taxes, fewer regulations, and more individual freedom over government intervention?"},{text:"Do you believe in freedom of speech?",info:"Do you support the right of individuals to express views — including controversial or unpopular ones — without legal or social censure, beyond direct incitement to violence?"},{text:"Are you happy to openly discuss difficult or controversial subjects?",info:"Are you comfortable having frank conversations about topics others might avoid — politics, religion, morality, culture — without feeling offended or shutting down?"},{text:"Do you believe in working and self-reliance?",info:"Do you value personal responsibility, hard work, and independence over reliance on the state or others to provide for your needs?"},{text:"Do you believe in traditional gender roles?",info:"Do you think there is value in the complementary roles men and women have historically played in family and society — provider, nurturer, etc. — even if not rigidly applied?"},{text:"Are you good with personal finances?",info:"Regardless of your income from work, assets, or investments — do you budget accordingly and enjoy life whilst living within your means?"},{text:"Are you against abortion and euthanasia?",info:"Do you hold a pro-life position on both the termination of pregnancy and medically assisted dying?"}];
 const Q_SHORT=["Two biological sexes","Open borders are harmful","Belief in God of the Bible","Starting a family","Family is central to life","Small government","Freedom of speech","Open about controversy","Work & self-reliance","Traditional gender roles","Good with finances","Against abortion & euthanasia"];
-const PROFILES=[{initials:"SH",name:"Sarah H.",age:28,location:"Leeds",basedScore:91,answers:[9,8,10,9,10,7,9,8,8,9,7,10]},{initials:"EW",name:"Emily W.",age:31,location:"York",basedScore:84,answers:[8,7,9,10,8,6,8,9,7,8,8,9]},{initials:"LM",name:"Laura M.",age:26,location:"Harrogate",basedScore:78,answers:[10,6,7,8,9,5,9,7,8,6,9,7]},{initials:"KT",name:"Kate T.",age:34,location:"Sheffield",basedScore:72,answers:[7,9,5,7,6,8,7,10,9,4,6,5]},{initials:"AN",name:"Amy N.",age:29,location:"Hull",basedScore:65,answers:[6,5,8,6,7,4,6,5,7,7,5,6]},{initials:"RB",name:"Rachel B.",age:27,location:"Middlesbrough",basedScore:58,answers:[5,7,4,5,6,6,8,4,6,3,7,4]},{initials:"JF",name:"Jess F.",age:33,location:"Bradford",basedScore:52,answers:[4,3,6,4,5,3,5,6,5,2,4,3]}];
-const FREE_LIMIT=5;
-let viewedProfiles=new Set(),isPremium=false,profileHidden=false,currentQ=0,myAnswers=new Array(12).fill(0),infoOpen=false;
-let myProfile={name:'',dob:'',location:'',sex:'',photo:null};
-let expressedInterest=new Set(),mutualMatches=new Set(),hiddenForever=new Set(),passedProfiles=new Set(),conversations={},activeChatName='';
-const theyLikedMe=new Set(['Sarah H.','Laura M.','Kate T.']);
 
+// ─── Demo profiles (kept for testing while real users are few) ────────────────
+const DEMO_PROFILES=[{initials:"SH",name:"Sarah H.",age:28,location:"Leeds",basedScore:91,answers:[9,8,10,9,10,7,9,8,8,9,7,10],id:"demo-1"},{initials:"EW",name:"Emily W.",age:31,location:"York",basedScore:84,answers:[8,7,9,10,8,6,8,9,7,8,8,9],id:"demo-2"},{initials:"LM",name:"Laura M.",age:26,location:"Harrogate",basedScore:78,answers:[10,6,7,8,9,5,9,7,8,6,9,7],id:"demo-3"},{initials:"KT",name:"Kate T.",age:34,location:"Sheffield",basedScore:72,answers:[7,9,5,7,6,8,7,10,9,4,6,5],id:"demo-4"},{initials:"AN",name:"Amy N.",age:29,location:"Hull",basedScore:65,answers:[6,5,8,6,7,4,6,5,7,7,5,6],id:"demo-5"},{initials:"RB",name:"Rachel B.",age:27,location:"Middlesbrough",basedScore:58,answers:[5,7,4,5,6,6,8,4,6,3,7,4],id:"demo-6"},{initials:"JF",name:"Jess F.",age:33,location:"Bradford",basedScore:52,answers:[4,3,6,4,5,3,5,6,5,2,4,3],id:"demo-7"}];
+
+// ─── App state ────────────────────────────────────────────────────────────────
+const FREE_LIMIT=5;
+let currentUser=null; // Supabase auth user
+let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null};
+let myAnswers=new Array(12).fill(0);
+let currentQ=0,infoOpen=false;
+let isPremium=false,profileHidden=false;
+let viewedProfiles=new Set(),expressedInterest=new Set(),mutualMatches=new Set();
+let hiddenForever=new Set(),passedProfiles=new Set();
+let conversations={},activeChatName='',activeChatPartnerId=null;
+let browseProfiles=[]; // loaded from Supabase + demo
+let messageChannel=null; // Supabase realtime channel
+
+// ─── Utility ──────────────────────────────────────────────────────────────────
 function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
 function showModal(html){removeModal();const bd=document.createElement('div');bd.className='modal-backdrop';bd.id='modal-bd';bd.innerHTML=`<div class="modal-box">${html}</div>`;document.getElementById('app-shell').appendChild(bd);}
 function removeModal(){const m=document.getElementById('modal-bd');if(m)m.remove();}
-function selectSex(s){document.getElementById('sex-male').classList.toggle('selected',s==='male');document.getElementById('sex-female').classList.toggle('selected',s==='female');myProfile.sex=s;}
-function selectEditSex(s){document.getElementById('edit-sex-male').classList.toggle('selected',s==='male');document.getElementById('edit-sex-female').classList.toggle('selected',s==='female');myProfile.sex=s;}
-function handlePhotoUpload(input){const file=input.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{myProfile.photo=e.target.result;document.getElementById('upload-placeholder').style.display='none';const pr=document.getElementById('upload-preview');pr.src=myProfile.photo;pr.style.display='block';document.getElementById('upload-area').classList.add('has-photo');};r.readAsDataURL(file);}
-function handleEditPhoto(input){const file=input.files[0];if(!file)return;const r=new FileReader();r.onload=e=>{myProfile.photo=e.target.result;const img=document.getElementById('edit-avatar-img');img.src=myProfile.photo;img.style.display='block';document.getElementById('edit-avatar-initials').style.display='none';};r.readAsDataURL(file);}
-function tryDetails(){const err=document.getElementById('details-error');if(!myProfile.photo){err.style.display='block';return;}err.style.display='none';myProfile.name=document.getElementById('inp-name').value||'You';myProfile.dob=document.getElementById('inp-dob').value;myProfile.location=document.getElementById('inp-location').value;startQuestions();}
-function startQuestions(){currentQ=0;myAnswers=new Array(12).fill(0);loadQuestion(0);goTo('screen-questions');}
-function resetQuestions(){currentQ=0;myAnswers=new Array(12).fill(0);loadQuestion(0);}
-function loadQuestion(i){const q=QUESTIONS[i];document.getElementById('q-number').textContent='Question '+(i+1);document.getElementById('q-text').textContent=q.text;document.getElementById('q-info-expand').textContent=q.info;document.getElementById('q-info-expand').style.display='none';infoOpen=false;document.getElementById('q-slider').value=myAnswers[i];updateSliderDisplay();document.getElementById('q-progress').style.width=Math.round(((i+1)/12)*100)+'%';document.getElementById('q-progress-label').textContent=(i+1)+' of 12';document.getElementById('q-banner').style.display=i===0?'block':'none';document.getElementById('q-next-btn').textContent=i===11?'See my score':'Next';document.getElementById('q-back-btn').onclick=i===0?()=>goTo('screen-details'):prevQuestion;}
-function updateSliderDisplay(){const v=parseInt(document.getElementById('q-slider').value);document.getElementById('slider-val').textContent=v>0?'+'+v:String(v);const lbls=['Strongly No','Strongly No','No','No','Leaning No','Leaning No','Neutral','Leaning Yes','Leaning Yes','Yes','Yes','Strongly Yes','Strongly Yes'];document.getElementById('slider-label').textContent=lbls[v+10]||'Neutral';const f=((v+10)/20)*100;document.getElementById('q-slider').style.background=`linear-gradient(to right,rgba(201,168,76,0.6) 0%,rgba(201,168,76,0.9) ${f}%,rgba(255,255,255,0.12) ${f}%)`;}
-function toggleInfo(){infoOpen=!infoOpen;document.getElementById('q-info-expand').style.display=infoOpen?'block':'none';}
-function nextQuestion(){myAnswers[currentQ]=parseInt(document.getElementById('q-slider').value);if(currentQ<11){currentQ++;loadQuestion(currentQ);}else showResults();}
-function prevQuestion(){if(currentQ>0){myAnswers[currentQ]=parseInt(document.getElementById('q-slider').value);currentQ--;loadQuestion(currentQ);}}
-function skipQuestion(){myAnswers[currentQ]=0;if(currentQ<11){currentQ++;loadQuestion(currentQ);}else showResults();}
-function showResults(){const raw=myAnswers.reduce((a,b)=>a+b,0);const pct=Math.round(((raw+120)/240)*100);document.getElementById('score-pct-display').textContent=pct+'%';const circ=2*Math.PI*68;document.getElementById('score-arc').style.strokeDashoffset=circ*(1-pct/100);document.getElementById('score-arc').style.strokeDasharray=circ;goTo('screen-results');renderProfiles(0);}
+function showToast(msg,isError=false){let t=document.getElementById('sb-toast');if(!t){t=document.createElement('div');t.id='sb-toast';t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:22px;font-size:13px;z-index:9999;transition:opacity 0.3s;font-family:-apple-system,sans-serif;max-width:300px;text-align:center';document.body.appendChild(t);}t.textContent=msg;t.style.background=isError?'rgba(235,87,87,0.95)':'rgba(111,207,151,0.95)';t.style.color='#fff';t.style.opacity='1';setTimeout(()=>{t.style.opacity='0';},2800);}
+
+function calcAge(dob){if(!dob)return'?';const d=new Date(dob),n=new Date();let a=n.getFullYear()-d.getFullYear();if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate()))a--;return a;}
 function calcCompat(pa){let d=0;for(let i=0;i<12;i++)d+=Math.abs(myAnswers[i]-pa[i]);return Math.round((1-d/240)*100);}
-function updateFilter(){const v=parseInt(document.getElementById('filter-min').value);const d=parseInt(document.getElementById('filter-dist').value);document.getElementById('filter-min-val').textContent=v+'%';document.getElementById('filter-dist-val').textContent=d+' mi';renderProfiles(v);}
+function calcBasedScore(answers){const raw=answers.reduce((a,b)=>a+b,0);return Math.round(((raw+120)/240)*100);}
+function initials(name){return(name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
+
+// ─── Auth: sign up / sign in ──────────────────────────────────────────────────
+// We use email+password via Supabase Auth.
+// The welcome screen "Create my profile" collects details then signs up.
+// "Browse matches" tries to restore a session.
+
+async function tryDetails(){
+  const err=document.getElementById('details-error');
+  if(!myProfile.photo){err.style.display='block';err.textContent='Please upload a photo before continuing.';return;}
+  const name=document.getElementById('inp-name').value.trim();
+  const email=document.getElementById('inp-email').value.trim();
+  const pass=document.getElementById('inp-password').value;
+  const dob=document.getElementById('inp-dob').value;
+  const location=document.getElementById('inp-location').value.trim();
+  if(!name||!email||!pass||!dob||!location||!myProfile.sex){err.style.display='block';err.textContent='Please fill in all fields.';return;}
+  if(pass.length<6){err.style.display='block';err.textContent='Password must be at least 6 characters.';return;}
+  err.style.display='none';
+  myProfile.name=name;myProfile.dob=dob;myProfile.location=location;
+  startQuestions();
+}
+
+async function signUpAndSave(){
+  showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Creating your account…</p></div>');
+  const email=document.getElementById('inp-email').value.trim();
+  const pass=document.getElementById('inp-password').value;
+  let userId;
+  // Try sign up first
+  const {data:signUpData,error:signUpErr}=await sb.auth.signUp({email,password:pass});
+  if(signUpErr){
+    // Maybe already exists — try sign in
+    const {data:signInData,error:signInErr}=await sb.auth.signInWithPassword({email,password:pass});
+    if(signInErr){removeModal();showToast('Account error: '+signInErr.message,true);return;}
+    userId=signInData.user.id;currentUser=signInData.user;
+  } else {
+    userId=signUpData.user.id;currentUser=signUpData.user;
+  }
+  // Upload photo
+  let photo_url='';
+  if(myProfile.photo_file){
+    const ext=myProfile.photo_file.name.split('.').pop();
+    const path=`${userId}/avatar.${ext}`;
+    const {error:upErr}=await sb.storage.from('avatars').upload(path,myProfile.photo_file,{upsert:true});
+    if(!upErr){const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;}
+  }
+  const raw=myAnswers.reduce((a,b)=>a+b,0);
+  const based_score=Math.round(((raw+120)/240)*100);
+  const {error:profileErr}=await sb.from('profiles').upsert({
+    id:userId,name:myProfile.name,dob:myProfile.dob,location:myProfile.location,
+    sex:myProfile.sex,photo_url,based_score,answers:myAnswers,
+    is_hidden:false,is_premium:false
+  });
+  if(profileErr){removeModal();showToast('Profile save error: '+profileErr.message,true);return;}
+  removeModal();
+  isPremium=false;profileHidden=false;
+  await loadMyInteractions();
+  await loadBrowseProfiles();
+  showResults();
+}
+
+async function trySignIn(){
+  const email=document.getElementById('signin-email').value.trim();
+  const pass=document.getElementById('signin-password').value;
+  const err=document.getElementById('signin-error');
+  if(!email||!pass){err.style.display='block';err.textContent='Please enter email and password.';return;}
+  err.style.display='none';
+  showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Signing in…</p></div>');
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){removeModal();err.style.display='block';err.textContent='Sign in failed: '+error.message;return;}
+  currentUser=data.user;
+  await restoreSession();
+  removeModal();
+  await loadBrowseProfiles();
+  goTo('screen-main');renderProfiles(0);
+}
+
+async function restoreSession(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)return false;
+  currentUser=session.user;
+  // Load profile
+  const {data:p}=await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+  if(p){
+    myProfile={name:p.name,dob:p.dob,location:p.location,sex:p.sex,photo:p.photo_url,photo_file:null};
+    myAnswers=p.answers||new Array(12).fill(0);
+    isPremium=p.is_premium||false;
+    profileHidden=p.is_hidden||false;
+  }
+  await loadMyInteractions();
+  return true;
+}
+
+// ─── Interactions & matches from Supabase ─────────────────────────────────────
+async function loadMyInteractions(){
+  if(!currentUser)return;
+  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();
+  // What I've done to others
+  const {data:mine}=await sb.from('interactions').select('to_user,action').eq('from_user',currentUser.id);
+  if(mine)mine.forEach(r=>{
+    if(r.action==='interested')expressedInterest.add(r.to_user);
+    if(r.action==='hide_forever')hiddenForever.add(r.to_user);
+  });
+  // What others have done to me (to detect mutual)
+  const {data:theirs}=await sb.from('interactions').select('from_user,action').eq('to_user',currentUser.id).eq('action','interested');
+  if(theirs)theirs.forEach(r=>{
+    if(expressedInterest.has(r.from_user))mutualMatches.add(r.from_user);
+  });
+  updateMatchNotifs();
+}
+
+async function recordInteraction(toUserId,action){
+  if(!currentUser)return;
+  await sb.from('interactions').upsert({from_user:currentUser.id,to_user:toUserId,action},{onConflict:'from_user,to_user'});
+}
+
+// ─── Browse profiles from Supabase ───────────────────────────────────────────
+async function loadBrowseProfiles(){
+  browseProfiles=[...DEMO_PROFILES]; // always include demo profiles
+  if(!currentUser)return;
+  const oppSex=myProfile.sex==='male'?'female':'male';
+  const {data:profiles}=await sb.from('profiles')
+    .select('*')
+    .eq('sex',oppSex)
+    .eq('is_hidden',false)
+    .neq('id',currentUser.id);
+  if(profiles&&profiles.length){
+    const real=profiles.map(p=>({
+      id:p.id,
+      initials:initials(p.name),
+      name:p.name,
+      age:calcAge(p.dob),
+      location:p.location,
+      basedScore:p.based_score,
+      answers:p.answers||new Array(12).fill(0),
+      photo_url:p.photo_url
+    }));
+    browseProfiles=[...real,...DEMO_PROFILES];
+  }
+}
+
+// ─── Profile rendering ────────────────────────────────────────────────────────
 function renderProfiles(minPct){
   if(minPct===undefined)minPct=0;
   const container=document.getElementById('profile-cards');
-  const list=PROFILES.map(p=>({...p,compat:calcCompat(p.answers)})).filter(p=>p.compat>=minPct&&!hiddenForever.has(p.name)&&!passedProfiles.has(p.name));
+  const excluded=new Set([...hiddenForever,...passedProfiles]);
+  const list=browseProfiles
+    .map(p=>({...p,compat:calcCompat(p.answers)}))
+    .filter(p=>p.compat>=minPct&&!excluded.has(p.id)&&!excluded.has(p.name));
   if(!list.length){container.innerHTML='<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px 0">No profiles match your filters.</p>';return;}
   let html='';
   if(!isPremium){const used=viewedProfiles.size;const dots=Array.from({length:FREE_LIMIT},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<used?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px"><span style="font-size:13px;color:var(--text-muted)">${FREE_LIMIT-used} free view${FREE_LIMIT-used===1?'':'s'} remaining</span><span>${dots}</span></div>`;}
   else{html+=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:13px;background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:9px;padding:8px 12px"><i class="ti ti-crown" style="font-size:14px;color:var(--gold)"></i><span style="font-size:13px;color:var(--gold-light)">Unlimited access active</span></div>`;}
   list.forEach(p=>{
-    const isLocked=!isPremium&&!viewedProfiles.has(p.name)&&viewedProfiles.size>=FREE_LIMIT;
-    const isMutual=mutualMatches.has(p.name);const theyLiked=theyLikedMe.has(p.name);const hasInterest=expressedInterest.has(p.name);
-    const badge=isMutual?`<span style="font-size:10px;color:var(--green);border:0.5px solid rgba(111,207,151,0.4);border-radius:5px;padding:2px 7px;margin-left:5px"><i class="ti ti-heart" style="font-size:10px"></i> Match</span>`:theyLiked&&!hasInterest?`<span style="font-size:10px;color:var(--gold);border:0.5px solid rgba(201,168,76,0.4);border-radius:5px;padding:2px 7px;margin-left:5px"><i class="ti ti-star" style="font-size:10px"></i> Likes you</span>`:'';
+    const profileKey=p.id||p.name;
+    const isLocked=!isPremium&&!viewedProfiles.has(profileKey)&&viewedProfiles.size>=FREE_LIMIT;
+    const isMutual=mutualMatches.has(profileKey);
+    const theyLiked=false; // determined server-side now
+    const hasInterest=expressedInterest.has(profileKey);
+    const badge=isMutual?`<span style="font-size:10px;color:var(--green);border:0.5px solid rgba(111,207,151,0.4);border-radius:5px;padding:2px 7px;margin-left:5px"><i class="ti ti-heart" style="font-size:10px"></i> Match</span>`:'';
+    const avatarContent=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
     const aStr=JSON.stringify(p.answers).replace(/"/g,'&quot;');
     if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="goTo('screen-paywall')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:7px">Upgrade to view</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%"></div></div><span style="font-size:13px;font-weight:600;color:var(--gold);min-width:38px;text-align:right">${p.compat}%</span></div></div></div>`;}
-    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${aStr}',${p.compat},${p.basedScore},'${p.initials}','${p.name}',${p.age},'${p.location}')"><div class="avatar">${p.initials}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">${p.location}${badge}</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%"></div></div><span style="font-size:13px;font-weight:600;color:var(--gold);min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
+    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${aStr}',${p.compat},${p.basedScore},'${p.initials}','${p.name}',${p.age},'${p.location}','${p.photo_url||''}','${profileKey}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">${p.location}${badge}</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%"></div></div><span style="font-size:13px;font-weight:600;color:var(--gold);min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
   });
   if(!isPremium&&viewedProfiles.size>=FREE_LIMIT){html+=`<div style="background:rgba(15,18,30,0.95);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;padding:22px;margin-top:6px;text-align:center"><i class="ti ti-crown" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:8px">You've seen your 5 free profiles</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">Unlock unlimited browsing for less than a coffee a month.</p><button class="btn-primary" onclick="goTo('screen-paywall')" style="font-size:15px;padding:14px">Unlock unlimited — £4.99/month</button></div>`;}
   container.innerHTML=html;
 }
-function handleProfileTap(aStr,compat,basedScore,initials,name,age,location){
-  if(!isPremium&&!viewedProfiles.has(name)&&viewedProfiles.size>=FREE_LIMIT){goTo('screen-paywall');return;}
+
+function handleProfileTap(aStr,compat,basedScore,inits,name,age,location,photoUrl,profileKey){
+  if(!isPremium&&!viewedProfiles.has(profileKey)&&viewedProfiles.size>=FREE_LIMIT){goTo('screen-paywall');return;}
   let answers;try{answers=JSON.parse(aStr.replace(/&quot;/g,'"'));}catch(e){answers=new Array(12).fill(0);}
-  viewedProfiles.add(name);
-  openProfile(answers,compat,basedScore,initials,name,age,location);
+  viewedProfiles.add(profileKey);
+  openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey);
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
 }
-function openProfile(answers,compat,basedScore,initials,name,age,location){
-  const hasInterest=expressedInterest.has(name),isMutual=mutualMatches.has(name),theyLiked=theyLikedMe.has(name);
+
+function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey){
+  const hasInterest=expressedInterest.has(profileKey);
+  const isMutual=mutualMatches.has(profileKey);
   const scoreColor=compat>=80?'var(--green)':compat>=60?'var(--gold)':'var(--red)';
-  const qRows=Q_SHORT.map((q,i)=>{const diff=Math.abs(myAnswers[i]-answers[i]);const col=diff<=2?'var(--green)':diff<=6?'var(--gold)':'var(--red)';const bw=Math.round(((answers[i]+10)/20)*100);return `<div style="margin-bottom:13px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:13px;color:var(--text-muted);flex:1;padding-right:9px">${q}</span><span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${col}22;color:${col};border:0.5px solid ${col}55;white-space:nowrap">${diff<=2?'Aligned':diff<=6?'Close':'Differs'}</span></div><div style="height:4px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden"><div style="height:4px;width:${bw}%;background:${col};border-radius:4px"></div></div></div>`;}).join('');
+  const qRows=Q_SHORT.map((q,i)=>{
+    const my=myAnswers[i],them=answers[i];
+    const diff=Math.abs(my-them);
+    const sameSign=(my===0&&them===0)||(my>0&&them>0)||(my<0&&them<0);
+    const col=!sameSign?'var(--red)':diff>=5?'var(--gold)':'var(--green)';
+    const label=!sameSign?'Differs':diff>=5?'Close':'Aligned';
+    const toP=s=>((s+10)/20)*100;
+    const myP=toP(my),themP=toP(them);
+    const lineLeft=Math.min(myP,themP),lineWidth=Math.abs(myP-themP);
+    const myLabel=my>0?'+'+my:String(my),themLabel=them>0?'+'+them:String(them);
+    return `<div style="margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;color:var(--text-muted);flex:1;padding-right:9px">${q}</span>
+        <span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${col}22;color:${col};border:0.5px solid ${col}55;white-space:nowrap">${label}</span>
+      </div>
+      <div style="position:relative;height:20px;margin:0 4px">
+        <div style="position:absolute;top:50%;left:0;right:0;height:3px;background:rgba(255,255,255,0.08);border-radius:3px;transform:translateY(-50%)"></div>
+        <div style="position:absolute;top:50%;left:50%;width:1px;height:10px;background:rgba(255,255,255,0.2);transform:translate(-50%,-50%)"></div>
+        <div style="position:absolute;top:50%;left:${lineLeft}%;width:${lineWidth}%;height:3px;background:${col};transform:translateY(-50%);border-radius:3px;opacity:0.85"></div>
+        <div style="position:absolute;top:50%;left:${themP}%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:#1a1f2e;border:2.5px solid ${col}" title="Them: ${themLabel}"></div>
+        <div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:var(--gold);border:2px solid #1a1f2e" title="You: ${myLabel}"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px;padding:0 4px">
+        <span style="font-size:10px;color:rgba(255,255,255,0.2)">−10</span>
+        <span style="font-size:10px;color:rgba(255,255,255,0.2)">0</span>
+        <span style="font-size:10px;color:rgba(255,255,255,0.2)">+10</span>
+      </div>
+    </div>`;
+  }).join('');
   let topBanner='';
   if(isMutual)topBanner=`<div style="background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.35);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px"><i class="ti ti-heart" style="font-size:22px;color:var(--green)"></i><div><p style="font-size:15px;color:var(--green);font-weight:600">It's a match!</p><p style="font-size:13px;color:var(--text-muted)">You both expressed interest. You can now message each other.</p></div></div>`;
-  else if(theyLiked&&!hasInterest)topBanner=`<div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.3);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px"><i class="ti ti-star" style="font-size:20px;color:var(--gold)"></i><p style="font-size:14px;color:var(--gold-light)">This person has already expressed interest in you.</p></div>`;
   const aEncoded=JSON.stringify(answers).replace(/"/g,'&quot;');
   let actionRow='';
   if(isMutual){
-    actionRow=`<div style="margin-top:18px;display:flex;flex-direction:column;gap:11px"><button class="btn-primary" onclick="openChat('${name}','${initials}')"><i class="ti ti-message" style="margin-right:7px"></i>Send a message</button><div class="action-btn-row"><button class="act-btn hide-profile" onclick="hideForever('${name}')"><i class="ti ti-eye-off"></i>Don't show again</button></div></div>`;
+    actionRow=`<div style="margin-top:18px;display:flex;flex-direction:column;gap:11px"><button class="btn-primary" onclick="openChat('${profileKey}','${inits}','${name}')"><i class="ti ti-message" style="margin-right:7px"></i>Send a message</button><div class="action-btn-row"><button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div></div>`;
   } else {
     const intCls=hasInterest?'act-btn expressed':'act-btn interested';
-    const intClick=hasInterest?'':` onclick="doExpressInterest('${name}','${initials}','${aEncoded}',${compat},${basedScore},'${age}','${location}')"`;
-    actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}"${intClick}><i class="ti ti-heart"></i>Interested</button><button class="act-btn" onclick="moveOn('${name}')"><i class="ti ti-arrow-right"></i>Move on</button><button class="act-btn hide-profile" onclick="hideForever('${name}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
+    const intClick=hasInterest?'':` onclick="doExpressInterest('${profileKey}','${inits}','${aEncoded}',${compat},${basedScore},'${age}','${location}','${photoUrl||''}','${name}')"`;
+    actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}"${intClick}><i class="ti ti-heart"></i>Interested</button><button class="act-btn" onclick="doMoveOn('${profileKey}')"><i class="ti ti-arrow-right"></i>Move on</button><button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
   }
-  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px"><div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4)">${initials}</div><div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}</div><div style="font-size:14px;color:var(--text-muted);margin-top:3px"><i class="ti ti-map-pin" style="font-size:13px;vertical-align:-1px"></i> ${location}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">COMPATIBILITY</div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">BASED SCORE</div><div style="font-size:28px;font-weight:700;color:var(--gold);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
+  const avatarHtml=photoUrl?`<img src="${photoUrl}" style="width:68px;height:68px;object-fit:cover;border-radius:50%;border:2px solid rgba(201,168,76,0.4)" alt="${name}" />`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4)">${inits}</div>`;
+  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}</div><div style="font-size:14px;color:var(--text-muted);margin-top:3px"><i class="ti ti-map-pin" style="font-size:13px;vertical-align:-1px"></i> ${location}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">COMPATIBILITY</div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">BASED SCORE</div><div style="font-size:28px;font-weight:700;color:var(--gold);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
   goTo('screen-profile');
 }
-function doExpressInterest(name,initials,aEncoded,compat,basedScore,age,location){
-  expressedInterest.add(name);
+
+async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age,location,photoUrl,name){
+  expressedInterest.add(profileKey);
+  await recordInteraction(profileKey,'interested');
+  // Check if they liked us back (re-query)
+  if(currentUser){
+    const {data}=await sb.from('interactions').select('id').eq('from_user',profileKey).eq('to_user',currentUser.id).eq('action','interested');
+    if(data&&data.length){mutualMatches.add(profileKey);updateMatchNotifs();showToast("It's a match with "+name+"! 🎉");}
+  }
   let answers;try{answers=JSON.parse(aEncoded.replace(/&quot;/g,'"'));}catch(e){answers=new Array(12).fill(0);}
-  if(theyLikedMe.has(name)){mutualMatches.add(name);if(!conversations[name])conversations[name]=[];updateMatchNotifs();}
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
-  openProfile(answers,compat,basedScore,initials,name,age,location);
+  openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey);
 }
-function moveOn(name){passedProfiles.add(name);renderProfiles(parseInt(document.getElementById('filter-min').value)||0);goTo('screen-main');}
-function hideForever(name){hiddenForever.add(name);passedProfiles.delete(name);renderProfiles(parseInt(document.getElementById('filter-min').value)||0);goTo('screen-main');}
-function toggleHideProfile(){profileHidden=!profileHidden;document.getElementById('hide-toggle').classList.toggle('on',profileHidden);document.getElementById('hidden-banner').style.display=profileHidden?'block':'none';}
+
+async function doMoveOn(profileKey){
+  passedProfiles.add(profileKey);
+  await recordInteraction(profileKey,'pass');
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  goTo('screen-main');
+}
+
+async function doHideForever(profileKey){
+  hiddenForever.add(profileKey);
+  passedProfiles.delete(profileKey);
+  await recordInteraction(profileKey,'hide_forever');
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  goTo('screen-main');
+}
+
+// ─── Questions flow ───────────────────────────────────────────────────────────
+function selectSex(s){document.getElementById('sex-male').classList.toggle('selected',s==='male');document.getElementById('sex-female').classList.toggle('selected',s==='female');myProfile.sex=s;}
+function selectEditSex(s){document.getElementById('edit-sex-male').classList.toggle('selected',s==='male');document.getElementById('edit-sex-female').classList.toggle('selected',s==='female');myProfile.sex=s;}
+function handlePhotoUpload(input){const file=input.files[0];if(!file)return;myProfile.photo_file=file;const r=new FileReader();r.onload=e=>{myProfile.photo=e.target.result;document.getElementById('upload-placeholder').style.display='none';const pr=document.getElementById('upload-preview');pr.src=myProfile.photo;pr.style.display='block';document.getElementById('upload-area').classList.add('has-photo');};r.readAsDataURL(file);}
+function handleEditPhoto(input){const file=input.files[0];if(!file)return;myProfile.photo_file=file;const r=new FileReader();r.onload=e=>{myProfile.photo=e.target.result;const img=document.getElementById('edit-avatar-img');img.src=myProfile.photo;img.style.display='block';document.getElementById('edit-avatar-initials').style.display='none';};r.readAsDataURL(file);}
+function startQuestions(){currentQ=0;myAnswers=new Array(12).fill(0);loadQuestion(0);goTo('screen-questions');}
+function resetQuestions(){currentQ=0;myAnswers=new Array(12).fill(0);loadQuestion(0);}
+function loadQuestion(i){const q=QUESTIONS[i];document.getElementById('q-number').textContent='Question '+(i+1);document.getElementById('q-text').textContent=q.text;document.getElementById('q-info-expand').textContent=q.info;document.getElementById('q-info-expand').style.display='none';infoOpen=false;document.getElementById('q-slider').value=myAnswers[i];updateSliderDisplay();document.getElementById('q-progress').style.width=Math.round(((i+1)/12)*100)+'%';document.getElementById('q-progress-label').textContent=(i+1)+' of 12';document.getElementById('q-banner').style.display=i===0?'block':'none';document.getElementById('q-next-btn').textContent=i===11?'See my score':'Next';document.getElementById('q-back-btn').onclick=i===0?()=>goTo('screen-details'):prevQuestion;}
+function updateSliderDisplay(){const v=parseInt(document.getElementById('q-slider').value);document.getElementById('slider-val').textContent=v>0?'+'+v:String(v);const lbls=['Strongly No','Strongly No','No','No','Leaning No','Leaning No','Neutral','Leaning Yes','Leaning Yes','Yes','Yes','Strongly Yes','Strongly Yes'];document.getElementById('slider-label').textContent=lbls[v+10]||'Neutral';const f=((v+10)/20)*100;document.getElementById('q-slider').style.background=`linear-gradient(to right,rgba(201,168,76,0.6) 0%,rgba(201,168,76,0.9) ${f}%,rgba(255,255,255,0.12) ${f}%)`;}
+function toggleInfo(){infoOpen=!infoOpen;document.getElementById('q-info-expand').style.display=infoOpen?'block':'none';}
+function nextQuestion(){myAnswers[currentQ]=parseInt(document.getElementById('q-slider').value);if(currentQ<11){currentQ++;loadQuestion(currentQ);}else{if(currentUser){updateProfileAnswers();}else{signUpAndSave();}}}
+function prevQuestion(){if(currentQ>0){myAnswers[currentQ]=parseInt(document.getElementById('q-slider').value);currentQ--;loadQuestion(currentQ);}}
+function skipQuestion(){myAnswers[currentQ]=0;if(currentQ<11){currentQ++;loadQuestion(currentQ);}else{if(currentUser){updateProfileAnswers();}else{signUpAndSave();}}}
+
+async function updateProfileAnswers(){
+  // Called when an existing user retakes questions
+  const raw=myAnswers.reduce((a,b)=>a+b,0);
+  const based_score=Math.round(((raw+120)/240)*100);
+  await sb.from('profiles').update({answers:myAnswers,based_score}).eq('id',currentUser.id);
+  showResults();
+}
+
+function showResults(){
+  const raw=myAnswers.reduce((a,b)=>a+b,0);
+  const pct=Math.round(((raw+120)/240)*100);
+  document.getElementById('score-pct-display').textContent=pct+'%';
+  const circ=2*Math.PI*68;
+  document.getElementById('score-arc').style.strokeDashoffset=circ*(1-pct/100);
+  document.getElementById('score-arc').style.strokeDasharray=circ;
+  goTo('screen-results');
+  renderProfiles(0);
+}
+
+function updateFilter(){const v=parseInt(document.getElementById('filter-min').value);const d=parseInt(document.getElementById('filter-dist').value);document.getElementById('filter-min-val').textContent=v+'%';document.getElementById('filter-dist-val').textContent=d+' mi';renderProfiles(v);}
+
+// ─── Messaging ────────────────────────────────────────────────────────────────
+function switchTab(tab){['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?'block':'none';});if(tab==='matches')renderMatchesTab();if(tab==='messages')renderConversationsTab();}
+
+async function openChat(partnerId,inits,name){
+  activeChatName=name;activeChatPartnerId=partnerId;
+  document.getElementById('chat-name-header').textContent=name;
+  document.getElementById('chat-avatar-header').textContent=inits;
+  await renderChatMessages();
+  goTo('screen-chat');
+  subscribeToMessages(partnerId);
+  updateMatchNotifs();
+}
+
+function getMatchId(uid1,uid2){// deterministic match ID from two user IDs
+  return [uid1,uid2].sort().join('__');
+}
+
+async function renderChatMessages(){
+  if(!currentUser)return;
+  const matchId=getMatchId(currentUser.id,activeChatPartnerId);
+  const {data:msgs}=await sb.from('messages').select('*').eq('match_id',matchId).order('created_at',{ascending:true});
+  const el=document.getElementById('chat-messages');
+  if(!msgs||!msgs.length){
+    el.innerHTML=`<div style="text-align:center;padding:32px 18px"><div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:14px;padding:18px"><i class="ti ti-heart" style="font-size:24px;color:var(--gold);margin-bottom:10px;display:block"></i><p style="font-size:14px;color:var(--gold-light);margin-bottom:5px">It's a match!</p><p style="font-size:13px;color:var(--text-muted)">Say hello to ${activeChatName} — you share the values that matter.</p></div></div>`;
+    return;
+  }
+  el.innerHTML=msgs.map(m=>{const mine=m.sender_id===currentUser.id;return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div class="msg-bubble ${mine?'mine':'theirs'}">${m.content}</div></div>`;}).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+async function sendMessage(){
+  const input=document.getElementById('chat-input');
+  const text=input.value.trim();
+  if(!text||!currentUser)return;
+  const matchId=getMatchId(currentUser.id,activeChatPartnerId);
+  input.value='';
+  await sb.from('messages').insert({match_id:matchId,sender_id:currentUser.id,content:text});
+  await renderChatMessages();
+}
+
+function subscribeToMessages(partnerId){
+  if(messageChannel)sb.removeChannel(messageChannel);
+  const matchId=getMatchId(currentUser?.id||'',partnerId);
+  messageChannel=sb.channel('messages:'+matchId)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`match_id=eq.${matchId}`},
+      async()=>{await renderChatMessages();updateMatchNotifs();})
+    .subscribe();
+}
+
+function updateMatchNotifs(){
+  document.getElementById('matches-notif').style.display=mutualMatches.size>0?'inline-block':'none';
+}
+
+function renderMatchesTab(){
+  const me=document.getElementById('mutual-matches-list'),ee=document.getElementById('expressed-list');
+  const mutualIds=Array.from(mutualMatches);
+  if(!mutualIds.length){me.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No mutual matches yet.</p>';}
+  else{
+    me.innerHTML=mutualIds.map(pid=>{
+      const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
+      if(!p)return '';
+      const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
+      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(111,207,151,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}')"><div class="avatar" style="border-color:rgba(111,207,151,0.4)">${av}</div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--green);margin-top:3px"><i class="ti ti-heart" style="font-size:13px"></i> Mutual match</div></div><i class="ti ti-message" style="font-size:20px;color:var(--text-muted)"></i></div>`;
+    }).join('');
+  }
+  const expIds=Array.from(expressedInterest).filter(id=>!mutualMatches.has(id));
+  if(!expIds.length){ee.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">You haven't expressed interest in anyone yet.</p>';}
+  else{
+    ee.innerHTML=expIds.map(pid=>{
+      const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
+      if(!p)return '';
+      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px"><div class="avatar">${p.initials}</div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">Waiting for them to respond…</div></div><i class="ti ti-clock" style="font-size:18px;color:var(--text-muted)"></i></div>`;
+    }).join('');
+  }
+}
+
+async function renderConversationsTab(){
+  if(!currentUser){document.getElementById('conversations-list').innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">Sign in to see your conversations.</p>';return;}
+  const matchIds=Array.from(mutualMatches).map(pid=>getMatchId(currentUser.id,pid));
+  if(!matchIds.length){document.getElementById('conversations-list').innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet. Match with someone to start chatting.</p>';return;}
+  // Get latest message per match
+  let html='';
+  for(const pid of mutualMatches){
+    const matchId=getMatchId(currentUser.id,pid);
+    const {data:msgs}=await sb.from('messages').select('*').eq('match_id',matchId).order('created_at',{ascending:false}).limit(1);
+    const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
+    if(!p)continue;
+    const last=msgs&&msgs.length?msgs[0]:null;
+    const preview=last?(last.sender_id===currentUser.id?'You: ':'')+last.content:'Say hello!';
+    const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
+    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
+  }
+  document.getElementById('conversations-list').innerHTML=html||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet.</p>';
+}
+
+// ─── Edit profile & settings ──────────────────────────────────────────────────
+function openEditProfile(){
+  document.getElementById('edit-name').value=myProfile.name||'';
+  document.getElementById('edit-dob').value=myProfile.dob||'';
+  document.getElementById('edit-location').value=myProfile.location||'';
+  const init=(myProfile.name||'?').charAt(0).toUpperCase();
+  document.getElementById('edit-avatar-initials').textContent=init;
+  if(myProfile.photo){document.getElementById('edit-avatar-img').src=myProfile.photo;document.getElementById('edit-avatar-img').style.display='block';document.getElementById('edit-avatar-initials').style.display='none';}
+  else{document.getElementById('edit-avatar-img').style.display='none';document.getElementById('edit-avatar-initials').style.display='block';}
+  document.getElementById('edit-sex-male').classList.toggle('selected',myProfile.sex==='male');
+  document.getElementById('edit-sex-female').classList.toggle('selected',myProfile.sex==='female');
+  document.getElementById('hide-toggle').classList.toggle('on',profileHidden);
+  document.getElementById('hidden-banner').style.display=profileHidden?'block':'none';
+  goTo('screen-edit-profile');
+}
+
+async function saveProfile(){
+  myProfile.name=document.getElementById('edit-name').value||myProfile.name;
+  myProfile.dob=document.getElementById('edit-dob').value||myProfile.dob;
+  myProfile.location=document.getElementById('edit-location').value||myProfile.location;
+  if(currentUser){
+    let photo_url=typeof myProfile.photo==='string'&&myProfile.photo.startsWith('http')?myProfile.photo:'';
+    if(myProfile.photo_file){
+      const ext=myProfile.photo_file.name.split('.').pop();
+      const path=`${currentUser.id}/avatar.${ext}`;
+      const {error}=await sb.storage.from('avatars').upload(path,myProfile.photo_file,{upsert:true});
+      if(!error){const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;}
+    }
+    await sb.from('profiles').update({name:myProfile.name,dob:myProfile.dob,location:myProfile.location,sex:myProfile.sex,is_hidden:profileHidden,photo_url:photo_url||undefined}).eq('id',currentUser.id);
+    showToast('Profile saved');
+  }
+  goTo('screen-main');
+}
+
+async function toggleHideProfile(){
+  profileHidden=!profileHidden;
+  document.getElementById('hide-toggle').classList.toggle('on',profileHidden);
+  document.getElementById('hidden-banner').style.display=profileHidden?'block':'none';
+  if(currentUser)await sb.from('profiles').update({is_hidden:profileHidden}).eq('id',currentUser.id);
+}
+
+function activatePremium(){isPremium=true;goTo('screen-main');renderProfiles(parseInt(document.getElementById('filter-min').value)||0);}
+
+// ─── Delete account ───────────────────────────────────────────────────────────
 function confirmDelete(){
   showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(235,87,87,0.1);border:0.5px solid rgba(235,87,87,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-trash" style="font-size:24px;color:var(--red)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;line-height:1.3">Delete your profile?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Do you want to delete your profile and all your data held on the BASED app?${isPremium?' Your £4.99/month subscription will be cancelled immediately.':''}</p><div style="display:flex;flex-direction:column;gap:11px"><button onclick="executeDelete()" style="background:var(--red);color:white;border:none;border-radius:13px;padding:14px 20px;font-size:15px;font-weight:600;cursor:pointer;width:100%;font-family:var(--sans)">Yes, delete everything</button><button onclick="removeModal()" style="background:transparent;color:var(--text-muted);border:0.5px solid rgba(255,255,255,0.15);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;width:100%;font-family:var(--sans)">Cancel</button></div>`);
 }
-function executeDelete(){
-  removeModal();isPremium=false;myProfile={name:'',dob:'',location:'',sex:'',photo:null};myAnswers=new Array(12).fill(0);
-  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();conversations={};profileHidden=false;
+
+async function executeDelete(){
+  removeModal();
+  if(currentUser){
+    await sb.from('interactions').delete().eq('from_user',currentUser.id);
+    await sb.from('profiles').delete().eq('id',currentUser.id);
+    await sb.auth.signOut();
+  }
+  isPremium=false;currentUser=null;
+  myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null};
+  myAnswers=new Array(12).fill(0);
+  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();profileHidden=false;
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
-  ['inp-name','inp-dob','inp-location'].forEach(id=>document.getElementById(id).value='');
+  ['inp-name','inp-dob','inp-location','inp-email','inp-password'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('sex-male').classList.remove('selected');document.getElementById('sex-female').classList.remove('selected');
-  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-check" style="font-size:24px;color:var(--green)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px">Account deleted</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Your profile and all data have been permanently removed. Your subscription has been cancelled. We hope to see you again someday.</p><button onclick="removeModal();goTo('screen-welcome')" class="btn-primary">Back to home</button>`);
+  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-check" style="font-size:24px;color:var(--green)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px">Account deleted</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Your profile and all data have been permanently removed.${isPremium?' Your subscription has been cancelled.':''} We hope to see you again someday.</p><button onclick="removeModal();goTo('screen-welcome')" class="btn-primary">Back to home</button>`);
 }
-function openEditProfile(){
-  document.getElementById('edit-name').value=myProfile.name||'';document.getElementById('edit-dob').value=myProfile.dob||'';document.getElementById('edit-location').value=myProfile.location||'';
-  const init=(myProfile.name||'?').charAt(0).toUpperCase();document.getElementById('edit-avatar-initials').textContent=init;
-  if(myProfile.photo){document.getElementById('edit-avatar-img').src=myProfile.photo;document.getElementById('edit-avatar-img').style.display='block';document.getElementById('edit-avatar-initials').style.display='none';}
-  else{document.getElementById('edit-avatar-img').style.display='none';document.getElementById('edit-avatar-initials').style.display='block';}
-  document.getElementById('edit-sex-male').classList.toggle('selected',myProfile.sex==='male');document.getElementById('edit-sex-female').classList.toggle('selected',myProfile.sex==='female');
-  document.getElementById('hide-toggle').classList.toggle('on',profileHidden);document.getElementById('hidden-banner').style.display=profileHidden?'block':'none';
-  goTo('screen-edit-profile');
-}
-function saveProfile(){myProfile.name=document.getElementById('edit-name').value||myProfile.name;myProfile.dob=document.getElementById('edit-dob').value||myProfile.dob;myProfile.location=document.getElementById('edit-location').value||myProfile.location;goTo('screen-main');}
-function updateMatchNotifs(){document.getElementById('matches-notif').style.display=mutualMatches.size>0?'inline-block':'none';document.getElementById('msg-notif').style.display=Object.keys(conversations).length>0?'inline-block':'none';}
-function renderMatchesTab(){
-  const me=document.getElementById('mutual-matches-list'),ee=document.getElementById('expressed-list');
-  if(!mutualMatches.size){me.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No mutual matches yet.</p>';}
-  else{me.innerHTML=Array.from(mutualMatches).map(n=>{const p=PROFILES.find(x=>x.name===n);return `<div style="background:var(--navy-mid);border:0.5px solid rgba(111,207,151,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${n}','${p.initials}')"><div class="avatar" style="border-color:rgba(111,207,151,0.4)">${p.initials}</div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--green);margin-top:3px"><i class="ti ti-heart" style="font-size:13px"></i> Mutual match</div></div><i class="ti ti-message" style="font-size:20px;color:var(--text-muted)"></i></div>`;}).join('');}
-  const exp=Array.from(expressedInterest).filter(n=>!mutualMatches.has(n));
-  if(!exp.length){ee.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">You haven\'t expressed interest in anyone yet.</p>';}
-  else{ee.innerHTML=exp.map(n=>{const p=PROFILES.find(x=>x.name===n);return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px"><div class="avatar">${p.initials}</div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">Waiting for them to respond…</div></div><i class="ti ti-clock" style="font-size:18px;color:var(--text-muted)"></i></div>`;}).join('');}
-}
-function renderConversationsTab(){
-  const el=document.getElementById('conversations-list'),names=Object.keys(conversations);
-  if(!names.length){el.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet. Match with someone to start chatting.</p>';return;}
-  el.innerHTML=names.map(n=>{const p=PROFILES.find(x=>x.name===n);const msgs=conversations[n];const last=msgs.length?msgs[msgs.length-1]:null;return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${n}','${p.initials}')"><div class="avatar">${p.initials}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${last?(last.mine?'You: ':'')+last.text:'Say hello!'}</div></div></div>`;}).join('');
-}
-function switchTab(tab){['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?(t==='browse'?'block':'block'):'none';});if(tab==='matches')renderMatchesTab();if(tab==='messages')renderConversationsTab();}
-function openChat(name,initials){activeChatName=name;if(!conversations[name])conversations[name]=[];document.getElementById('chat-name-header').textContent=name;document.getElementById('chat-avatar-header').textContent=initials;renderChatMessages();goTo('screen-chat');updateMatchNotifs();}
-function renderChatMessages(){const msgs=conversations[activeChatName]||[];const el=document.getElementById('chat-messages');if(!msgs.length){el.innerHTML=`<div style="text-align:center;padding:32px 18px"><div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:14px;padding:18px"><i class="ti ti-heart" style="font-size:24px;color:var(--gold);margin-bottom:10px;display:block"></i><p style="font-size:14px;color:var(--gold-light);margin-bottom:5px">It's a match!</p><p style="font-size:13px;color:var(--text-muted)">Say hello to ${activeChatName} — you share the values that matter.</p></div></div>`;return;}el.innerHTML=msgs.map(m=>`<div style="display:flex;justify-content:${m.mine?'flex-end':'flex-start'}"><div class="msg-bubble ${m.mine?'mine':'theirs'}">${m.text}</div></div>`).join('');el.scrollTop=el.scrollHeight;}
-function sendMessage(){const input=document.getElementById('chat-input');const text=input.value.trim();if(!text)return;if(!conversations[activeChatName])conversations[activeChatName]=[];conversations[activeChatName].push({mine:true,text});input.value='';renderChatMessages();updateMatchNotifs();setTimeout(()=>{const rs=["That's a great point!","I completely agree.","Tell me more about that.","Ha! Same here.","I'd love to hear your thoughts on that."];conversations[activeChatName].push({mine:false,text:rs[Math.floor(Math.random()*rs.length)]});renderChatMessages();},1200);}
-function activatePremium(){isPremium=true;goTo('screen-main');renderProfiles(parseInt(document.getElementById('filter-min').value)||0);}
+
+// ─── Spinner CSS (for loading states) ────────────────────────────────────────
+const spinStyle=document.createElement('style');
+spinStyle.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+document.head.appendChild(spinStyle);
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+(async()=>{
+  browseProfiles=[...DEMO_PROFILES];
+  renderProfiles(0);
+  updateSliderDisplay();
+  const restored=await restoreSession();
+  if(restored){
+    await loadBrowseProfiles();
+    renderProfiles(0);
+    updateMatchNotifs();
+  }
+})();
 
 document.getElementById('settings-btn').addEventListener('click',openEditProfile);
-renderProfiles(0);
-updateSliderDisplay();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
