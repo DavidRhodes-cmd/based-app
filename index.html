@@ -530,12 +530,15 @@ async function restoreSession(){
   if(!session)return false;
   currentUser=session.user;
   // Load profile
-  const {data:p}=await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+  const {data:p,error:pErr}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();
   if(p){
     myProfile={name:p.name,dob:p.dob,location:p.location,sex:p.sex,photo:p.photo_url,photo_file:null,lat:p.lat||null,lng:p.lng||null};
     myAnswers=p.answers||new Array(12).fill(0);
     isPremium=p.is_premium||false;
     profileHidden=p.is_hidden||false;
+    console.log('Profile restored:', p.name, 'sex:', p.sex, 'lat:', p.lat, 'lng:', p.lng);
+  } else {
+    console.warn('No profile found for user:', currentUser.id, pErr?.message);
   }
   await loadMyInteractions();
   return true;
@@ -567,8 +570,12 @@ async function recordInteraction(toUserId,action){
 // ─── Browse profiles from Supabase ───────────────────────────────────────────
 async function loadBrowseProfiles(){
   browseProfiles=[...DEMO_PROFILES]; // always include demo profiles
-  if(!currentUser)return;
+  if(!currentUser||!myProfile.sex){
+    console.log('loadBrowseProfiles: no user or sex not set, showing demos only');
+    return;
+  }
   const oppSex=myProfile.sex==='male'?'female':'male';
+  console.log('loadBrowseProfiles: looking for', oppSex, 'profiles');
   const {data:profiles}=await sb.from('profiles')
     .select('*')
     .eq('sex',oppSex)
