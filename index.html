@@ -937,13 +937,13 @@ document.head.appendChild(spinStyle);
   const restored=await restoreSession();
   if(restored){
     await loadBrowseProfiles();
-    // Re-render using current slider values (not hardcoded 0)
     const minPct=parseInt(document.getElementById('filter-min').value)||0;
     const dist=parseInt(document.getElementById('filter-dist').value)||50;
     document.getElementById('filter-min-val').textContent=minPct+'%';
     document.getElementById('filter-dist-val').textContent=dist+' mi';
     renderProfiles(minPct);
     updateMatchNotifs();
+    goTo('screen-main'); // auto-navigate to main screen if session exists
   }
 })();
 
