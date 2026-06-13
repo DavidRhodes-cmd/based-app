@@ -147,8 +147,8 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
     </div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" placeholder="Your first name" id="inp-name" autocomplete="given-name" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="date" id="inp-dob" /></div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Where are you now?</label><input class="form-input" type="text" placeholder="Postcode or city name" id="inp-location" autocomplete="postal-code" /></div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="inp-email" autocomplete="email" /></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Where are you now?</label><input class="form-input" type="text" placeholder="Your postcode e.g. LS1 4BR" id="inp-location" autocomplete="postal-code" /></div>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:-10px;margin-bottom:17px">Used to calculate distances — not shown to other users.</p><div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="inp-email" autocomplete="email" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><input class="form-input" type="password" placeholder="Min. 6 characters" id="inp-password" autocomplete="new-password" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Biological sex</label><div style="display:flex;gap:10px"><button class="sex-btn" id="sex-male" onclick="selectSex('male')">Male</button><button class="sex-btn" id="sex-female" onclick="selectSex('female')">Female</button></div></div>
     <div class="banner-note" style="margin-bottom:22px">We don't want to rob you of conversation, so you can figure out the rest.</div>
@@ -408,6 +408,27 @@ function calcCompat(pa){let d=0;for(let i=0;i<12;i++)d+=Math.abs(myAnswers[i]-pa
 function calcBasedScore(answers){const raw=answers.reduce((a,b)=>a+b,0);return Math.round(((raw+120)/240)*100);}
 function initials(name){return(name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 
+// ─── Geocoding (Postcodes.io) ────────────────────────────────────────────────
+async function geocodePostcode(postcode){
+  try{
+    const clean=postcode.replace(/\s/g,'').toUpperCase();
+    const res=await fetch(`https://api.postcodes.io/postcodes/${clean}`);
+    const data=await res.json();
+    if(data.status===200)return{lat:data.result.latitude,lng:data.result.longitude};
+  }catch(e){}
+  return null;
+}
+
+function haversineDistance(lat1,lng1,lat2,lng2){
+  const R=3958.8; // miles
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLng=(lat2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)*Math.sin(dLat/2)+
+    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+    Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
 // ─── Auth: sign up / sign in ──────────────────────────────────────────────────
 // We use email+password via Supabase Auth.
 // The welcome screen "Create my profile" collects details then signs up.
@@ -452,10 +473,15 @@ async function signUpAndSave(){
   }
   const raw=myAnswers.reduce((a,b)=>a+b,0);
   const based_score=Math.round(((raw+120)/240)*100);
+  // Geocode postcode
+  let lat=null,lng=null;
+  const geo=await geocodePostcode(myProfile.location);
+  if(geo){lat=geo.lat;lng=geo.lng;}
+
   const {error:profileErr}=await sb.from('profiles').upsert({
     id:userId,name:myProfile.name,dob:myProfile.dob,location:myProfile.location,
     sex:myProfile.sex,photo_url,based_score,answers:myAnswers,
-    is_hidden:false,is_premium:false
+    is_hidden:false,is_premium:false,lat,lng
   });
   if(profileErr){removeModal();showToast('Profile save error: '+profileErr.message,true);return;}
   removeModal();
@@ -488,7 +514,7 @@ async function restoreSession(){
   // Load profile
   const {data:p}=await sb.from('profiles').select('*').eq('id',currentUser.id).single();
   if(p){
-    myProfile={name:p.name,dob:p.dob,location:p.location,sex:p.sex,photo:p.photo_url,photo_file:null};
+    myProfile={name:p.name,dob:p.dob,location:p.location,sex:p.sex,photo:p.photo_url,photo_file:null,lat:p.lat||null,lng:p.lng||null};
     myAnswers=p.answers||new Array(12).fill(0);
     isPremium=p.is_premium||false;
     profileHidden=p.is_hidden||false;
@@ -539,7 +565,9 @@ async function loadBrowseProfiles(){
       location:p.location,
       basedScore:p.based_score,
       answers:p.answers||new Array(12).fill(0),
-      photo_url:p.photo_url
+      photo_url:p.photo_url,
+      lat:p.lat||null,
+      lng:p.lng||null
     }));
     browseProfiles=[...real,...DEMO_PROFILES];
   }
@@ -550,9 +578,20 @@ function renderProfiles(minPct){
   if(minPct===undefined)minPct=0;
   const container=document.getElementById('profile-cards');
   const excluded=new Set([...hiddenForever,...passedProfiles]);
+  const maxDist=parseInt(document.getElementById('filter-dist').value)||50;
+  const myLat=myProfile.lat,myLng=myProfile.lng;
   const list=browseProfiles
     .map(p=>({...p,compat:calcCompat(p.answers)}))
-    .filter(p=>p.compat>=minPct&&!excluded.has(p.id)&&!excluded.has(p.name));
+    .filter(p=>{
+      if(p.compat<minPct)return false;
+      if(excluded.has(p.id)||excluded.has(p.name))return false;
+      // Distance filter — skip if neither user has coordinates, or if within range
+      if(myLat&&myLng&&p.lat&&p.lng){
+        const dist=haversineDistance(myLat,myLng,p.lat,p.lng);
+        if(dist>maxDist)return false;
+      }
+      return true;
+    });
   if(!list.length){container.innerHTML='<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px 0">No profiles match your filters.</p>';return;}
   let html='';
   if(!isPremium){const used=viewedProfiles.size;const dots=Array.from({length:FREE_LIMIT},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<used?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px"><span style="font-size:13px;color:var(--text-muted)">${FREE_LIMIT-used} free view${FREE_LIMIT-used===1?'':'s'} remaining</span><span>${dots}</span></div>`;}
@@ -816,7 +855,10 @@ async function saveProfile(){
       const {error}=await sb.storage.from('avatars').upload(path,myProfile.photo_file,{upsert:true});
       if(!error){const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;}
     }
-    await sb.from('profiles').update({name:myProfile.name,dob:myProfile.dob,location:myProfile.location,sex:myProfile.sex,is_hidden:profileHidden,photo_url:photo_url||undefined}).eq('id',currentUser.id);
+    let lat=null,lng=null;
+    const geo=await geocodePostcode(myProfile.location);
+    if(geo){lat=geo.lat;lng=geo.lng;}
+    await sb.from('profiles').update({name:myProfile.name,dob:myProfile.dob,location:myProfile.location,sex:myProfile.sex,is_hidden:profileHidden,photo_url:photo_url||undefined,...(lat?{lat,lng}:{})}).eq('id',currentUser.id);
     showToast('Profile saved');
   }
   goTo('screen-main');
