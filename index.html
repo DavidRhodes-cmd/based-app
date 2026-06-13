@@ -481,7 +481,8 @@ async function signUpAndSave(){
   const {error:profileErr}=await sb.from('profiles').upsert({
     id:userId,name:myProfile.name,dob:myProfile.dob,location:myProfile.location,
     sex:myProfile.sex,photo_url,based_score,answers:myAnswers,
-    is_hidden:false,is_premium:false,lat,lng
+    is_hidden:false,is_premium:false,lat,lng,
+    email:email
   });
   if(profileErr){removeModal();showToast('Profile save error: '+profileErr.message,true);return;}
   removeModal();
