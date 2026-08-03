@@ -169,9 +169,9 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
     <div style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:right" id="q-progress-label">1 of 12</div>
   </div>
   <div style="padding:18px 20px;flex:1;display:flex;flex-direction:column">
-    <div class="banner-note" id="q-banner" style="margin-bottom:16px">Don't answer what you think others will want to hear. Your authenticity matters.</div>
+    <div class="banner-note" id="q-banner" style="margin-bottom:16px;visibility:hidden">Don't answer what you think others will want to hear. Your authenticity matters.</div>
     <p style="font-size:11px;color:var(--gold);letter-spacing:1px;margin-bottom:7px" id="q-number">Question 1</p>
-    <p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);line-height:1.4;margin-bottom:10px" id="q-text"></p>
+    <p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);line-height:1.4;margin-bottom:10px;min-height:76px" id="q-text"></p>
     <button onclick="toggleInfo()" style="background:transparent;border:0.5px solid rgba(255,255,255,0.15);border-radius:20px;padding:5px 11px;font-size:12px;color:var(--text-muted);cursor:pointer;margin-bottom:5px;display:inline-flex;align-items:center;gap:6px;font-family:var(--sans);width:auto;align-self:flex-start"><i class="ti ti-info-circle"></i> What does this mean?</button>
     <div id="q-info-expand" style="background:rgba(255,255,255,0.04);border-radius:9px;padding:11px 13px;font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:9px;display:none"></div>
     <div style="margin-top:auto;padding-top:16px">
@@ -221,9 +221,9 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
     <button id="settings-btn" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:22px;padding:4px"><i class="ti ti-settings"></i></button>
   </div>
   <div class="tab-bar">
-    <button class="tab-btn active" id="tab-browse" onclick="switchTab('browse')"><i class="ti ti-users" style="font-size:15px"></i> Browse</button>
-    <button class="tab-btn" id="tab-matches" onclick="switchTab('matches')"><i class="ti ti-heart" style="font-size:15px"></i> Matches <span id="matches-notif" style="display:none" class="notif-dot"></span></button>
-    <button class="tab-btn" id="tab-messages" onclick="switchTab('messages')"><i class="ti ti-message" style="font-size:15px"></i> Messages <span id="msg-notif" style="display:none" class="notif-dot"></span></button>
+    <button class="tab-btn active" id="tab-browse" onclick="switchTab('browse')"><i class="ti ti-search" style="font-size:15px"></i> Search</button>
+    <button class="tab-btn" id="tab-matches" onclick="switchTab('matches')"><i class="ti ti-heart" style="font-size:15px"></i> Interest <span id="matches-notif" style="display:none" class="notif-dot"></span></button>
+    <button class="tab-btn" id="tab-messages" onclick="switchTab('messages')"><i class="ti ti-hearts" style="font-size:15px"></i> Connected <span id="msg-notif" style="display:none" class="notif-dot"></span></button>
   </div>
   <div id="tab-browse-content" class="scrollable" style="padding:16px">
     <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:13px;padding:13px;margin-bottom:16px">
@@ -233,10 +233,20 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
         <input type="range" class="q-slider" style="flex:1" min="0" max="100" step="5" value="0" id="filter-min" oninput="updateFilter()" />
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-min-val">0%</span>
       </div>
-      <div style="display:flex;align-items:center;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
         <span style="font-size:13px;color:var(--text-on-dark);min-width:90px">Distance</span>
         <input type="range" class="q-slider" style="flex:1" min="5" max="100" step="5" value="25" id="filter-dist" oninput="updateFilter()" />
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-dist-val">25 mi</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
+        <span style="font-size:13px;color:var(--text-on-dark);min-width:90px">No younger than</span>
+        <input type="range" class="q-slider" style="flex:1" min="18" max="100" step="1" value="18" id="filter-age-min" oninput="updateFilter()" />
+        <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-age-min-val">18</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:13px;color:var(--text-on-dark);min-width:90px">No older than</span>
+        <input type="range" class="q-slider" style="flex:1" min="18" max="100" step="1" value="100" id="filter-age-max" oninput="updateFilter()" />
+        <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-age-max-val">100</span>
       </div>
     </div>
     <div id="profile-cards"></div>
@@ -604,13 +614,16 @@ function renderProfiles(minPct){
   const container=document.getElementById('profile-cards');
   const excluded=new Set([...hiddenForever,...passedProfiles]);
   const maxDist=parseInt(document.getElementById('filter-dist').value)||50;
+  const minAge=parseInt(document.getElementById('filter-age-min').value)||18;
+  const maxAge=parseInt(document.getElementById('filter-age-max').value)||100;
   const myLat=myProfile.lat,myLng=myProfile.lng;
-  console.log('renderProfiles: myLat='+myLat+' myLng='+myLng+' maxDist='+maxDist+' profiles='+browseProfiles.length);
+  console.log('renderProfiles: myLat='+myLat+' myLng='+myLng+' maxDist='+maxDist+' minAge='+minAge+' maxAge='+maxAge+' profiles='+browseProfiles.length);
   const list=browseProfiles
     .map(p=>({...p,compat:calcCompat(p.answers)}))
     .filter(p=>{
       if(p.compat<minPct)return false;
       if(excluded.has(p.id)||excluded.has(p.name))return false;
+      if(p.age!=null&&(p.age<minAge||p.age>maxAge))return false;
       // Distance filter — skip if neither user has coordinates, or if within range
       if(myLat!=null&&myLng!=null&&p.lat!=null&&p.lng!=null){
         const dist=haversineDistance(myLat,myLng,p.lat,p.lng);
@@ -620,7 +633,8 @@ function renderProfiles(minPct){
         console.log(p.name+': no coords (myLat='+myLat+' p.lat='+p.lat+')');
       }
       return true;
-    });
+    })
+    .sort((a,b)=>b.compat-a.compat);
   if(!list.length){container.innerHTML='<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px 0">No profiles match your filters.</p>';return;}
   let html='';
   if(!isPremium){const used=viewedProfiles.size;const dots=Array.from({length:FREE_LIMIT},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<used?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px"><span style="font-size:13px;color:var(--text-muted)">${FREE_LIMIT-used} free view${FREE_LIMIT-used===1?'':'s'} remaining</span><span>${dots}</span></div>`;}
@@ -733,7 +747,7 @@ function handlePhotoUpload(input){const file=input.files[0];if(!file)return;myPr
 function handleEditPhoto(input){const file=input.files[0];if(!file)return;myProfile.photo_file=file;const r=new FileReader();r.onload=e=>{myProfile.photo=e.target.result;const img=document.getElementById('edit-avatar-img');img.src=myProfile.photo;img.style.display='block';document.getElementById('edit-avatar-initials').style.display='none';};r.readAsDataURL(file);}
 function startQuestions(){currentQ=0;myAnswers=new Array(12).fill(0);loadQuestion(0);goTo('screen-questions');}
 function resetQuestions(){currentQ=0;myAnswers=new Array(12).fill(0);loadQuestion(0);}
-function loadQuestion(i){const q=QUESTIONS[i];document.getElementById('q-number').textContent='Question '+(i+1);document.getElementById('q-text').textContent=q.text;document.getElementById('q-info-expand').textContent=q.info;document.getElementById('q-info-expand').style.display='none';infoOpen=false;document.getElementById('q-slider').value=myAnswers[i];updateSliderDisplay();document.getElementById('q-progress').style.width=Math.round(((i+1)/12)*100)+'%';document.getElementById('q-progress-label').textContent=(i+1)+' of 12';document.getElementById('q-banner').style.display=i===0?'block':'none';document.getElementById('q-next-btn').textContent=i===11?'See my score':'Next';document.getElementById('q-back-btn').onclick=i===0?()=>goTo('screen-details'):prevQuestion;}
+function loadQuestion(i){const q=QUESTIONS[i];document.getElementById('q-number').textContent='Question '+(i+1);document.getElementById('q-text').textContent=q.text;document.getElementById('q-info-expand').textContent=q.info;document.getElementById('q-info-expand').style.display='none';infoOpen=false;document.getElementById('q-slider').value=myAnswers[i];updateSliderDisplay();document.getElementById('q-progress').style.width=Math.round(((i+1)/12)*100)+'%';document.getElementById('q-progress-label').textContent=(i+1)+' of 12';document.getElementById('q-banner').style.visibility=i===0?'visible':'hidden';document.getElementById('q-next-btn').textContent=i===11?'See my score':'Next';document.getElementById('q-back-btn').onclick=i===0?()=>goTo('screen-details'):prevQuestion;}
 function updateSliderDisplay(){const v=parseInt(document.getElementById('q-slider').value);document.getElementById('slider-val').textContent=v>0?'+'+v:String(v);const lbls=['Strongly No','Strongly No','No','No','Leaning No','Leaning No','Neutral','Leaning Yes','Leaning Yes','Yes','Yes','Strongly Yes','Strongly Yes'];document.getElementById('slider-label').textContent=lbls[v+10]||'Neutral';const f=((v+10)/20)*100;document.getElementById('q-slider').style.background=`linear-gradient(to right,rgba(201,168,76,0.6) 0%,rgba(201,168,76,0.9) ${f}%,rgba(255,255,255,0.12) ${f}%)`;}
 function toggleInfo(){infoOpen=!infoOpen;document.getElementById('q-info-expand').style.display=infoOpen?'block':'none';}
 function nextQuestion(){myAnswers[currentQ]=parseInt(document.getElementById('q-slider').value);if(currentQ<11){currentQ++;loadQuestion(currentQ);}else{if(currentUser){updateProfileAnswers();}else{signUpAndSave();}}}
@@ -759,7 +773,18 @@ function showResults(){
   renderProfiles(0);
 }
 
-function updateFilter(){const v=parseInt(document.getElementById('filter-min').value);const d=parseInt(document.getElementById('filter-dist').value);document.getElementById('filter-min-val').textContent=v+'%';document.getElementById('filter-dist-val').textContent=d+' mi';renderProfiles(v);}
+function updateFilter(){
+  const v=parseInt(document.getElementById('filter-min').value);
+  const d=parseInt(document.getElementById('filter-dist').value);
+  let aMin=parseInt(document.getElementById('filter-age-min').value);
+  let aMax=parseInt(document.getElementById('filter-age-max').value);
+  if(aMin>aMax){aMax=aMin;document.getElementById('filter-age-max').value=aMax;}
+  document.getElementById('filter-min-val').textContent=v+'%';
+  document.getElementById('filter-dist-val').textContent=d+' mi';
+  document.getElementById('filter-age-min-val').textContent=aMin;
+  document.getElementById('filter-age-max-val').textContent=aMax;
+  renderProfiles(v);
+}
 
 // ─── Messaging ────────────────────────────────────────────────────────────────
 function switchTab(tab){['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?'block':'none';});if(tab==='matches')renderMatchesTab();if(tab==='messages')renderConversationsTab();}
