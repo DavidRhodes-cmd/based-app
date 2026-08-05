@@ -82,6 +82,8 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 .act-btn i{font-size:22px;}
 .act-btn.interested{border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.1);color:var(--gold);}
 .act-btn.expressed{border-color:rgba(201,168,76,0.5);background:rgba(201,168,76,0.12);color:var(--gold);pointer-events:none;}
+@keyframes heartPop{0%{transform:scale(1);}45%{transform:scale(1.4);}100%{transform:scale(1);}}
+.heart-pop{animation:heartPop 0.5s ease;display:inline-block;}
 .act-btn.hide-profile{border-color:rgba(235,87,87,0.3);color:var(--red);background:rgba(235,87,87,0.06);}
 .act-btn:active{opacity:0.75;}
 .msg-bubble{border-radius:16px;padding:11px 15px;font-size:14px;line-height:1.5;max-width:82%;}
@@ -223,7 +225,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-browse" onclick="switchTab('browse')"><i class="ti ti-search" style="font-size:15px"></i> Search</button>
     <button class="tab-btn" id="tab-matches" onclick="switchTab('matches')"><i class="ti ti-heart" style="font-size:15px"></i> Interest <span id="matches-notif" style="display:none" class="notif-dot"></span></button>
-    <button class="tab-btn" id="tab-messages" onclick="switchTab('messages')"><i class="ti ti-hearts" style="font-size:15px"></i> Connected <span id="msg-notif" style="display:none" class="notif-dot"></span></button>
+    <button class="tab-btn" id="tab-messages" onclick="switchTab('messages')"><svg width="17" height="15" viewBox="0 0 28 24" fill="none" style="flex-shrink:0"><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" opacity="0.65" transform="translate(0,3) scale(0.8)"/><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" transform="translate(9,3) scale(0.8)"/></svg> Connected <span id="msg-notif" style="display:none" class="notif-dot"></span></button>
   </div>
   <div id="tab-browse-content" class="scrollable" style="padding:16px">
     <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:13px;padding:13px;margin-bottom:16px">
@@ -252,9 +254,9 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
     <div id="profile-cards"></div>
   </div>
   <div id="tab-matches-content" class="scrollable" style="padding:16px;display:none">
-    <p style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:14px">Mutual matches</p>
-    <div id="mutual-matches-list"></div>
-    <p style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin:20px 0 12px">Interests expressed</p>
+    <p style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:14px">Interested in me</p>
+    <div id="incoming-interest-list"></div>
+    <p style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin:20px 0 12px">Interest in them</p>
     <div id="expressed-list"></div>
   </div>
   <div id="tab-messages-content" class="scrollable" style="padding:16px;display:none">
@@ -402,17 +404,18 @@ let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:
 let myAnswers=new Array(12).fill(0);
 let currentQ=0,infoOpen=false;
 let isPremium=false,profileHidden=false;
-let viewedProfiles=new Set(),expressedInterest=new Set(),mutualMatches=new Set();
+let viewedProfiles=new Set(),expressedInterest=new Set(),mutualMatches=new Set(),incomingInterest=new Set();
 let hiddenForever=new Set(),passedProfiles=new Set();
 let conversations={},activeChatName='',activeChatPartnerId=null;
 let browseProfiles=[]; // loaded from Supabase + demo
+let lastProfileList=[]; // snapshot of current sorted/filtered search results, for Move On navigation
 let messageChannel=null; // Supabase realtime channel
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
 function showModal(html){removeModal();const bd=document.createElement('div');bd.className='modal-backdrop';bd.id='modal-bd';bd.innerHTML=`<div class="modal-box">${html}</div>`;document.getElementById('app-shell').appendChild(bd);}
 function removeModal(){const m=document.getElementById('modal-bd');if(m)m.remove();}
-function showToast(msg,isError=false){let t=document.getElementById('sb-toast');if(!t){t=document.createElement('div');t.id='sb-toast';t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:22px;font-size:13px;z-index:9999;transition:opacity 0.3s;font-family:-apple-system,sans-serif;max-width:300px;text-align:center';document.body.appendChild(t);}t.textContent=msg;t.style.background=isError?'rgba(235,87,87,0.95)':'rgba(111,207,151,0.95)';t.style.color='#fff';t.style.opacity='1';setTimeout(()=>{t.style.opacity='0';},2800);}
+function showToast(msg,isError=false,duration=2800){let t=document.getElementById('sb-toast');if(!t){t=document.createElement('div');t.id='sb-toast';t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:22px;font-size:13px;z-index:9999;transition:opacity 0.3s;font-family:-apple-system,sans-serif;max-width:300px;text-align:center';document.body.appendChild(t);}t.textContent=msg;t.style.background=isError?'rgba(235,87,87,0.95)':'rgba(111,207,151,0.95)';t.style.color='#fff';t.style.opacity='1';clearTimeout(t._hideTimer);t._hideTimer=setTimeout(()=>{t.style.opacity='0';},duration);}
 
 function calcAge(dob){if(!dob)return'?';const d=new Date(dob),n=new Date();let a=n.getFullYear()-d.getFullYear();if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate()))a--;return a;}
 function calcCompat(pa){let d=0;for(let i=0;i<12;i++)d+=Math.abs(myAnswers[i]-pa[i]);return Math.round((1-d/240)*100);}
@@ -557,17 +560,18 @@ async function restoreSession(){
 // ─── Interactions & matches from Supabase ─────────────────────────────────────
 async function loadMyInteractions(){
   if(!currentUser)return;
-  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();
+  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();incomingInterest=new Set();
   // What I've done to others
   const {data:mine}=await sb.from('interactions').select('to_user,action').eq('from_user',currentUser.id);
   if(mine)mine.forEach(r=>{
     if(r.action==='interested')expressedInterest.add(r.to_user);
     if(r.action==='hide_forever')hiddenForever.add(r.to_user);
   });
-  // What others have done to me (to detect mutual)
+  // What others have done to me (to detect mutual, and incoming interest)
   const {data:theirs}=await sb.from('interactions').select('from_user,action').eq('to_user',currentUser.id).eq('action','interested');
   if(theirs)theirs.forEach(r=>{
     if(expressedInterest.has(r.from_user))mutualMatches.add(r.from_user);
+    else incomingInterest.add(r.from_user);
   });
   updateMatchNotifs();
 }
@@ -635,6 +639,7 @@ function renderProfiles(minPct){
       return true;
     })
     .sort((a,b)=>b.compat-a.compat);
+  lastProfileList=list;
   if(!list.length){container.innerHTML='<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px 0">No profiles match your filters.</p>';return;}
   let html='';
   if(!isPremium){const used=viewedProfiles.size;const dots=Array.from({length:FREE_LIMIT},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<used?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px"><span style="font-size:13px;color:var(--text-muted)">${FREE_LIMIT-used} free view${FREE_LIMIT-used===1?'':'s'} remaining</span><span>${dots}</span></div>`;}
@@ -663,7 +668,7 @@ function handleProfileTap(aStr,compat,basedScore,inits,name,age,location,photoUr
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
 }
 
-function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey){
+function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,context='search'){
   const hasInterest=expressedInterest.has(profileKey);
   const isMutual=mutualMatches.has(profileKey);
   const scoreColor=compat>=80?'var(--green)':compat>=60?'var(--gold)':'var(--red)';
@@ -673,7 +678,11 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     const sameSign=(my===0&&them===0)||(my>0&&them>0)||(my<0&&them<0);
     const col=!sameSign?'var(--red)':diff>=5?'var(--gold)':'var(--green)';
     const label=!sameSign?'Differs':diff>=5?'Close':'Aligned';
-    const toP=s=>((s+10)/20)*100;
+    const mySex=myProfile.sex||'male',theirSex=mySex==='male'?'female':'male';
+    const genderIcon=(sex,color)=>sex==='male'
+      ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:${color}"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>`
+      :`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:${color}"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>`;
+    const themIcon=genderIcon(theirSex,'#fff'),myIcon=genderIcon(mySex,'var(--gold)');
     const myP=toP(my),themP=toP(them);
     const lineLeft=Math.min(myP,themP),lineWidth=Math.abs(myP-themP);
     const myLabel=my>0?'+'+my:String(my),themLabel=them>0?'+'+them:String(them);
@@ -686,8 +695,8 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
         <div style="position:absolute;top:50%;left:0;right:0;height:3px;background:rgba(255,255,255,0.08);border-radius:3px;transform:translateY(-50%)"></div>
         <div style="position:absolute;top:50%;left:50%;width:1px;height:10px;background:rgba(255,255,255,0.2);transform:translate(-50%,-50%)"></div>
         <div style="position:absolute;top:50%;left:${lineLeft}%;width:${lineWidth}%;height:3px;background:${col};transform:translateY(-50%);border-radius:3px;opacity:0.85"></div>
-        <div style="position:absolute;top:50%;left:${themP}%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:#1a1f2e;border:2.5px solid ${col}" title="Them: ${themLabel}"></div>
-        <div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:var(--gold);border:2px solid #1a1f2e" title="You: ${myLabel}"></div>
+        <div style="position:absolute;top:50%;left:${themP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid ${col}66;display:flex;align-items:center;justify-content:center" title="Them: ${themLabel}">${themIcon}</div>
+        <div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.4);display:flex;align-items:center;justify-content:center" title="You: ${myLabel}">${myIcon}</div>
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:5px;padding:0 4px">
         <span style="font-size:10px;color:rgba(255,255,255,0.2)">−10</span>
@@ -705,23 +714,33 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   } else {
     const intCls=hasInterest?'act-btn expressed':'act-btn interested';
     const intClick=hasInterest?'':` onclick="doExpressInterest('${profileKey}','${inits}','${aEncoded}',${compat},${basedScore},'${age}','${location}','${photoUrl||''}','${name}')"`;
-    actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}"${intClick}><i class="ti ti-heart"></i>Interested</button><button class="act-btn" onclick="doMoveOn('${profileKey}')"><i class="ti ti-arrow-right"></i>Move on</button><button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
+    const moveOnBtn=context==='incoming'?'':`<button class="act-btn" onclick="doMoveOn('${profileKey}')"><i class="ti ti-arrow-right"></i>Move on</button>`;
+    actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}"${intClick}><svg id="interest-heart-icon" width="15" height="15" viewBox="0 0 24 24" style="vertical-align:-3px;margin-right:6px" fill="none"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="none" stroke="currentColor" stroke-width="2"/></svg>Interested</button>${moveOnBtn}<button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
   }
   const avatarHtml=photoUrl?`<img src="${photoUrl}" style="width:68px;height:68px;object-fit:cover;border-radius:50%;border:2px solid rgba(201,168,76,0.4)" alt="${name}" />`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4)">${inits}</div>`;
-  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}</div><div style="font-size:14px;color:var(--text-muted);margin-top:3px"><i class="ti ti-map-pin" style="font-size:13px;vertical-align:-1px"></i> ${location}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">COMPATIBILITY</div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">BASED SCORE</div><div style="font-size:28px;font-weight:700;color:var(--gold);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
+  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">COMPATIBILITY</div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">BASED SCORE</div><div style="font-size:28px;font-weight:700;color:var(--gold);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
   goTo('screen-profile');
 }
 
 async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age,location,photoUrl,name){
+  const heartIcon=document.getElementById('interest-heart-icon');
+  if(heartIcon){
+    const path=heartIcon.querySelector('path');
+    heartIcon.classList.add('heart-pop');
+    path.setAttribute('fill','currentColor');
+    setTimeout(()=>{path.setAttribute('fill','none');heartIcon.classList.remove('heart-pop');},500);
+  }
+  showToast('Interest sent',false,1000);
   expressedInterest.add(profileKey);
   await recordInteraction(profileKey,'interested');
   // Check if they liked us back (re-query)
   if(currentUser){
     const {data}=await sb.from('interactions').select('id').eq('from_user',profileKey).eq('to_user',currentUser.id).eq('action','interested');
-    if(data&&data.length){mutualMatches.add(profileKey);updateMatchNotifs();showToast("It's a match with "+name+"! 🎉");}
+    if(data&&data.length){mutualMatches.add(profileKey);incomingInterest.delete(profileKey);updateMatchNotifs();showToast("It's a match with "+name+"! 🎉");}
   }
   let answers;try{answers=JSON.parse(aEncoded.replace(/&quot;/g,'"'));}catch(e){answers=new Array(12).fill(0);}
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  renderMatchesTab();
   openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey);
 }
 
@@ -729,14 +748,33 @@ async function doMoveOn(profileKey){
   passedProfiles.add(profileKey);
   await recordInteraction(profileKey,'pass');
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
-  goTo('screen-main');
+  const idx=lastProfileList.findIndex(p=>(p.id||p.name)===profileKey);
+  let next=null;
+  if(idx!==-1){
+    for(let i=idx+1;i<lastProfileList.length;i++){
+      const p=lastProfileList[i];
+      const k=p.id||p.name;
+      if(!passedProfiles.has(k)&&!hiddenForever.has(k)){next=p;break;}
+    }
+  }
+  if(next){
+    const key=next.id||next.name;
+    const isLocked=!isPremium&&!viewedProfiles.has(key)&&viewedProfiles.size>=FREE_LIMIT;
+    if(isLocked){goTo('screen-paywall');return;}
+    viewedProfiles.add(key);
+    openProfile(next.answers,next.compat,next.basedScore,next.initials,next.name,next.age,next.location,next.photo_url,key);
+  }else{
+    goTo('screen-main');
+  }
 }
 
 async function doHideForever(profileKey){
   hiddenForever.add(profileKey);
   passedProfiles.delete(profileKey);
+  incomingInterest.delete(profileKey);
   await recordInteraction(profileKey,'hide_forever');
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  renderMatchesTab();
   goTo('screen-main');
 }
 
@@ -840,15 +878,15 @@ function updateMatchNotifs(){
 }
 
 function renderMatchesTab(){
-  const me=document.getElementById('mutual-matches-list'),ee=document.getElementById('expressed-list');
-  const mutualIds=Array.from(mutualMatches);
-  if(!mutualIds.length){me.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No mutual matches yet.</p>';}
+  const inList=document.getElementById('incoming-interest-list'),ee=document.getElementById('expressed-list');
+  const incomingIds=Array.from(incomingInterest).filter(id=>!hiddenForever.has(id));
+  if(!incomingIds.length){inList.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No one has expressed interest in you yet.</p>';}
   else{
-    me.innerHTML=mutualIds.map(pid=>{
+    inList.innerHTML=incomingIds.map(pid=>{
       const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
       if(!p)return '';
       const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
-      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(111,207,151,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}')"><div class="avatar" style="border-color:rgba(111,207,151,0.4)">${av}</div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--green);margin-top:3px"><i class="ti ti-heart" style="font-size:13px"></i> Mutual match</div></div><i class="ti ti-message" style="font-size:20px;color:var(--text-muted)"></i></div>`;
+      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--gold);margin-top:3px"><i class="ti ti-heart" style="font-size:13px"></i> Interested in you</div></div><i class="ti ti-chevron-right" style="font-size:18px;color:var(--text-muted)"></i></div>`;
     }).join('');
   }
   const expIds=Array.from(expressedInterest).filter(id=>!mutualMatches.has(id));
@@ -860,6 +898,14 @@ function renderMatchesTab(){
       return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px"><div class="avatar">${p.initials}</div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">Waiting for them to respond…</div></div><i class="ti ti-clock" style="font-size:18px;color:var(--text-muted)"></i></div>`;
     }).join('');
   }
+}
+
+function openIncomingProfile(pid){
+  const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
+  if(!p)return;
+  const compat=calcCompat(p.answers);
+  viewedProfiles.add(pid);
+  openProfile(p.answers,compat,p.basedScore,p.initials,p.name,p.age,p.location,p.photo_url,pid,'incoming');
 }
 
 async function renderConversationsTab(){
@@ -942,7 +988,7 @@ async function executeDelete(){
   isPremium=false;currentUser=null;
   myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null};
   myAnswers=new Array(12).fill(0);
-  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();profileHidden=false;
+  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();profileHidden=false;
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
   ['inp-name','inp-dob','inp-location','inp-email','inp-password'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('sex-male').classList.remove('selected');document.getElementById('sex-female').classList.remove('selected');
