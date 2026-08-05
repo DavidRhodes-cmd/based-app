@@ -683,6 +683,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
       ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:${color}"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>`
       :`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:${color}"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>`;
     const themIcon=genderIcon(theirSex,'#fff'),myIcon=genderIcon(mySex,'var(--gold)');
+    const toP=s=>((s+10)/20)*100;
     const myP=toP(my),themP=toP(them);
     const lineLeft=Math.min(myP,themP),lineWidth=Math.abs(myP-themP);
     const myLabel=my>0?'+'+my:String(my),themLabel=them>0?'+'+them:String(them);
