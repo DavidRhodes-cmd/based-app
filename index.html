@@ -321,7 +321,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
         <div class="toggle-track" id="hide-toggle" onclick="toggleHideProfile()"><div class="toggle-thumb"></div></div>
       </div>
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
-        <button class="btn-ghost" onclick="goTo('screen-questions')" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px"></i>Retake my questions</button>
+        <button class="btn-ghost" onclick="openModifyAnswers()" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px"></i>Modify my answers</button>
       </div>
       <div style="padding-top:18px" class="bottom-safe">
         <button onclick="confirmDelete()" style="background:rgba(235,87,87,0.07);border:0.5px solid rgba(235,87,87,0.3);border-radius:13px;padding:14px 20px;font-size:15px;color:var(--red);cursor:pointer;width:100%;font-family:var(--sans);display:flex;align-items:center;justify-content:center;gap:9px"><i class="ti ti-trash"></i>Delete my account</button>
@@ -330,7 +330,15 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
   </div>
 </div>
 
-<!-- PAYWALL -->
+<!-- MODIFY ANSWERS -->
+<div id="screen-modify-answers" class="screen">
+  <div class="app-header">
+    <button onclick="cancelModifyAnswers()" style="background:transparent;border:none;font-size:14px;color:var(--text-muted);cursor:pointer;font-family:var(--sans)">Cancel</button>
+    <span style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark)">My answers</span>
+    <button onclick="saveModifyAnswers()" style="background:transparent;border:none;font-size:14px;color:var(--gold);cursor:pointer;font-family:var(--sans);font-weight:600">Save</button>
+  </div>
+  <div class="scrollable" style="padding:20px" id="modify-answers-list"></div>
+</div>
 <div id="screen-paywall" class="screen">
   <div class="app-header">
     <button class="btn-back" onclick="goTo('screen-main')"><i class="ti ti-arrow-left"></i></button>
@@ -405,6 +413,7 @@ let myAnswers=new Array(12).fill(0);
 let currentQ=0,infoOpen=false;
 let isPremium=false,profileHidden=false;
 let viewedProfiles=new Set(),expressedInterest=new Set(),mutualMatches=new Set(),incomingInterest=new Set();
+let matchCreatedAt={}; // profileKey -> ISO timestamp of when the match formed
 let hiddenForever=new Set(),passedProfiles=new Set();
 let conversations={},activeChatName='',activeChatPartnerId=null;
 let browseProfiles=[]; // loaded from Supabase + demo
@@ -560,17 +569,22 @@ async function restoreSession(){
 // ─── Interactions & matches from Supabase ─────────────────────────────────────
 async function loadMyInteractions(){
   if(!currentUser)return;
-  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();incomingInterest=new Set();
+  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();incomingInterest=new Set();matchCreatedAt={};
   // What I've done to others
-  const {data:mine}=await sb.from('interactions').select('to_user,action').eq('from_user',currentUser.id);
+  const myInterestedAt={};
+  const {data:mine}=await sb.from('interactions').select('to_user,action,created_at').eq('from_user',currentUser.id);
   if(mine)mine.forEach(r=>{
-    if(r.action==='interested')expressedInterest.add(r.to_user);
+    if(r.action==='interested'){expressedInterest.add(r.to_user);myInterestedAt[r.to_user]=r.created_at;}
     if(r.action==='hide_forever')hiddenForever.add(r.to_user);
   });
   // What others have done to me (to detect mutual, and incoming interest)
-  const {data:theirs}=await sb.from('interactions').select('from_user,action').eq('to_user',currentUser.id).eq('action','interested');
+  const {data:theirs}=await sb.from('interactions').select('from_user,action,created_at').eq('to_user',currentUser.id).eq('action','interested');
   if(theirs)theirs.forEach(r=>{
-    if(expressedInterest.has(r.from_user))mutualMatches.add(r.from_user);
+    if(expressedInterest.has(r.from_user)){
+      mutualMatches.add(r.from_user);
+      const mine_t=new Date(myInterestedAt[r.from_user]).getTime(),their_t=new Date(r.created_at).getTime();
+      matchCreatedAt[r.from_user]=new Date(Math.max(mine_t,their_t)).toISOString();
+    }
     else incomingInterest.add(r.from_user);
   });
   updateMatchNotifs();
@@ -651,7 +665,7 @@ function renderProfiles(minPct){
     const theyLiked=false; // determined server-side now
     const hasInterest=expressedInterest.has(profileKey);
     const badge=isMutual?`<span style="font-size:10px;color:var(--green);border:0.5px solid rgba(111,207,151,0.4);border-radius:5px;padding:2px 7px;margin-left:5px"><i class="ti ti-heart" style="font-size:10px"></i> Match</span>`:'';
-    const avatarContent=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
+    const avatarContent=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" />`:`${p.initials}`;
     const aStr=JSON.stringify(p.answers).replace(/"/g,'&quot;');
     if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="goTo('screen-paywall')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:7px">Upgrade to view</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%"></div></div><span style="font-size:13px;font-weight:600;color:var(--gold);min-width:38px;text-align:right">${p.compat}%</span></div></div></div>`;}
     else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${aStr}',${p.compat},${p.basedScore},'${p.initials}','${p.name}',${p.age},'${p.location}','${p.photo_url||''}','${profileKey}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">${p.location}${badge}</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%"></div></div><span style="font-size:13px;font-weight:600;color:var(--gold);min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
@@ -683,6 +697,8 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
       ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:${color}"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>`
       :`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:${color}"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>`;
     const themIcon=genderIcon(theirSex,'#fff'),myIcon=genderIcon(mySex,'var(--gold)');
+    const exactMatch=my===them;
+    const heartIcon=`<svg width="13" height="13" viewBox="0 0 24 24"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="var(--gold)"/></svg>`;
     const toP=s=>((s+10)/20)*100;
     const myP=toP(my),themP=toP(them);
     const lineLeft=Math.min(myP,themP),lineWidth=Math.abs(myP-themP);
@@ -696,8 +712,10 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
         <div style="position:absolute;top:50%;left:0;right:0;height:3px;background:rgba(255,255,255,0.08);border-radius:3px;transform:translateY(-50%)"></div>
         <div style="position:absolute;top:50%;left:50%;width:1px;height:10px;background:rgba(255,255,255,0.2);transform:translate(-50%,-50%)"></div>
         <div style="position:absolute;top:50%;left:${lineLeft}%;width:${lineWidth}%;height:3px;background:${col};transform:translateY(-50%);border-radius:3px;opacity:0.85"></div>
-        <div style="position:absolute;top:50%;left:${themP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid ${col}66;display:flex;align-items:center;justify-content:center" title="Them: ${themLabel}">${themIcon}</div>
-        <div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.4);display:flex;align-items:center;justify-content:center" title="You: ${myLabel}">${myIcon}</div>
+        ${exactMatch
+          ?`<div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.6);display:flex;align-items:center;justify-content:center" title="You both: ${myLabel}">${heartIcon}</div>`
+          :`<div style="position:absolute;top:50%;left:${themP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid ${col}66;display:flex;align-items:center;justify-content:center" title="Them: ${themLabel}">${themIcon}</div>
+        <div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.4);display:flex;align-items:center;justify-content:center" title="You: ${myLabel}">${myIcon}</div>`}
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:5px;padding:0 4px">
         <span style="font-size:10px;color:rgba(255,255,255,0.2)">−10</span>
@@ -718,7 +736,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     const moveOnBtn=context==='incoming'?'':`<button class="act-btn" onclick="doMoveOn('${profileKey}')"><i class="ti ti-arrow-right"></i>Move on</button>`;
     actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}"${intClick}><svg id="interest-heart-icon" width="15" height="15" viewBox="0 0 24 24" style="vertical-align:-3px;margin-right:6px" fill="none"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="none" stroke="currentColor" stroke-width="2"/></svg>Interested</button>${moveOnBtn}<button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
   }
-  const avatarHtml=photoUrl?`<img src="${photoUrl}" style="width:68px;height:68px;object-fit:cover;border-radius:50%;border:2px solid rgba(201,168,76,0.4)" alt="${name}" />`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4)">${inits}</div>`;
+  const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden"><img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${name}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4)">${inits}</div>`;
   document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">COMPATIBILITY</div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">BASED SCORE</div><div style="font-size:28px;font-weight:700;color:var(--gold);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
   goTo('screen-profile');
 }
@@ -736,8 +754,8 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
   await recordInteraction(profileKey,'interested');
   // Check if they liked us back (re-query)
   if(currentUser){
-    const {data}=await sb.from('interactions').select('id').eq('from_user',profileKey).eq('to_user',currentUser.id).eq('action','interested');
-    if(data&&data.length){mutualMatches.add(profileKey);incomingInterest.delete(profileKey);updateMatchNotifs();showToast("It's a match with "+name+"! 🎉");}
+    const {data}=await sb.from('interactions').select('id,created_at').eq('from_user',profileKey).eq('to_user',currentUser.id).eq('action','interested');
+    if(data&&data.length){mutualMatches.add(profileKey);incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();showToast("It's a match with "+name+"! 🎉");}
   }
   let answers;try{answers=JSON.parse(aEncoded.replace(/&quot;/g,'"'));}catch(e){answers=new Array(12).fill(0);}
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
@@ -746,18 +764,19 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
 }
 
 async function doMoveOn(profileKey){
+  const snapshot=lastProfileList;
+  const idx=snapshot.findIndex(p=>(p.id||p.name)===profileKey);
+  let next=null;
+  if(idx!==-1){
+    for(let i=idx+1;i<snapshot.length;i++){
+      const p=snapshot[i];
+      const k=p.id||p.name;
+      if(k!==profileKey&&!passedProfiles.has(k)&&!hiddenForever.has(k)){next=p;break;}
+    }
+  }
   passedProfiles.add(profileKey);
   await recordInteraction(profileKey,'pass');
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
-  const idx=lastProfileList.findIndex(p=>(p.id||p.name)===profileKey);
-  let next=null;
-  if(idx!==-1){
-    for(let i=idx+1;i<lastProfileList.length;i++){
-      const p=lastProfileList[i];
-      const k=p.id||p.name;
-      if(!passedProfiles.has(k)&&!hiddenForever.has(k)){next=p;break;}
-    }
-  }
   if(next){
     const key=next.id||next.name;
     const isLocked=!isPremium&&!viewedProfiles.has(key)&&viewedProfiles.size>=FREE_LIMIT;
@@ -799,6 +818,34 @@ async function updateProfileAnswers(){
   const based_score=Math.round(((raw+120)/240)*100);
   await sb.from('profiles').update({answers:myAnswers,based_score}).eq('id',currentUser.id);
   showResults();
+}
+
+let modifyTempAnswers=[];
+function openModifyAnswers(){
+  modifyTempAnswers=[...myAnswers];
+  renderModifyAnswers();
+  goTo('screen-modify-answers');
+}
+function renderModifyAnswers(){
+  document.getElementById('modify-answers-list').innerHTML=QUESTIONS.map((q,i)=>{
+    const v=modifyTempAnswers[i];
+    return `<div style="margin-bottom:24px">
+      <p style="font-size:14px;color:var(--text-on-dark);line-height:1.4;margin-bottom:10px">${q.text}</p>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="range" class="q-slider" style="flex:1" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${i}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=this.value>0?'+'+this.value:this.value;" />
+        <span id="modify-val-${i}" style="font-size:13px;color:var(--gold);min-width:28px;text-align:right">${v>0?'+'+v:v}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+function cancelModifyAnswers(){goTo('screen-edit-profile');}
+async function saveModifyAnswers(){
+  myAnswers=[...modifyTempAnswers];
+  const raw=myAnswers.reduce((a,b)=>a+b,0);
+  const based_score=Math.round(((raw+120)/240)*100);
+  if(currentUser)await sb.from('profiles').update({answers:myAnswers,based_score}).eq('id',currentUser.id);
+  showToast('Answers updated');
+  goTo('screen-edit-profile');
 }
 
 function showResults(){
@@ -886,7 +933,7 @@ function renderMatchesTab(){
     inList.innerHTML=incomingIds.map(pid=>{
       const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
       if(!p)return '';
-      const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
+      const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;filter:blur(6px);transform:scale(1.1)" />`:`${p.initials}`;
       return `<div style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--gold);margin-top:3px"><i class="ti ti-heart" style="font-size:13px"></i> Interested in you</div></div><i class="ti ti-chevron-right" style="font-size:18px;color:var(--text-muted)"></i></div>`;
     }).join('');
   }
@@ -915,6 +962,7 @@ async function renderConversationsTab(){
   if(!matchIds.length){document.getElementById('conversations-list').innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet. Match with someone to start chatting.</p>';return;}
   // Get latest message per match
   let html='';
+  const now=Date.now();
   for(const pid of mutualMatches){
     const matchId=getMatchId(currentUser.id,pid);
     const {data:msgs}=await sb.from('messages').select('*').eq('match_id',matchId).order('created_at',{ascending:false}).limit(1);
@@ -922,8 +970,15 @@ async function renderConversationsTab(){
     if(!p)continue;
     const last=msgs&&msgs.length?msgs[0]:null;
     const preview=last?(last.sender_id===currentUser.id?'You: ':'')+last.content:'Say hello!';
+    // Activity status: based on time since last message, or since match formed if no messages yet
+    const lastActivityAt=last?last.created_at:matchCreatedAt[pid];
+    const daysSince=lastActivityAt?(now-new Date(lastActivityAt).getTime())/86400000:0;
+    if(daysSince>=4)continue; // no activity for 4+ days: drop from the list
+    const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
+    const statusLabel=daysSince>=3?'Inactive 3+ days':daysSince>=2?'Inactive 2+ days':'Active';
+    const dot=`<span title="${statusLabel}" style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.06)"></span>`;
     const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
-    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
+    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}</span>${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
   }
   document.getElementById('conversations-list').innerHTML=html||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet.</p>';
 }
@@ -989,7 +1044,7 @@ async function executeDelete(){
   isPremium=false;currentUser=null;
   myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null};
   myAnswers=new Array(12).fill(0);
-  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();profileHidden=false;
+  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();matchCreatedAt={};profileHidden=false;
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
   ['inp-name','inp-dob','inp-location','inp-email','inp-password'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('sex-male').classList.remove('selected');document.getElementById('sex-female').classList.remove('selected');
