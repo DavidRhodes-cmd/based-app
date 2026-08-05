@@ -831,6 +831,7 @@ function renderModifyAnswers(){
     const v=modifyTempAnswers[i];
     return `<div style="margin-bottom:24px">
       <p style="font-size:14px;color:var(--text-on-dark);line-height:1.4;margin-bottom:10px">${q.text}</p>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:8px"><span>No</span><span style="font-size:11px;color:rgba(255,255,255,0.2)">|</span><span>Yes</span></div>
       <div style="display:flex;align-items:center;gap:10px">
         <input type="range" class="q-slider" style="flex:1" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${i}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=this.value>0?'+'+this.value:this.value;" />
         <span id="modify-val-${i}" style="font-size:13px;color:var(--gold);min-width:28px;text-align:right">${v>0?'+'+v:v}</span>
