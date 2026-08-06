@@ -165,31 +165,16 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 <!-- QUESTIONS -->
 <div id="screen-questions" class="screen">
   <div class="app-header">
-    <button class="btn-back" id="q-back-btn"><i class="ti ti-arrow-left"></i></button>
+    <button class="btn-back" id="q-back-btn" onclick="goTo('screen-details')"><i class="ti ti-arrow-left"></i></button>
     <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
     <div style="width:28px"></div>
   </div>
-  <div style="padding:0 20px;margin-top:5px;flex-shrink:0">
-    <div style="height:2px;background:rgba(255,255,255,0.1);border-radius:2px"><div style="height:2px;background:var(--gold);border-radius:2px;transition:width 0.4s" id="q-progress"></div></div>
-    <div style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:right" id="q-progress-label">1 of 18</div>
+  <div class="scrollable" style="padding:18px 20px" id="signup-questions-list-wrap">
+    <div class="banner-note" style="margin-bottom:20px">Don't answer what you think others will want to hear. Your authenticity matters.</div>
+    <div id="signup-questions-list"></div>
   </div>
-  <div style="padding:18px 20px;flex:1;display:flex;flex-direction:column">
-    <div class="banner-note" id="q-banner" style="margin-bottom:16px;visibility:hidden">Don't answer what you think others will want to hear. Your authenticity matters.</div>
-    <p style="font-size:11px;color:var(--gold);letter-spacing:1px;margin-bottom:7px" id="q-number">Question 1</p>
-    <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:22px;min-height:64px">
-      <p class="stmt-text" style="font-family:var(--serif);font-size:17px;color:var(--text-on-dark);line-height:1.4;flex:1" id="q-text"></p>
-      <button id="q-info-btn" class="info-icon-btn" onclick="showInfoPopup(currentQ)" aria-label="What does this mean?">i</button>
-    </div>
-    <div style="margin-top:auto;padding-top:16px">
-      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-muted);margin-bottom:10px"><span>Disagree</span><span style="font-size:11px;color:rgba(255,255,255,0.2)">|</span><span>Agree</span></div>
-      <input type="range" class="q-slider" id="q-slider" min="-10" max="10" step="1" value="0" oninput="updateSliderDisplay()" />
-      <div style="text-align:center;margin-top:12px;font-size:28px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums" id="slider-val">0</div>
-      <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:3px" id="slider-label">Neutral</div>
-    </div>
-  </div>
-  <div style="display:flex;gap:10px;padding:14px 20px;flex-shrink:0" class="bottom-safe">
-    <button class="btn-ghost" style="flex:1" onclick="skipQuestion()">Skip</button>
-    <button class="btn-primary" style="flex:2" id="q-next-btn" onclick="nextQuestion()">Next</button>
+  <div style="padding:14px 20px;flex-shrink:0" class="bottom-safe">
+    <button class="btn-primary" style="width:100%" id="q-next-btn" onclick="finishQuestions()">See my score</button>
   </div>
 </div>
 
@@ -436,7 +421,6 @@ let currentUser=null; // Supabase auth user
 let pendingEmail='',pendingPassword=''; // stored when user moves from details to questions
 let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null};
 let myAnswers=new Array(NUM_Q).fill(0);
-let currentQ=0;
 let isPremium=false,profileHidden=false;
 let viewedProfiles=new Set(),expressedInterest=new Set(),mutualMatches=new Set(),incomingInterest=new Set();
 let matchCreatedAt={}; // profileKey -> ISO timestamp of when the match formed
@@ -834,14 +818,28 @@ function selectSex(s){document.getElementById('sex-male').classList.toggle('sele
 function selectEditSex(s){document.getElementById('edit-sex-male').classList.toggle('selected',s==='male');document.getElementById('edit-sex-female').classList.toggle('selected',s==='female');myProfile.sex=s;}
 function handlePhotoUpload(input){const file=input.files[0];if(!file)return;myProfile.photo_file=file;const r=new FileReader();r.onload=e=>{myProfile.photo=e.target.result;document.getElementById('upload-placeholder').style.display='none';const pr=document.getElementById('upload-preview');pr.src=myProfile.photo;pr.style.display='block';document.getElementById('upload-area').classList.add('has-photo');};r.readAsDataURL(file);}
 function handleEditPhoto(input){const file=input.files[0];if(!file)return;myProfile.photo_file=file;const r=new FileReader();r.onload=e=>{myProfile.photo=e.target.result;const img=document.getElementById('edit-avatar-img');img.src=myProfile.photo;img.style.display='block';document.getElementById('edit-avatar-initials').style.display='none';};r.readAsDataURL(file);}
-function startQuestions(){currentQ=0;myAnswers=new Array(NUM_Q).fill(0);loadQuestion(0);goTo('screen-questions');}
-function resetQuestions(){currentQ=0;myAnswers=new Array(NUM_Q).fill(0);loadQuestion(0);}
-function loadQuestion(i){const q=QUESTIONS[i];document.getElementById('q-number').textContent='Question '+(i+1);document.getElementById('q-text').textContent=q.text;document.getElementById('q-slider').value=myAnswers[i];updateSliderDisplay();document.getElementById('q-progress').style.width=Math.round(((i+1)/NUM_Q)*100)+'%';document.getElementById('q-progress-label').textContent=(i+1)+' of '+NUM_Q;document.getElementById('q-banner').style.visibility=i===0?'visible':'hidden';document.getElementById('q-next-btn').textContent=i===NUM_Q-1?'See my score':'Next';document.getElementById('q-back-btn').onclick=i===0?()=>goTo('screen-details'):prevQuestion;}
+function startQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();goTo('screen-questions');}
+function resetQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();}
+function renderSignupQuestions(){
+  document.getElementById('signup-questions-list').innerHTML=QUESTIONS.map((q,i)=>{
+    const v=myAnswers[i];
+    const scoringNote=q.scoring?'':'<div style="font-size:10px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:6px">Visible to others, not counted in your Based Score</div>';
+    return `<div style="margin-bottom:26px">
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
+        <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${q.text}</p>
+        <button class="info-icon-btn" onclick="showInfoPopup(${i})" aria-label="What does this mean?">i</button>
+      </div>
+      ${scoringNote}
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin:8px 0 8px"><span>Disagree</span><span style="font-size:11px;color:rgba(255,255,255,0.2)">|</span><span>Agree</span></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="range" class="q-slider" style="flex:1" min="-10" max="10" step="1" value="${v}" oninput="myAnswers[${i}]=parseInt(this.value);document.getElementById('signup-val-${i}').textContent=this.value>0?'+'+this.value:this.value;" />
+        <span id="signup-val-${i}" style="font-size:13px;color:var(--gold);min-width:28px;text-align:right">${v>0?'+'+v:v}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
 function showInfoPopup(idx){const q=QUESTIONS[idx];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${q.text}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${q.info}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
-function updateSliderDisplay(){const v=parseInt(document.getElementById('q-slider').value);document.getElementById('slider-val').textContent=v>0?'+'+v:String(v);const lbls=['Strongly No','Strongly No','No','No','Leaning No','Leaning No','Neutral','Leaning Yes','Leaning Yes','Yes','Yes','Strongly Yes','Strongly Yes'];document.getElementById('slider-label').textContent=lbls[v+10]||'Neutral';const f=((v+10)/20)*100;document.getElementById('q-slider').style.background=`linear-gradient(to right,rgba(201,168,76,0.6) 0%,rgba(201,168,76,0.9) ${f}%,rgba(255,255,255,0.12) ${f}%)`;}
-function nextQuestion(){myAnswers[currentQ]=parseInt(document.getElementById('q-slider').value);if(currentQ<NUM_Q-1){currentQ++;loadQuestion(currentQ);}else{if(currentUser){updateProfileAnswers();}else{signUpAndSave();}}}
-function prevQuestion(){if(currentQ>0){myAnswers[currentQ]=parseInt(document.getElementById('q-slider').value);currentQ--;loadQuestion(currentQ);}}
-function skipQuestion(){myAnswers[currentQ]=0;if(currentQ<NUM_Q-1){currentQ++;loadQuestion(currentQ);}else{if(currentUser){updateProfileAnswers();}else{signUpAndSave();}}}
+function finishQuestions(){if(currentUser){updateProfileAnswers();}else{signUpAndSave();}}
 
 async function updateProfileAnswers(){
   // Called when an existing user retakes questions
