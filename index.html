@@ -187,7 +187,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
   </div>
   <div style="padding:28px 24px;flex:1;display:flex;flex-direction:column;align-items:center">
     <p style="font-family:var(--serif);font-size:24px;color:var(--text-on-dark);text-align:center;margin-bottom:6px">Your Based Score</p>
-    <p style="font-size:14px;color:var(--text-muted);text-align:center;margin-bottom:30px">Calculated from your 12 answers</p>
+    <p style="font-size:14px;color:var(--text-muted);text-align:center;margin-bottom:30px" id="results-answer-count">Calculated from your 15 answers</p>
     <div style="position:relative;width:160px;height:160px;margin:0 auto 30px">
       <svg width="160" height="160" viewBox="0 0 160 160" style="transform:rotate(-90deg)">
         <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="9"/>
@@ -389,27 +389,6 @@ const sb = createClient(
 // ─── Questions & short labels ───────────────────────────────────────────────
 // scoring:false = shown on profile but excluded from Based Score / compatibility calc (items 16-18)
 const QUESTIONS=[
-{text:"Believe in total freedom of speech",info:"This asks whether you support people being allowed to say anything they want (even unpopular or offensive opinions) without being censored or punished by government or institutions, OR believe the government and/or others should decide what can and cannot be said.",scoring:true},
-{text:"Happy to discuss controversial subjects?",info:"This asks whether you are comfortable talking about sensitive, controversial, or polarizing topics OR whether you prefer to avoid such topics.",scoring:true},
-{text:"Want smaller government",info:"This asks whether you believe the government should have limited power and stay out of most areas of people's lives, leaving more freedom to individuals, OR think it is important for the government to have significant oversight and/or control of most aspects of society and individual's lives.",scoring:true},
-{text:"Want to keep more of my earnings.",info:"This asks whether you believe in lower taxes (e.g. because government is inefficient and wasteful in its use of your money) OR believe government should raise taxes to support the programmes and services they provide.",scoring:true},
-{text:"Believe open borders damage our country.",info:"This asks whether you believe allowing people to enter a country with very few or no restrictions causes harm (e.g. to culture, economy, safety etc.), OR believe large scale immigration makes a positive contribution to a nation.",scoring:true},
-{text:"Believe in democracy.",info:"This asks whether you believe it is the people's right and responsibility to vote in elections to choose the people who govern them OR believe a system other than democracy would be better.",scoring:true},
-{text:"Believe in the sovereignty of the nation state.",info:"This asks whether you believe the nation's government and courts should have the final say on all matters OR you believe other bodies should have power or influence (e.g. international courts, supranational bodies (European Union, World Health Authority, World Economic Forum)).",scoring:true},
-{text:"Believe there are only two sexes.",info:"This asks whether you believe humans are biologically male or female only (based on chromosomes, reproductive systems, etc.), OR believe sex can be more than those two categories.",scoring:true},
-{text:"Family is a core part of my life.",info:"This asks whether your parents, siblings, or children are important in how you live and make decisions OR whether other influences (e.g. friends, colleagues or online communities) are more important.",scoring:true},
-{text:"Starting a family is in my future plan.",info:"This asks whether you plan or hope to have children and build a family of your own someday OR prefer not to have children.",scoring:true},
-{text:"Believe in working and self-reliance.",info:"This asks whether you value people supporting themselves through their own efforts and hard work OR do not see these attributes as particularly important.",scoring:true},
-{text:"Believe in giving back.",info:"This asks whether you believe it is important to give back to the society or community of which you are a part (e.g. volunteering, donating money, visiting the elderly etc.) OR see meeting the needs of others in society as the responsibility of the government and/or other institutions.",scoring:true},
-{text:"Believe in traditional gender roles.",info:"This asks whether you think men and women should generally follow traditional expectations (for example, men as providers/protectors and women as caregivers/homemakers) OR think men and women are the same and interchangeable in terms of their roles within society.",scoring:true},
-{text:"Physical fitness and nutrition are important.",info:"This asks whether you consider exercise and nutrition to be an essential part of your daily life and a key part of maintaining your health OR do not see these as priorities.",scoring:true},
-{text:"Good with personal finances?",info:"This asks whether you manage money well (budgeting, saving, avoiding debt, living within your means etc.) OR take on debt to ensure you have the things you want or need.",scoring:true},
-{text:"Have a personal faith?",info:"This asks whether you personally believe in a religion, God, or some other spiritual belief system OR not.",scoring:false},
-{text:"Against abortion?",info:"This asks whether you oppose ending the life of an unborn child for any reason OR believe abortion is the choice of the pregnant woman.",scoring:false},
-{text:"Against euthanasia?",info:"This asks whether you oppose ending a person's life at their request (e.g. to relieve their suffering) OR believe this should be their choice.",scoring:false}
-];
-// Sign-up screen uses its own phrasing ("I believe...") — Modify Answers / profile card still use QUESTIONS above until updated
-const SIGNUP_QUESTIONS=[
 {text:"I believe in total freedom of speech",info:"This asks whether you support people being allowed to say anything they want (even unpopular or offensive opinions) without being censored or punished by government or institutions, OR believe the government and/or others should decide what can and cannot be said.",scoring:true},
 {text:"I am happy to discuss controversial subjects",info:"This asks whether you are comfortable talking about sensitive, controversial, or polarizing topics OR whether you prefer to avoid such topics.",scoring:true},
 {text:"I want smaller government",info:"This asks whether you believe the government should have limited power and stay out of most areas of people's lives, leaving more freedom to individuals, OR think it is important for the government to have significant oversight and/or control of most aspects of society and individual's lives.",scoring:true},
@@ -424,11 +403,13 @@ const SIGNUP_QUESTIONS=[
 {text:"I believe in giving back.",info:"This asks whether you believe it is important to give back to the society or community of which you are a part (e.g. volunteering, donating money, visiting the elderly etc.) OR see meeting the needs of others in society as the responsibility of the government and/or other institutions.",scoring:true},
 {text:"I believe in traditional gender roles.",info:"This asks whether you think men and women should generally follow traditional expectations (for example, men as providers/protectors and women as caregivers/homemakers) OR think men and women are the same and interchangeable in terms of their roles within society.",scoring:true},
 {text:"Physical fitness and nutrition are important.",info:"This asks whether you consider exercise and nutrition to be an essential part of your daily life and a key part of maintaining your health OR do not see these as priorities.",scoring:true},
-{text:"I am good with personal finances?",info:"This asks whether you manage money well (budgeting, saving, avoiding debt, living within your means etc.) OR take on debt to ensure you have the things you want or need.",scoring:true},
-{text:"I have a personal faith?",info:"This asks whether you personally believe in a religion, God, or some other spiritual belief system OR not.",scoring:false},
-{text:"I am against abortion?",info:"This asks whether you oppose ending the life of an unborn child for any reason OR believe abortion is the choice of the pregnant woman.",scoring:false},
-{text:"I am against euthanasia?",info:"This asks whether you oppose ending a person's life at their request (e.g. to relieve their suffering) OR believe this should be their choice.",scoring:false}
+{text:"I am good with personal finances",info:"This asks whether you manage money well (budgeting, saving, avoiding debt, living within your means etc.) OR take on debt to ensure you have the things you want or need.",scoring:true},
+{text:"I have a personal faith",info:"This asks whether you personally believe in a religion, God, or some other spiritual belief system OR not.",scoring:false},
+{text:"I am against abortion",info:"This asks whether you oppose ending the life of an unborn child for any reason OR believe abortion is the choice of the pregnant woman.",scoring:false},
+{text:"I am against euthanasia",info:"This asks whether you oppose ending a person's life at their request (e.g. to relieve their suffering) OR believe this should be their choice.",scoring:false}
 ];
+// Sign-up now shares the same wording/source as Modify Answers and the profile card
+const SIGNUP_QUESTIONS=QUESTIONS;
 const NUM_Q=QUESTIONS.length; // 18
 const SCORING_IDX=QUESTIONS.map((q,i)=>q.scoring?i:-1).filter(i=>i!==-1); // indices 0-14
 const NUM_SCORING=SCORING_IDX.length; // 15
@@ -736,13 +717,17 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     const myLabel=my>0?'+'+my:String(my),themLabel=them>0?'+'+them:String(them);
     const scoringNote=qObj.scoring?'':'<div style="font-size:10px;color:var(--text-muted);margin-bottom:6px">Not counted in Based Score</div>';
     return `<div style="margin-bottom:18px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px">
-        <span class="stmt-text" style="font-size:13px;color:var(--text-muted);flex:1;padding-right:2px">${q}</span>
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
+        <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${q}</p>
+        <span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${col}22;color:${col};border:0.5px solid ${col}55;white-space:nowrap;flex-shrink:0;margin-top:1px">${label}</span>
         <button class="info-icon-btn" onclick="showInfoPopup(${i})" aria-label="What does this mean?">i</button>
-        <span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${col}22;color:${col};border:0.5px solid ${col}55;white-space:nowrap">${label}</span>
       </div>
       ${scoringNote}
-      <div style="display:flex;justify-content:space-between;padding:0 4px;margin-bottom:4px"><span style="font-size:10px;color:rgba(255,255,255,0.35)">Disagree</span><span style="font-size:10px;color:rgba(255,255,255,0.35)">Agree</span></div>
+      <div style="display:flex;font-size:12px;color:var(--text-muted);margin:8px 0 8px">
+        <span style="flex:1;text-align:left">Disagree</span>
+        <span style="flex:1;text-align:center;font-size:11px;color:rgba(255,255,255,0.2)">|</span>
+        <span style="flex:1;text-align:right">Agree</span>
+      </div>
       <div style="position:relative;height:20px;margin:0 4px">
         <div style="position:absolute;top:50%;left:0;right:0;height:3px;background:rgba(255,255,255,0.08);border-radius:3px;transform:translateY(-50%)"></div>
         <div style="position:absolute;top:50%;left:50%;width:1px;height:10px;background:rgba(255,255,255,0.2);transform:translate(-50%,-50%)"></div>
@@ -844,14 +829,13 @@ function resetQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestio
 function renderSignupQuestions(){
   document.getElementById('signup-questions-list').innerHTML=SIGNUP_QUESTIONS.map((q,i)=>{
     const v=myAnswers[i];
-    const scoringNote=q.scoring?'':'<div style="font-size:10px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:6px">Visible to others, not counted in your Based Score</div>';
-    return `<div style="margin-bottom:26px">
+    const sectionDivider=(!q.scoring&&SIGNUP_QUESTIONS[i-1]&&SIGNUP_QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:22px">Visible to others, not counted in your Based Score</p>':'';
+    return `${sectionDivider}<div style="margin-bottom:26px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
         <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${q.text}</p>
         <span id="signup-val-${i}" style="font-size:13px;color:var(--gold);font-weight:600;flex-shrink:0;margin-top:1px">${v>0?'+'+v:v}</span>
         <button class="info-icon-btn" onclick="showInfoPopup(${i},SIGNUP_QUESTIONS)" aria-label="What does this mean?">i</button>
       </div>
-      ${scoringNote}
       <div style="display:flex;font-size:12px;color:var(--text-muted);margin:8px 0 8px">
         <span style="flex:1;text-align:left">Disagree</span>
         <span style="flex:1;text-align:center;font-size:11px;color:rgba(255,255,255,0.2)">|</span>
@@ -880,18 +864,19 @@ function openModifyAnswers(){
 function renderModifyAnswers(){
   document.getElementById('modify-answers-list').innerHTML=QUESTIONS.map((q,i)=>{
     const v=modifyTempAnswers[i];
-    const notScoringNote=q.scoring?'':'<div style="font-size:10px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:6px">Visible to others, not counted in your Based Score</div>';
-    return `<div style="margin-bottom:26px">
+    const sectionDivider=(!q.scoring&&QUESTIONS[i-1]&&QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:22px">Visible to others, not counted in your Based Score</p>':'';
+    return `${sectionDivider}<div style="margin-bottom:26px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
-        <p class="stmt-text" style="font-size:14px;color:var(--text-on-dark);line-height:1.4;flex:1">${q.text}</p>
+        <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${q.text}</p>
+        <span id="modify-val-${i}" style="font-size:13px;color:var(--gold);font-weight:600;flex-shrink:0;margin-top:1px">${v>0?'+'+v:v}</span>
         <button class="info-icon-btn" onclick="showInfoPopup(${i})" aria-label="What does this mean?">i</button>
       </div>
-      ${notScoringNote}
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin:8px 0 8px"><span>Disagree</span><span style="font-size:11px;color:rgba(255,255,255,0.2)">|</span><span>Agree</span></div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <input type="range" class="q-slider" style="flex:1" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${i}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=this.value>0?'+'+this.value:this.value;" />
-        <span id="modify-val-${i}" style="font-size:13px;color:var(--gold);min-width:28px;text-align:right">${v>0?'+'+v:v}</span>
+      <div style="display:flex;font-size:12px;color:var(--text-muted);margin:8px 0 8px">
+        <span style="flex:1;text-align:left">Disagree</span>
+        <span style="flex:1;text-align:center;font-size:11px;color:rgba(255,255,255,0.2)">|</span>
+        <span style="flex:1;text-align:right">Agree</span>
       </div>
+      <input type="range" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${i}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=this.value>0?'+'+this.value:this.value;" />
     </div>`;
   }).join('');
 }
@@ -907,6 +892,7 @@ async function saveModifyAnswers(){
 function showResults(){
   const pct=calcBasedScore(myAnswers);
   document.getElementById('score-pct-display').textContent=pct+'%';
+  document.getElementById('results-answer-count').textContent='Calculated from your '+NUM_SCORING+' answers';
   const circ=2*Math.PI*68;
   document.getElementById('score-arc').style.strokeDashoffset=circ*(1-pct/100);
   document.getElementById('score-arc').style.strokeDasharray=circ;
