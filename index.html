@@ -26,7 +26,7 @@
 html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify-content:center;font-family:var(--sans);}
 .app-shell{
   background:var(--navy);
-  width:100%;max-width:430px;
+  width:min(100%,430px);flex:0 0 auto;
   height:100%;max-height:100%;
   display:flex;flex-direction:column;
   overflow:hidden;
@@ -60,6 +60,9 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 .sex-btn.selected{background:rgba(201,168,76,0.15);border-color:var(--gold);color:var(--gold);}
 .banner-note{background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:11px;padding:12px 14px;font-size:13px;color:var(--gold-light);line-height:1.5;font-style:italic;}
 .stmt-text{word-wrap:break-word;overflow-wrap:break-word;white-space:normal;}
+.form-input.input-error{border-color:var(--red)!important;background:rgba(235,87,87,0.06)!important;}
+.religion-box{background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:11px 8px;font-size:13px;color:var(--text-on-dark);text-align:center;cursor:pointer;font-family:var(--sans);transition:all 0.15s;}
+.religion-box.selected{background:rgba(201,168,76,0.15);border-color:var(--gold);color:var(--gold);font-weight:600;}
 .info-icon-btn{flex-shrink:0;width:19px;height:19px;min-width:19px;border-radius:50%;background:transparent;border:1px solid rgba(255,255,255,0.28);color:var(--text-muted);font-size:11px;font-family:Georgia,serif;font-style:italic;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;line-height:1;margin-top:1px;}
 .info-icon-btn:hover{border-color:var(--gold);color:var(--gold);}
 .q-slider{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:5px;background:rgba(255,255,255,0.12);outline:none;cursor:pointer;}
@@ -155,6 +158,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Where are you now?</label><input class="form-input" type="text" placeholder="Your postcode e.g. LS1 4BR" id="inp-location" autocomplete="postal-code" /></div>
     <p style="font-size:11px;color:var(--text-muted);margin-top:-10px;margin-bottom:17px">Used to calculate distances — not shown to other users.</p><div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="inp-email" autocomplete="email" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><input class="form-input" type="password" placeholder="Min. 6 characters" id="inp-password" autocomplete="new-password" /></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Confirm password</label><input class="form-input" type="password" placeholder="Re-enter your password" id="inp-password-confirm" autocomplete="new-password" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Biological sex</label><div style="display:flex;gap:10px"><button class="sex-btn" id="sex-male" onclick="selectSex('male')">Male</button><button class="sex-btn" id="sex-female" onclick="selectSex('female')">Female</button></div></div>
     <div class="banner-note" style="margin-bottom:22px">We don't want to rob you of conversation, so you can figure out the rest.</div>
     <button class="btn-primary bottom-safe" onclick="tryDetails()">Continue to questions</button>
@@ -225,17 +229,17 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-min-val">0%</span>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
-        <span style="font-size:13px;color:var(--text-on-dark);min-width:90px">Distance</span>
+        <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0">Distance</span>
         <input type="range" class="q-slider" style="flex:1" min="5" max="100" step="5" value="25" id="filter-dist" oninput="updateFilter()" />
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-dist-val">25 mi</span>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
-        <span style="font-size:13px;color:var(--text-on-dark);min-width:90px">No younger than</span>
+        <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0">No younger than</span>
         <input type="range" class="q-slider" style="flex:1" min="18" max="100" step="1" value="18" id="filter-age-min" oninput="updateFilter()" />
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-age-min-val">18</span>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:13px;color:var(--text-on-dark);min-width:90px">No older than</span>
+        <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0">No older than</span>
         <input type="range" class="q-slider" style="flex:1" min="18" max="100" step="1" value="100" id="filter-age-max" oninput="updateFilter()" />
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-age-max-val">100</span>
       </div>
@@ -310,7 +314,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
         <div class="toggle-track" id="hide-toggle" onclick="toggleHideProfile()"><div class="toggle-thumb"></div></div>
       </div>
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
-        <button class="btn-ghost" onclick="openModifyAnswers()" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px"></i>Modify my answers</button>
+        <button class="btn-ghost" onclick="openModifyAnswers()" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px;display:inline-block;transform:rotate(90deg)"></i>Modify my answers</button>
       </div>
       <div style="padding-top:18px" class="bottom-safe">
         <button onclick="confirmDelete()" style="background:rgba(235,87,87,0.07);border:0.5px solid rgba(235,87,87,0.3);border-radius:13px;padding:14px 20px;font-size:15px;color:var(--red);cursor:pointer;width:100%;font-family:var(--sans);display:flex;align-items:center;justify-content:center;gap:9px"><i class="ti ti-trash"></i>Delete my account</button>
@@ -411,6 +415,8 @@ const QUESTIONS=[
 // Sign-up now shares the same wording/source as Modify Answers and the profile card
 const SIGNUP_QUESTIONS=QUESTIONS;
 const NUM_Q=QUESTIONS.length; // 18
+const FAITH_Q_INDEX=15; // "I have a personal faith" — reveals the religion picker when answered positively
+const RELIGIONS=["Atheist","Agnostic","Christian","Hindu","Jewish","Sikh","Muslim","Other"];
 const SCORING_IDX=QUESTIONS.map((q,i)=>q.scoring?i:-1).filter(i=>i!==-1); // indices 0-14
 const NUM_SCORING=SCORING_IDX.length; // 15
 
@@ -427,7 +433,7 @@ async function loadDemoProfiles(){
 const FREE_LIMIT=5;
 let currentUser=null; // Supabase auth user
 let pendingEmail='',pendingPassword=''; // stored when user moves from details to questions
-let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null};
+let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null};
 let myAnswers=new Array(NUM_Q).fill(0);
 let isPremium=false,profileHidden=false;
 let viewedProfiles=new Set(),expressedInterest=new Set(),mutualMatches=new Set(),incomingInterest=new Set();
@@ -477,14 +483,18 @@ function haversineDistance(lat1,lng1,lat2,lng2){
 
 async function tryDetails(){
   const err=document.getElementById('details-error');
+  const passEl=document.getElementById('inp-password'),confirmEl=document.getElementById('inp-password-confirm');
+  passEl.classList.remove('input-error');confirmEl.classList.remove('input-error');
   if(!myProfile.photo){err.style.display='block';err.textContent='Please upload a photo before continuing.';return;}
   const name=document.getElementById('inp-name').value.trim();
   const email=document.getElementById('inp-email').value.trim();
-  const pass=document.getElementById('inp-password').value;
+  const pass=passEl.value;
+  const passConfirm=confirmEl.value;
   const dob=document.getElementById('inp-dob').value;
   const location=document.getElementById('inp-location').value.trim();
-  if(!name||!email||!pass||!dob||!location||!myProfile.sex){err.style.display='block';err.textContent='Please fill in all fields.';return;}
-  if(pass.length<6){err.style.display='block';err.textContent='Password must be at least 6 characters.';return;}
+  if(!name||!email||!pass||!passConfirm||!dob||!location||!myProfile.sex){err.style.display='block';err.textContent='Please fill in all fields.';return;}
+  if(pass.length<6){err.style.display='block';err.textContent='Password must be at least 6 characters.';passEl.classList.add('input-error');confirmEl.classList.add('input-error');return;}
+  if(pass!==passConfirm){err.style.display='block';err.textContent='Passwords do not match.';passEl.classList.add('input-error');confirmEl.classList.add('input-error');return;}
   err.style.display='none';
   myProfile.name=name;myProfile.dob=dob;myProfile.location=location;
   pendingEmail=email;pendingPassword=pass;
@@ -536,11 +546,13 @@ async function signUpAndSave(){
   }catch(e){console.warn('Geocode failed:',e);}
 
   console.log('Saving profile for user:', userId, {name:myProfile.name,email,lat,lng});
+  const religion=myAnswers[FAITH_Q_INDEX]>0?myProfile.religion:null;
+  myProfile.religion=religion;
   const {error:profileErr}=await sb.from('profiles').upsert({
     id:userId,name:myProfile.name,dob:myProfile.dob,location:myProfile.location,
     sex:myProfile.sex,photo_url,based_score,answers:myAnswers,
     is_hidden:false,is_premium:false,lat,lng,
-    email:email
+    email:email,religion:religion
   });
   if(profileErr){
     console.error('Profile save error:', profileErr);
@@ -579,7 +591,7 @@ async function restoreSession(){
   // Load profile
   const {data:p,error:pErr}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();
   if(p){
-    myProfile={name:p.name,dob:p.dob,location:p.location,sex:p.sex,photo:p.photo_url,photo_file:null,lat:p.lat||null,lng:p.lng||null};
+    myProfile={name:p.name,dob:p.dob,location:p.location,sex:p.sex,photo:p.photo_url,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null};
     myAnswers=p.answers||new Array(NUM_Q).fill(0);
     isPremium=p.is_premium||false;
     profileHidden=p.is_hidden||false;
@@ -648,7 +660,8 @@ async function loadBrowseProfiles(){
       answers:p.answers||new Array(NUM_Q).fill(0),
       photo_url:p.photo_url,
       lat:p.lat||null,
-      lng:p.lng||null
+      lng:p.lng||null,
+      religion:p.religion||null
     }));
     browseProfiles=[...real,...demoForSex];
   }
@@ -696,21 +709,21 @@ function renderProfiles(minPct){
     const avatarContent=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" />`:`${p.initials}`;
     const aStr=JSON.stringify(p.answers).replace(/"/g,'&quot;');
     if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="goTo('screen-paywall')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:7px">Upgrade to view</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%"></div></div><span style="font-size:13px;font-weight:600;color:var(--gold);min-width:38px;text-align:right">${p.compat}%</span></div></div></div>`;}
-    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${aStr}',${p.compat},${p.basedScore},'${p.initials}','${p.name}',${p.age},'${p.location}','${p.photo_url||''}','${profileKey}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">${p.location}${badge}</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%"></div></div><span style="font-size:13px;font-weight:600;color:var(--gold);min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
+    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${aStr}',${p.compat},${p.basedScore},'${p.initials}','${p.name}',${p.age},'${p.location}','${p.photo_url||''}','${profileKey}','${p.religion||''}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">${p.location}${badge}</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%"></div></div><span style="font-size:13px;font-weight:600;color:var(--gold);min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
   });
   if(!isPremium&&viewedProfiles.size>=FREE_LIMIT){html+=`<div style="background:rgba(15,18,30,0.95);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;padding:22px;margin-top:6px;text-align:center"><i class="ti ti-crown" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:8px">You've seen your 5 free profiles</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">Unlock unlimited browsing for less than a coffee a month.</p><button class="btn-primary" onclick="goTo('screen-paywall')" style="font-size:15px;padding:14px">Unlock unlimited — £4.99/month</button></div>`;}
   container.innerHTML=html;
 }
 
-function handleProfileTap(aStr,compat,basedScore,inits,name,age,location,photoUrl,profileKey){
+function handleProfileTap(aStr,compat,basedScore,inits,name,age,location,photoUrl,profileKey,religion){
   if(!isPremium&&!viewedProfiles.has(profileKey)&&viewedProfiles.size>=FREE_LIMIT){goTo('screen-paywall');return;}
   let answers;try{answers=JSON.parse(aStr.replace(/&quot;/g,'"'));}catch(e){answers=new Array(NUM_Q).fill(0);}
   viewedProfiles.add(profileKey);
-  openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey);
+  openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,'search',religion||null);
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
 }
 
-function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,context='search'){
+function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,context='search',theirReligion=null){
   const hasInterest=expressedInterest.has(profileKey);
   const isMutual=mutualMatches.has(profileKey);
   const scoreColor=compat>=80?'var(--green)':compat>=60?'var(--gold)':'var(--red)';
@@ -733,10 +746,12 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     const lineLeft=Math.min(myP,themP),lineWidth=Math.abs(myP-themP);
     const myLabel=my>0?'+'+my:String(my),themLabel=them>0?'+'+them:String(them);
     const sectionDivider=(!qObj.scoring&&QUESTIONS[i-1]&&QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:16px">Not counted in your Based Score</p>':'';
+    const religionTag=(i===FAITH_Q_INDEX&&them>0&&theirReligion)?`<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(201,168,76,0.12);color:var(--gold);border:0.5px solid rgba(201,168,76,0.3);white-space:nowrap;flex-shrink:0;margin-top:1px">${theirReligion}</span>`:'';
     return `${sectionDivider}<div style="margin-bottom:18px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
         <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${q}</p>
         <span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${col}22;color:${col};border:0.5px solid ${col}55;white-space:nowrap;flex-shrink:0;margin-top:1px">${label}</span>
+        ${religionTag}
         <button class="info-icon-btn" onclick="showInfoPopup(${i})" aria-label="What does this mean?">i</button>
       </div>
       <div style="display:flex;font-size:12px;color:var(--text-muted);margin:8px 0 8px">
@@ -768,17 +783,17 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     actionRow=`<div style="margin-top:18px;display:flex;flex-direction:column;gap:11px"><button class="btn-primary" onclick="openChat('${profileKey}','${inits}','${name}')"><i class="ti ti-message" style="margin-right:7px"></i>Send a message</button><div class="action-btn-row"><button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div></div>`;
   } else {
     const intCls=hasInterest?'act-btn expressed':'act-btn interested';
-    const intClick=hasInterest?'':` onclick="doExpressInterest('${profileKey}','${inits}','${aEncoded}',${compat},${basedScore},'${age}','${location}','${photoUrl||''}','${name}')"`;
+    const intClick=hasInterest?'':` onclick="doExpressInterest('${profileKey}','${inits}','${aEncoded}',${compat},${basedScore},'${age}','${location}','${photoUrl||''}','${name}','${theirReligion||''}')"`;
     const moveOnBtn=context==='incoming'?'':`<button class="act-btn" onclick="doMoveOn('${profileKey}')"><i class="ti ti-arrow-right"></i>Move on</button>`;
     actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}"${intClick}><svg id="interest-heart-icon" width="15" height="15" viewBox="0 0 24 24" style="vertical-align:-3px;margin-right:6px" fill="none"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="none" stroke="currentColor" stroke-width="2"/></svg>Interested</button>${moveOnBtn}<button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
   }
   const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden"><img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${name}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4)">${inits}</div>`;
-  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">COMPATIBILITY</div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px">BASED SCORE</div><div style="font-size:28px;font-weight:700;color:var(--gold);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
+  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:var(--gold);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
   goTo('screen-profile');
   document.getElementById('profile-detail-body').scrollTop=0;
 }
 
-async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age,location,photoUrl,name){
+async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age,location,photoUrl,name,religion){
   const heartIcon=document.getElementById('interest-heart-icon');
   if(heartIcon){
     const path=heartIcon.querySelector('path');
@@ -797,7 +812,7 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
   let answers;try{answers=JSON.parse(aEncoded.replace(/&quot;/g,'"'));}catch(e){answers=new Array(NUM_Q).fill(0);}
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   renderMatchesTab();
-  openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey);
+  openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,'search',religion||null);
 }
 
 async function doMoveOn(profileKey){
@@ -819,7 +834,7 @@ async function doMoveOn(profileKey){
     const isLocked=!isPremium&&!viewedProfiles.has(key)&&viewedProfiles.size>=FREE_LIMIT;
     if(isLocked){goTo('screen-paywall');return;}
     viewedProfiles.add(key);
-    openProfile(next.answers,next.compat,next.basedScore,next.initials,next.name,next.age,next.location,next.photo_url,key);
+    openProfile(next.answers,next.compat,next.basedScore,next.initials,next.name,next.age,next.location,next.photo_url,key,'search',next.religion||null);
   }else{
     goTo('screen-main');
   }
@@ -842,10 +857,21 @@ function handlePhotoUpload(input){const file=input.files[0];if(!file)return;myPr
 function handleEditPhoto(input){const file=input.files[0];if(!file)return;myProfile.photo_file=file;const r=new FileReader();r.onload=e=>{myProfile.photo=e.target.result;const img=document.getElementById('edit-avatar-img');img.src=myProfile.photo;img.style.display='block';document.getElementById('edit-avatar-initials').style.display='none';};r.readAsDataURL(file);}
 function startQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();goTo('screen-questions');}
 function resetQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();}
+function religionPickerHtml(pickerId,selected){
+  return `<div id="${pickerId}" style="display:${selected?'grid':'none'};grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0 6px">${RELIGIONS.map(r=>`<button type="button" class="religion-box ${selected===r?'selected':''}" onclick="selectReligion('${r}','${pickerId}')">${r}</button>`).join('')}</div>`;
+}
+function selectReligion(r,pickerId){
+  if(pickerId==='signup-religion-picker')myProfile.religion=r;
+  else if(pickerId==='modify-religion-picker')modifyTempReligion=r;
+  document.querySelectorAll('#'+pickerId+' .religion-box').forEach(b=>b.classList.toggle('selected',b.textContent===r));
+}
 function renderSignupQuestions(){
   document.getElementById('signup-questions-list').innerHTML=SIGNUP_QUESTIONS.map((q,i)=>{
     const v=myAnswers[i];
     const sectionDivider=(!q.scoring&&SIGNUP_QUESTIONS[i-1]&&SIGNUP_QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:22px">Visible to others, not counted in your Based Score</p>':'';
+    const isFaithQ=i===FAITH_Q_INDEX;
+    const extraOninput=isFaithQ?`document.getElementById('signup-religion-picker').style.display=this.value>0?'grid':'none';`:'';
+    const picker=isFaithQ?religionPickerHtml('signup-religion-picker',v>0?myProfile.religion:null):'';
     return `${sectionDivider}<div style="margin-bottom:26px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
         <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${q.text}</p>
@@ -857,11 +883,17 @@ function renderSignupQuestions(){
         <span style="flex:1;text-align:center;font-size:11px;color:rgba(255,255,255,0.2)">|</span>
         <span style="flex:1;text-align:right">Agree</span>
       </div>
-      <input type="range" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" oninput="myAnswers[${i}]=parseInt(this.value);document.getElementById('signup-val-${i}').textContent=this.value>0?'+'+this.value:this.value;" />
+      <input type="range" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" oninput="myAnswers[${i}]=parseInt(this.value);document.getElementById('signup-val-${i}').textContent=this.value>0?'+'+this.value:this.value;${extraOninput}" />
+      ${picker}
     </div>`;
   }).join('');
 }
 function showInfoPopup(idx,qSet=QUESTIONS){const q=qSet[idx];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${q.text}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${q.info}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
+const SCORE_INFO={
+  compat:{title:'Compatibility',text:'Calculates your compatibility with the person based on how you each scored the first 15 statements. The faith/abortion/euthanasia scores are excluded from the calculation.'},
+  based:{title:'Based Score',text:"Calculates this person's own Based Score from how they answered the first 15 statements. The faith/abortion/euthanasia scores are excluded from the calculation."}
+};
+function showScoreInfoPopup(type){const info=SCORE_INFO[type];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${info.title}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${info.text}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
 function finishQuestions(){if(currentUser){updateProfileAnswers();}else{signUpAndSave();}}
 
 async function updateProfileAnswers(){
@@ -871,9 +903,10 @@ async function updateProfileAnswers(){
   showResults();
 }
 
-let modifyTempAnswers=[];
+let modifyTempAnswers=[],modifyTempReligion=null;
 function openModifyAnswers(){
   modifyTempAnswers=[...myAnswers];
+  modifyTempReligion=myProfile.religion;
   renderModifyAnswers();
   goTo('screen-modify-answers');
 }
@@ -881,6 +914,9 @@ function renderModifyAnswers(){
   document.getElementById('modify-answers-list').innerHTML=QUESTIONS.map((q,i)=>{
     const v=modifyTempAnswers[i];
     const sectionDivider=(!q.scoring&&QUESTIONS[i-1]&&QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:22px">Visible to others, not counted in your Based Score</p>':'';
+    const isFaithQ=i===FAITH_Q_INDEX;
+    const extraOninput=isFaithQ?`document.getElementById('modify-religion-picker').style.display=this.value>0?'grid':'none';`:'';
+    const picker=isFaithQ?religionPickerHtml('modify-religion-picker',v>0?modifyTempReligion:null):'';
     return `${sectionDivider}<div style="margin-bottom:26px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
         <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${q.text}</p>
@@ -892,15 +928,17 @@ function renderModifyAnswers(){
         <span style="flex:1;text-align:center;font-size:11px;color:rgba(255,255,255,0.2)">|</span>
         <span style="flex:1;text-align:right">Agree</span>
       </div>
-      <input type="range" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${i}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=this.value>0?'+'+this.value:this.value;" />
+      <input type="range" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${i}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=this.value>0?'+'+this.value:this.value;${extraOninput}" />
+      ${picker}
     </div>`;
   }).join('');
 }
 function cancelModifyAnswers(){goTo('screen-edit-profile');}
 async function saveModifyAnswers(){
   myAnswers=[...modifyTempAnswers];
+  myProfile.religion=myAnswers[FAITH_Q_INDEX]>0?modifyTempReligion:null;
   const based_score=calcBasedScore(myAnswers);
-  if(currentUser)await sb.from('profiles').update({answers:myAnswers,based_score}).eq('id',currentUser.id);
+  if(currentUser)await sb.from('profiles').update({answers:myAnswers,based_score,religion:myProfile.religion}).eq('id',currentUser.id);
   showToast('Answers updated');
   goTo('screen-edit-profile');
 }
@@ -1010,7 +1048,7 @@ function openIncomingProfile(pid){
   if(!p)return;
   const compat=calcCompat(p.answers);
   viewedProfiles.add(pid);
-  openProfile(p.answers,compat,p.basedScore,p.initials,p.name,p.age,p.location,p.photo_url,pid,'incoming');
+  openProfile(p.answers,compat,p.basedScore,p.initials,p.name,p.age,p.location,p.photo_url,pid,'incoming',p.religion||null);
 }
 
 async function renderConversationsTab(){
@@ -1099,11 +1137,11 @@ async function executeDelete(){
     await sb.auth.signOut();
   }
   isPremium=false;currentUser=null;
-  myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null};
+  myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null};
   myAnswers=new Array(NUM_Q).fill(0);
   expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();matchCreatedAt={};profileHidden=false;
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
-  ['inp-name','inp-dob','inp-location','inp-email','inp-password'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['inp-name','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('sex-male').classList.remove('selected');document.getElementById('sex-female').classList.remove('selected');
   showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-check" style="font-size:24px;color:var(--green)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px">Account deleted</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Your profile and all data have been permanently removed.${isPremium?' Your subscription has been cancelled.':''} We hope to see you again someday.</p><button onclick="removeModal();goTo('screen-welcome')" class="btn-primary">Back to home</button>`);
 }
