@@ -566,6 +566,11 @@ async function loadDemoProfiles(){
 // ─── App state ────────────────────────────────────────────────────────────────
 const FREE_LIMIT=5;
 let currentUser=null; // Supabase auth user
+// Checked synchronously at load, before any async work — lets the boot sequence know
+// not to auto-navigate to the main screen if a confirmation-link completion is about
+// to take over navigation instead (avoids a race where both try to navigate).
+let hasPendingSignupOnLoad=false;
+try{hasPendingSignupOnLoad=!!localStorage.getItem('basedPendingSignup');}catch(e){}
 let pendingEmail='',pendingPassword=''; // stored when user moves from details to questions
 let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null};
 let myAnswers=new Array(NUM_Q).fill(0);
@@ -1419,8 +1424,8 @@ function saveRepositionPhoto(){
   },'image/jpeg',0.9);
 }
 initRepositionDrag();
-function startQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();goTo('screen-questions');}
-function resetQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();}
+function startQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();document.getElementById('q-next-btn').textContent='Create my account';goTo('screen-questions');}
+function resetQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();document.getElementById('q-next-btn').textContent='See my score';}
 function religionPickerHtml(pickerId,selected){
   return `<div id="${pickerId}" style="display:${selected?'grid':'none'};grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0 6px">${RELIGIONS.map(r=>`<button type="button" class="religion-box ${selected===r?'selected':''}" onclick="selectReligion('${r}','${pickerId}')">${r}</button>`).join('')}</div>`;
 }
@@ -1758,8 +1763,23 @@ function confirmDelete(){
 async function executeDelete(){
   removeModal();
   if(currentUser){
-    await sb.from('interactions').delete().eq('from_user',currentUser.id);
-    await sb.from('profiles').delete().eq('id',currentUser.id);
+    try{
+      const {data:{session}}=await sb.auth.getSession();
+      const resp=await fetch('https://okubbpsvaogqzdtajiqz.supabase.co/functions/v1/delete-account',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+(session?session.access_token:''),'Content-Type':'application/json'}
+      });
+      if(!resp.ok){
+        const body=await resp.json().catch(()=>({}));
+        console.error('Account deletion failed:',body.error||resp.statusText);
+        showToast('Something went wrong deleting your account — please try again.',true);
+        return;
+      }
+    }catch(e){
+      console.error('Account deletion exception:',e);
+      showToast('Something went wrong deleting your account — please try again.',true);
+      return;
+    }
     if(messageChannel)sb.removeChannel(messageChannel);
     if(interactionsChannel)sb.removeChannel(interactionsChannel);
     await sb.auth.signOut();
@@ -1794,7 +1814,7 @@ document.head.appendChild(spinStyle);
     document.getElementById('filter-dist-val').textContent=dist+' mi';
     renderProfiles(minPct);
     updateMatchNotifs();
-    goTo('screen-main'); // auto-navigate to main screen if session exists
+    if(!hasPendingSignupOnLoad)goTo('screen-main'); // let the confirmation-completion flow navigate instead, if one's in progress
   }
 })();
 
