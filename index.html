@@ -928,9 +928,10 @@ async function loadMyInteractions(){
 }
 
 async function recordInteraction(toUserId,action){
-  if(!currentUser)return;
+  if(!currentUser)return true;
   const {error}=await sb.from('interactions').upsert({from_user:currentUser.id,to_user:toUserId,action},{onConflict:'from_user,to_user'});
-  if(error)console.warn('recordInteraction failed for action="'+action+'":',error.message);
+  if(error){console.warn('recordInteraction failed for action="'+action+'":',error.message);return false;}
+  return true;
 }
 
 // ─── Browse profiles from Supabase ───────────────────────────────────────────
@@ -1141,10 +1142,16 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
     path.setAttribute('fill','currentColor');
     setTimeout(()=>{path.setAttribute('fill','none');heartIcon.classList.remove('heart-pop');},500);
   }
-  showToast('Interest sent',false,1000);
   expressedInterest.add(profileKey);
   myInterestedAt[profileKey]=new Date().toISOString();
-  await recordInteraction(profileKey,'interested');
+  const saved=await recordInteraction(profileKey,'interested');
+  if(!saved){
+    expressedInterest.delete(profileKey);
+    delete myInterestedAt[profileKey];
+    showToast("Couldn't save your interest — please try again.",true);
+    return;
+  }
+  showToast('Interest sent',false,1000);
   // Check if they liked us back (re-query)
   let isMutual=false;
   if(currentUser){
