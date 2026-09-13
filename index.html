@@ -74,7 +74,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 .compat-fill{height:3px;border-radius:2px;background:var(--gold);}
 .based-badge{position:absolute;top:11px;right:13px;font-size:10px;color:var(--gold);border:0.5px solid rgba(201,168,76,0.3);border-radius:6px;padding:2px 7px;}
 .tab-bar{display:flex;border-bottom:0.5px solid rgba(255,255,255,0.08);flex-shrink:0;background:var(--navy);}
-.tab-btn{flex:1;background:transparent;border:none;padding:13px 8px;font-size:12px;color:var(--text-muted);cursor:pointer;font-family:var(--sans);border-bottom:2px solid transparent;display:flex;align-items:center;justify-content:center;gap:5px;}
+.tab-btn{flex:1;background:transparent;border:none;padding:13px 8px;font-size:12px;color:var(--text-muted);cursor:pointer;font-family:var(--sans);border-bottom:2px solid transparent;display:flex;align-items:center;justify-content:center;gap:5px;position:relative;}
 .tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
 .photo-upload-area{border:1.5px dashed rgba(255,255,255,0.2);border-radius:15px;padding:30px 20px;text-align:center;cursor:pointer;overflow:hidden;position:relative;}
 .photo-upload-area.has-photo{border-style:solid;border-color:rgba(201,168,76,0.4);padding:0;height:190px;}
@@ -97,6 +97,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 .msg-bubble.theirs{background:rgba(255,255,255,0.07);color:var(--text-on-dark);align-self:flex-start;border-bottom-left-radius:4px;}
 .notif-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;margin-left:2px;}
 .notif-badge{min-width:16px;height:16px;padding:0 4px;border-radius:8px;color:#0a0d16;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-left:4px;line-height:1;}
+.notif-superdot{position:absolute;top:4px;right:6px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px var(--navy);}
 .toggle-track{width:46px;height:26px;border-radius:13px;background:rgba(255,255,255,0.12);position:relative;cursor:pointer;transition:background 0.25s;flex-shrink:0;}
 .toggle-track.on{background:var(--green);}
 .toggle-thumb{width:20px;height:20px;border-radius:50%;background:white;position:absolute;top:3px;left:3px;transition:left 0.25s;}
@@ -112,21 +113,19 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 
 <!-- WELCOME -->
 <div id="screen-welcome" class="screen active">
-  <div class="app-header">
-    <div class="logo-mark"><span class="logo-icon"><i class="ti ti-search"></i></span><span class="logo-text">BASED</span><span class="logo-mic"><i class="ti ti-microphone"></i></span></div>
-    <span style="font-size:11px;color:var(--text-muted)">on values that matter.</span>
-  </div>
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 16px;text-align:center">
-    <div style="background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);border-radius:17px;padding:14px 26px;margin-bottom:26px;display:flex;align-items:center;gap:10px">
+    <svg width="92" height="79" viewBox="0 0 28 24" fill="none" style="flex-shrink:0;margin-bottom:22px"><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="var(--gold)" opacity="0.65" transform="translate(0,3) scale(0.8)"/><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="var(--gold)" transform="translate(9,3) scale(0.8)"/></svg>
+    <div id="welcome-based-box" style="background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);border-radius:17px;padding:14px 26px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
       <span style="color:var(--text-muted);font-size:22px"><i class="ti ti-search"></i></span>
       <span style="font-family:var(--serif);font-size:30px;color:var(--text-on-dark);letter-spacing:2px">BASED</span>
       <span style="color:var(--text-muted);font-size:18px"><i class="ti ti-microphone"></i></span>
     </div>
-    <p style="color:var(--text-on-dark);font-size:17px;margin-bottom:8px">Find someone who shares what matters.</p>
-    <p style="color:var(--text-muted);font-size:14px;line-height:1.6;max-width:270px;margin-bottom:44px">No height. No job title. Just honest answers to honest questions.</p>
+    <p style="font-size:15px;color:var(--text-muted);margin-top:-10px;margin-bottom:26px">on values that matter.</p>
+    <p style="color:var(--text-on-dark);font-size:15px;margin-bottom:8px">Find someone who shares what matters</p>
+    <p style="color:var(--text-muted);font-size:15px;line-height:1.6;max-width:270px;margin-bottom:44px">Honest answers to honest questions</p>
     <div style="display:flex;flex-direction:column;gap:12px;width:100%">
-      <button class="btn-primary" onclick="goTo('screen-details')">Create my profile</button>
       <button class="btn-ghost" onclick="goTo('screen-signin')">Sign in</button>
+      <button class="btn-primary" onclick="goTo('screen-details')">Create profile</button>
     </div>
   </div>
 </div>
@@ -237,8 +236,8 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
   </div>
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-browse" onclick="switchTab('browse')"><i class="ti ti-search" style="font-size:15px"></i> Search</button>
-    <button class="tab-btn" id="tab-matches" onclick="switchTab('matches')"><i class="ti ti-heart" style="font-size:15px"></i> Interest <span id="matches-notif" style="display:none" class="notif-badge"></span></button>
-    <button class="tab-btn" id="tab-messages" onclick="switchTab('messages')"><svg width="17" height="15" viewBox="0 0 28 24" fill="none" style="flex-shrink:0"><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" opacity="0.65" transform="translate(0,3) scale(0.8)"/><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" transform="translate(9,3) scale(0.8)"/></svg> It's mutual <span id="msg-notif" style="display:none" class="notif-badge"></span></button>
+    <button class="tab-btn" id="tab-matches" onclick="switchTab('matches')"><i class="ti ti-heart" style="font-size:15px"></i> Interest <span id="matches-notif" style="display:none" class="notif-superdot"></span></button>
+    <button class="tab-btn" id="tab-messages" onclick="switchTab('messages')"><svg width="17" height="15" viewBox="0 0 28 24" fill="none" style="flex-shrink:0"><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" opacity="0.65" transform="translate(0,3) scale(0.8)"/><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" transform="translate(9,3) scale(0.8)"/></svg> It's mutual <span id="msg-notif" style="display:none" class="notif-superdot"></span></button>
   </div>
   <div id="tab-browse-content" class="scrollable" style="padding:16px">
     <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:13px;padding:13px;margin-bottom:16px">
@@ -461,7 +460,7 @@ let viewedProfiles=new Set(),expressedInterest=new Set(),mutualMatches=new Set()
 let matchCreatedAt={}; // profileKey -> ISO timestamp of when the match formed
 let incomingInterestAt={}; // profileKey -> ISO timestamp of when they expressed interest in me
 let myInterestedAt={}; // profileKey -> ISO timestamp of when I expressed interest in them
-let hiddenForever=new Set(),passedProfiles=new Set();
+let hiddenForever=new Set(),passedProfiles=new Set(),dismissedIncoming=new Set();
 let conversations={},activeChatName='',activeChatPartnerId=null;
 let browseProfiles=[]; // loaded from Supabase + demo
 let lastProfileList=[]; // snapshot of current sorted/filtered search results, for Move On navigation
@@ -658,6 +657,7 @@ function subscribeToInteractions(){
     .on('postgres_changes',{event:'*',schema:'public',table:'interactions',filter:`to_user=eq.${currentUser.id}`},
       async()=>{
         await loadMyInteractions();
+        await loadBrowseProfiles(); // also refresh cached profile data (photos, names) — not just match status
         renderMatchesTab();
         renderConversationsTab();
         renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
@@ -666,12 +666,13 @@ function subscribeToInteractions(){
 }
 async function loadMyInteractions(){
   if(!currentUser)return;
-  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};
+  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();
   // What I've done to others
   const {data:mine}=await sb.from('interactions').select('to_user,action,created_at').eq('from_user',currentUser.id);
   if(mine)mine.forEach(r=>{
     if(r.action==='interested'){expressedInterest.add(r.to_user);myInterestedAt[r.to_user]=r.created_at;}
     if(r.action==='hide_forever')hiddenForever.add(r.to_user);
+    if(r.action==='dismissed_incoming')dismissedIncoming.add(r.to_user);
   });
   // What others have done to me (to detect mutual, and incoming interest)
   const {data:theirs}=await sb.from('interactions').select('from_user,action,created_at').eq('to_user',currentUser.id).eq('action','interested');
@@ -839,15 +840,15 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   const aEncoded=JSON.stringify(answers).replace(/"/g,'&quot;');
   let actionRow='';
   if(isMutual){
-    actionRow=`<div style="margin-top:18px;display:flex;flex-direction:column;gap:11px"><button class="btn-primary" onclick="openChat('${profileKey}','${inits}','${name}')"><i class="ti ti-message" style="margin-right:7px"></i>Send a message</button><div class="action-btn-row"><button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div></div>`;
+    actionRow=`<div style="margin-top:18px;display:flex;flex-direction:column;gap:11px"><button class="btn-primary" onclick="openChat('${profileKey}','${inits}','${name}','${photoUrl||''}')"><i class="ti ti-message" style="margin-right:7px"></i>Send a message</button><div class="action-btn-row"><button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div></div>`;
   } else {
     const intCls=hasInterest?'act-btn expressed':'act-btn interested';
     const intClick=hasInterest?'':` onclick="doExpressInterest('${profileKey}','${inits}','${aEncoded}',${compat},${basedScore},'${age}','${location}','${photoUrl||''}','${name}','${theirReligion||''}')"`;
     const moveOnBtn=context==='incoming'?'':`<button class="act-btn" onclick="doMoveOn('${profileKey}')"><i class="ti ti-arrow-right"></i>Move on</button>`;
     actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}"${intClick}><svg id="interest-heart-icon" width="15" height="15" viewBox="0 0 24 24" style="vertical-align:-3px;margin-right:6px" fill="none"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="none" stroke="currentColor" stroke-width="2"/></svg>Interested</button>${moveOnBtn}<button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
   }
-  const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden"><img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${name}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4)">${inits}</div>`;
-  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:var(--gold);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
+  const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden"><img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${name}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4);color:var(--text-on-dark)">${inits}</div>`;
+  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
   goTo('screen-profile');
   document.getElementById('profile-detail-body').scrollTop=0;
 }
@@ -872,6 +873,23 @@ function advanceToNextProfile(profileKey){
   }else{
     goTo('screen-main');
   }
+}
+
+async function doDismissIncoming(profileKey){
+  await recordInteraction(profileKey,'dismissed_incoming');
+  dismissedIncoming.add(profileKey);
+  incomingInterest.delete(profileKey);
+  renderMatchesTab();
+}
+
+async function doWithdrawInterest(profileKey){
+  const {error}=await sb.from('interactions').delete().eq('from_user',currentUser.id).eq('to_user',profileKey).eq('action','interested');
+  if(error){console.warn('Withdraw interest failed:',error.message);showToast('Something went wrong — please try again.',true);return;}
+  expressedInterest.delete(profileKey);
+  delete myInterestedAt[profileKey];
+  showToast('Interest withdrawn');
+  renderMatchesTab();
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
 }
 
 async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age,location,photoUrl,name,religion){
@@ -1153,12 +1171,14 @@ function updateFilter(){
 }
 
 // ─── Messaging ────────────────────────────────────────────────────────────────
-async function switchTab(tab){['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?'block':'none';});if(tab==='matches'){await loadMyInteractions();renderMatchesTab();}if(tab==='messages'){await loadMyInteractions();renderConversationsTab();}}
+async function switchTab(tab){['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?'block':'none';});if(tab==='matches'){await loadMyInteractions();await loadBrowseProfiles();renderMatchesTab();}if(tab==='messages'){await loadMyInteractions();await loadBrowseProfiles();renderConversationsTab();}}
 
-async function openChat(partnerId,inits,name){
+async function openChat(partnerId,inits,name,photoUrl){
   activeChatName=name;activeChatPartnerId=partnerId;
   document.getElementById('chat-name-header').textContent=name;
-  document.getElementById('chat-avatar-header').textContent=inits;
+  const headerAvatar=document.getElementById('chat-avatar-header');
+  if(photoUrl){headerAvatar.innerHTML=`<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;}
+  else{headerAvatar.textContent=inits;}
   await renderChatMessages();
   goTo('screen-chat');
   subscribeToMessages(partnerId);
@@ -1179,7 +1199,20 @@ async function renderChatMessages(){
     return;
   }
   el.innerHTML=msgs.map(m=>{const mine=m.sender_id===currentUser.id;return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div class="msg-bubble ${mine?'mine':'theirs'}">${m.content}</div></div>`;}).join('');
+  scrollChatToBottom();
+}
+function scrollChatToBottom(){
+  const el=document.getElementById('chat-messages');
+  // A single immediate scrollTop assignment can run before the browser finishes
+  // laying out the newly-inserted message (especially wrapped multi-line text),
+  // leaving the latest bubble sitting just below the visible area. Retry across
+  // a couple of animation frames plus a short delayed fallback to be safe.
   el.scrollTop=el.scrollHeight;
+  requestAnimationFrame(()=>{
+    el.scrollTop=el.scrollHeight;
+    requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});
+  });
+  setTimeout(()=>{el.scrollTop=el.scrollHeight;},150);
 }
 
 async function sendMessage(){
@@ -1204,7 +1237,7 @@ function subscribeToMessages(partnerId){
 
 function updateMatchNotifs(){
   const badge=document.getElementById('matches-notif');
-  const incomingIds=Array.from(incomingInterest).filter(id=>!hiddenForever.has(id));
+  const incomingIds=Array.from(incomingInterest).filter(id=>!hiddenForever.has(id)&&!dismissedIncoming.has(id));
   if(!incomingIds.length){badge.style.display='none';return;}
   let oldestDays=0;
   incomingIds.forEach(id=>{
@@ -1213,13 +1246,12 @@ function updateMatchNotifs(){
   });
   const color=oldestDays>=3?'var(--red)':oldestDays>=2?'var(--gold)':'var(--green)';
   badge.style.background=color;
-  badge.textContent=incomingIds.length;
-  badge.style.display='inline-flex';
+  badge.style.display='block';
 }
 
 function renderMatchesTab(){
   const inList=document.getElementById('incoming-interest-list'),ee=document.getElementById('expressed-list');
-  const incomingIds=Array.from(incomingInterest).filter(id=>!hiddenForever.has(id));
+  const incomingIds=Array.from(incomingInterest).filter(id=>!hiddenForever.has(id)&&!dismissedIncoming.has(id));
   if(!incomingIds.length){inList.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No one has expressed interest in you yet.</p>';}
   else{
     inList.innerHTML=incomingIds.map(pid=>{
@@ -1230,7 +1262,7 @@ function renderMatchesTab(){
       const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
       const statusLabel=daysSince>=3?'3+ days ago':daysSince>=2?'2-3 days ago':'Less than 2 days ago';
       const dot=`<span title="${statusLabel}" style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.06)"></span>`;
-      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</span>${dot}</div><div style="font-size:13px;color:var(--gold);margin-top:3px"><i class="ti ti-heart" style="font-size:13px"></i> Interested in you</div></div><i class="ti ti-chevron-right" style="font-size:18px;color:var(--text-muted)"></i></div>`;
+      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</span>${dot}</div><div style="font-size:13px;color:var(--gold);margin-top:3px"><i class="ti ti-heart" style="font-size:13px"></i> Interested in you</div></div><button onclick="event.stopPropagation();doDismissIncoming('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Remove from list"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button></div>`;
     }).join('');
   }
   const expIds=Array.from(expressedInterest).filter(id=>!mutualMatches.has(id));
@@ -1243,7 +1275,7 @@ function renderMatchesTab(){
       const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
       const statusLabel=daysSince>=3?'3+ days ago':daysSince>=2?'2-3 days ago':'Less than 2 days ago';
       const dot=`<span title="${statusLabel}" style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.06)"></span>`;
-      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px"><div class="avatar">${p.initials}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</span>${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">Waiting for them to respond…</div></div><i class="ti ti-clock" style="font-size:18px;color:var(--text-muted)"></i></div>`;
+      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px"><div class="avatar">${p.initials}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</span>${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">Waiting for them to respond…</div></div><button onclick="doWithdrawInterest('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Withdraw interest"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button></div>`;
     }).join('');
   }
 }
@@ -1281,7 +1313,7 @@ async function renderConversationsTab(){
     const statusLabel=daysSince>=3?'Inactive 3+ days':daysSince>=2?'Inactive 2+ days':'Active';
     const dot=`<span title="${statusLabel}" style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.06)"></span>`;
     const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
-    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}</span>${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
+    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}','${p.photo_url||''}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}</span>${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
   }
   document.getElementById('conversations-list').innerHTML=html||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet.</p>';
   updateConnectedNotif(shownCount,oldestDays);
@@ -1292,8 +1324,7 @@ function updateConnectedNotif(count,oldestDays){
   if(!count){badge.style.display='none';return;}
   const color=oldestDays>=3?'var(--red)':oldestDays>=2?'var(--gold)':'var(--green)';
   badge.style.background=color;
-  badge.textContent=count;
-  badge.style.display='inline-flex';
+  badge.style.display='block';
 }
 
 // ─── Edit profile & settings ──────────────────────────────────────────────────
@@ -1359,7 +1390,7 @@ async function executeDelete(){
   isPremium=false;currentUser=null;
   myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null};
   myAnswers=new Array(NUM_Q).fill(0);
-  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};profileHidden=false;
+  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();profileHidden=false;
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
   ['inp-name','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('sex-male').classList.remove('selected');document.getElementById('sex-female').classList.remove('selected');
