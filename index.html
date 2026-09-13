@@ -61,6 +61,10 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 .banner-note{background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:11px;padding:12px 14px;font-size:13px;color:var(--gold-light);line-height:1.5;font-style:italic;}
 .stmt-text{word-wrap:break-word;overflow-wrap:break-word;white-space:normal;}
 .form-input.input-error{border-color:var(--red)!important;background:rgba(235,87,87,0.06)!important;}
+.pw-wrap{position:relative;}
+.pw-wrap .form-input{padding-right:44px;}
+.pw-toggle{position:absolute;right:2px;top:50%;transform:translateY(-50%);background:transparent;border:none;cursor:pointer;color:var(--text-muted);padding:10px;display:flex;align-items:center;justify-content:center;}
+.pw-toggle:hover{color:var(--text-on-dark);}
 .religion-box{background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:11px 8px;font-size:13px;color:var(--text-on-dark);text-align:center;cursor:pointer;font-family:var(--sans);transition:all 0.15s;}
 .religion-box.selected{background:rgba(201,168,76,0.15);border-color:var(--gold);color:var(--gold);font-weight:600;}
 .info-icon-btn{flex-shrink:0;width:19px;height:19px;min-width:19px;border-radius:50%;background:transparent;border:1px solid rgba(255,255,255,0.28);color:var(--text-muted);font-size:11px;font-family:Georgia,serif;font-style:italic;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;line-height:1;margin-top:1px;}
@@ -124,8 +128,8 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
     <p style="color:var(--text-on-dark);font-size:15px;margin-bottom:8px">Find someone who shares what matters</p>
     <p style="color:var(--text-muted);font-size:15px;line-height:1.6;max-width:270px;margin-bottom:44px">Honest answers to honest questions</p>
     <div style="display:flex;flex-direction:column;gap:12px;width:100%">
-      <button class="btn-ghost" onclick="goTo('screen-signin')">Sign in</button>
-      <button class="btn-primary" onclick="goTo('screen-details')">Create profile</button>
+      <button class="btn-primary" onclick="openSignIn()">Sign in</button>
+      <button class="btn-ghost" onclick="goTo('screen-details')">Create profile</button>
     </div>
   </div>
 </div>
@@ -157,9 +161,10 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" placeholder="Your first name" id="inp-name" autocomplete="given-name" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="date" id="inp-dob" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Where are you now?</label><input class="form-input" type="text" placeholder="Your postcode e.g. LS1 4BR" id="inp-location" autocomplete="postal-code" /></div>
-    <p style="font-size:11px;color:var(--text-muted);margin-top:-10px;margin-bottom:17px">Used to calculate distances — not shown to other users.</p><div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="inp-email" autocomplete="email" /></div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><input class="form-input" type="password" placeholder="Min. 6 characters" id="inp-password" autocomplete="new-password" /></div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Confirm password</label><input class="form-input" type="password" placeholder="Re-enter your password" id="inp-password-confirm" autocomplete="new-password" /></div>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:-10px;margin-bottom:17px">Used to calculate distances — not shown to other users.</p><div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="inp-email" autocomplete="email" list="based-remembered-emails" /></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Min. 6 characters" id="inp-password" autocomplete="new-password" onkeydown="if(event.key==='Enter')tryDetails()" /><button type="button" class="pw-toggle" onclick="togglePasswordVisibility('inp-password',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Confirm password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Re-enter your password" id="inp-password-confirm" autocomplete="new-password" onkeydown="if(event.key==='Enter')tryDetails()" /><button type="button" class="pw-toggle" onclick="togglePasswordVisibility('inp-password-confirm',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div></div>
+    <label style="display:flex;align-items:center;gap:9px;margin-bottom:20px;cursor:pointer"><input type="checkbox" id="inp-remember-password" checked style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0" /><span style="font-size:13px;color:var(--text-muted)">Remember my password on this device</span></label>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Biological sex</label><div style="display:flex;gap:10px"><button class="sex-btn" id="sex-male" onclick="selectSex('male')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>Male</button><button class="sex-btn" id="sex-female" onclick="selectSex('female')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>Female</button></div></div>
     <div class="banner-note" style="margin-bottom:22px">We don't want to rob you of conversation, so you can figure out the rest.</div>
     <button class="btn-primary bottom-safe" id="details-continue-btn" onclick="tryDetails()">Continue to questions</button>
@@ -326,6 +331,14 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" id="edit-name" /></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="date" id="edit-dob" /></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Location</label><input class="form-input" type="text" id="edit-location" /></div>
+    <div style="margin-bottom:22px">
+      <label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" type="email" id="edit-email" style="flex:1" />
+        <button onclick="changeEmail()" style="background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.2);border-radius:11px;padding:0 16px;color:var(--text-on-dark);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">Update</button>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:7px" id="edit-email-note"></p>
+    </div>
     <div style="margin-bottom:22px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Biological sex</label><div style="display:flex;gap:10px"><button class="sex-btn" id="edit-sex-male" onclick="selectEditSex('male')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>Male</button><button class="sex-btn" id="edit-sex-female" onclick="selectEditSex('female')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>Female</button></div></div>
     <div style="border-top:0.5px solid rgba(255,255,255,0.08);padding-top:20px;display:flex;flex-direction:column;gap:2px">
       <div class="toggle-row">
@@ -391,11 +404,60 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
   <div class="scrollable" style="padding:28px 16px">
     <p style="font-family:var(--serif);font-size:22px;color:var(--text-on-dark);margin-bottom:5px">Welcome back</p>
     <p style="font-size:14px;color:var(--text-muted);margin-bottom:28px;line-height:1.5">Sign in to your BASED account.</p>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="signin-email" autocomplete="email" /></div>
-    <div style="margin-bottom:22px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><input class="form-input" type="password" placeholder="Your password" id="signin-password" autocomplete="current-password" /></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="signin-email" autocomplete="email" list="based-remembered-emails" /></div>
+    <datalist id="based-remembered-emails"></datalist>
+    <div style="margin-bottom:22px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Your password" id="signin-password" autocomplete="current-password" onkeydown="if(event.key==='Enter')trySignIn()" /><button type="button" class="pw-toggle" onclick="togglePasswordVisibility('signin-password',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:9px;cursor:pointer;text-align:right" onclick="openForgotPassword()">Forgotten password?</p></div>
     <button class="btn-primary bottom-safe" onclick="trySignIn()">Sign in</button>
     <p style="font-size:12px;color:var(--red);text-align:center;margin-top:9px;display:none" id="signin-error"></p>
     <p style="font-size:13px;color:var(--text-muted);text-align:center;margin-top:18px">Don't have an account? <span style="color:var(--gold);cursor:pointer" onclick="goTo('screen-details')">Create one</span></p>
+  </div>
+</div>
+
+<!-- CHECK EMAIL (post sign-up, confirmation pending) -->
+<div id="screen-check-email" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goTo('screen-welcome')"><i class="ti ti-arrow-left"></i></button>
+    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div style="width:28px"></div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 16px;text-align:center">
+    <i class="ti ti-mail-opened" style="font-size:44px;color:var(--gold);margin-bottom:20px"></i>
+    <p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px">Confirm your email</p>
+    <p style="font-size:14px;color:var(--text-muted);line-height:1.6;max-width:280px;margin-bottom:6px">We've sent a confirmation link to</p>
+    <p style="font-size:14px;color:var(--text-on-dark);font-weight:600;margin-bottom:22px" id="check-email-address"></p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.6;max-width:280px">Tap the link in that email on this device to finish setting up your profile.</p>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD -->
+<div id="screen-forgot-password" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goTo('screen-signin')"><i class="ti ti-arrow-left"></i></button>
+    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div style="width:28px"></div>
+  </div>
+  <div class="scrollable" style="padding:28px 16px">
+    <p style="font-family:var(--serif);font-size:22px;color:var(--text-on-dark);margin-bottom:5px">Reset your password</p>
+    <p style="font-size:14px;color:var(--text-muted);margin-bottom:28px;line-height:1.5">Enter your email and we'll send you a link to reset your password.</p>
+    <div style="margin-bottom:22px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="forgot-email" autocomplete="email" list="based-remembered-emails" onkeydown="if(event.key==='Enter')sendPasswordReset()" /></div>
+    <button class="btn-primary bottom-safe" onclick="sendPasswordReset()">Send reset email</button>
+    <p style="font-size:12px;color:var(--red);text-align:center;margin-top:9px;display:none" id="forgot-error"></p>
+  </div>
+</div>
+
+<!-- RESET PASSWORD (landed here from the email link) -->
+<div id="screen-reset-password" class="screen">
+  <div class="app-header">
+    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+  </div>
+  <div class="scrollable" style="padding:28px 16px">
+    <p style="font-family:var(--serif);font-size:22px;color:var(--text-on-dark);margin-bottom:5px">Choose a new password</p>
+    <p style="font-size:14px;color:var(--text-muted);margin-bottom:28px;line-height:1.5">Enter your new password twice to confirm.</p>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">New password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Min. 6 characters" id="reset-password" autocomplete="new-password" onkeydown="if(event.key==='Enter')doResetPassword()" /><button type="button" class="pw-toggle" onclick="togglePasswordVisibility('reset-password',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div></div>
+    <div style="margin-bottom:22px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Confirm new password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Re-enter your new password" id="reset-password-confirm" autocomplete="new-password" onkeydown="if(event.key==='Enter')doResetPassword()" /><button type="button" class="pw-toggle" onclick="togglePasswordVisibility('reset-password-confirm',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div></div>
+    <button class="btn-primary bottom-safe" onclick="doResetPassword()">Reset</button>
+    <p style="font-size:12px;color:var(--red);text-align:center;margin-top:9px;display:none" id="reset-error"></p>
   </div>
 </div>
 
@@ -409,6 +471,39 @@ const sb = createClient(
   'https://okubbpsvaogqzdtajiqz.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rdWJicHN2YW9ncXpkdGFqaXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyOTYwMTQsImV4cCI6MjA5Njg3MjAxNH0.IpsSIU3C9JOJC5JDS7-WlzrOy1QnSxWiPEy6LMLYEoA'
 );
+
+// Fires automatically when the library detects a magic-link / confirmation / recovery
+// token in the URL — this is how "click the link in the email" gets handled on return.
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='PASSWORD_RECOVERY'){
+    goTo('screen-reset-password');
+    return;
+  }
+  if(event==='USER_UPDATED'&&session&&session.user&&currentUser){
+    // Fires once an email-change confirmation link has actually been clicked —
+    // sync the new address into our own profiles table and the on-screen field.
+    if(session.user.email&&session.user.email!==currentUser.email){
+      currentUser=session.user;
+      await sb.from('profiles').update({email:session.user.email}).eq('id',session.user.id);
+      const emailField=document.getElementById('edit-email');
+      if(emailField)emailField.value=session.user.email;
+      showToast('Email address updated');
+    }
+    return;
+  }
+  if(event==='SIGNED_IN'&&session&&session.user){
+    const pending=getPendingSignup(session.user.email);
+    if(pending){
+      currentUser=session.user;
+      myProfile.name=pending.name;myProfile.dob=pending.dob;myProfile.location=pending.location;
+      myProfile.sex=pending.sex;myProfile.religion=pending.religion;myProfile.photo=pending.photo;
+      myProfile.photo_file=pending.photo?dataURLtoFile(pending.photo,'profile.jpg'):null;
+      myAnswers=pending.answers||myAnswers;
+      showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Finishing your profile…</p></div>');
+      await finishProfileCreation(session.user.id,session.user.email);
+    }
+  }
+});
 
 // ─── Questions & short labels ───────────────────────────────────────────────
 // scoring:false = shown on profile but excluded from Based Score / compatibility calc (items 16-18)
@@ -545,30 +640,7 @@ async function tryDetails(){
   startQuestions();
 }
 
-async function signUpAndSave(){
-  showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Creating your account…</p></div>');
-  const email=pendingEmail||document.getElementById('inp-email').value.trim();
-  const pass=pendingPassword||document.getElementById('inp-password').value;
-  console.log('signUpAndSave called, email:', email, 'has pass:', !!pass);
-  let userId;
-  // Try sign up first
-  const {data:signUpData,error:signUpErr}=await sb.auth.signUp({email,password:pass});
-  if(signUpErr){
-    removeModal();
-    if(signUpErr.status===429){showToast('Too many attempts — please wait a few minutes and try again.',true);}
-    else{showToast('Sign up error: '+signUpErr.message,true);}
-    return;
-  }
-  // Supabase returns a "success-looking" response with no error when the email is already
-  // registered (to prevent attackers probing which emails exist) — identities is empty in that case
-  if(signUpData.user&&signUpData.user.identities&&signUpData.user.identities.length===0){
-    removeModal();
-    showToast('That email is already registered — please sign in instead.',true);
-    goTo('screen-signin');
-    return;
-  }
-  userId=signUpData.user.id;currentUser=signUpData.user;
-  // Upload photo (non-blocking — proceed even if it fails)
+async function finishProfileCreation(userId,email){
   let photo_url='';
   try{
     if(myProfile.photo_file){
@@ -582,14 +654,12 @@ async function signUpAndSave(){
 
   const based_score=calcBasedScore(myAnswers);
 
-  // Geocode postcode
   let lat=null,lng=null;
   try{
     const geo=await geocodePostcode(myProfile.location);
     if(geo){lat=geo.lat;lng=geo.lng;}
   }catch(e){console.warn('Geocode failed:',e);}
 
-  console.log('Saving profile for user:', userId, {name:myProfile.name,email,lat,lng});
   const religion=myAnswers[FAITH_Q_INDEX]>0?myProfile.religion:null;
   myProfile.religion=religion;
   const {error:profileErr}=await sb.from('profiles').upsert({
@@ -602,15 +672,123 @@ async function signUpAndSave(){
     console.error('Profile save error:', profileErr);
     removeModal();
     showToast('Profile save error: '+profileErr.message,true);
-    return;
+    return false;
   }
-  console.log('Profile saved successfully');
+  clearPendingSignup();
   removeModal();
+  rememberEmail(email);
   isPremium=false;profileHidden=false;
   await loadMyInteractions();
   subscribeToInteractions();
   await loadBrowseProfiles();
   showResults();
+  return true;
+}
+
+function dataURLtoFile(dataUrl,filename){
+  const arr=dataUrl.split(',');
+  const mime=arr[0].match(/:(.*?);/)[1];
+  const bstr=atob(arr[1]);
+  let n=bstr.length;
+  const u8arr=new Uint8Array(n);
+  while(n--)u8arr[n]=bstr.charCodeAt(n);
+  return new File([u8arr],filename,{type:mime});
+}
+
+// ─── Pending sign-up data, held only until email confirmation completes ───────
+// Never includes the password — only what's needed to finish creating the profile.
+function savePendingSignup(email){
+  try{
+    localStorage.setItem('basedPendingSignup',JSON.stringify({
+      email,name:myProfile.name,dob:myProfile.dob,location:myProfile.location,
+      sex:myProfile.sex,religion:myProfile.religion,photo:myProfile.photo,answers:myAnswers
+    }));
+  }catch(e){console.warn('Could not save pending signup:',e);}
+}
+function getPendingSignup(email){
+  try{
+    const raw=localStorage.getItem('basedPendingSignup');
+    if(!raw)return null;
+    const data=JSON.parse(raw);
+    if(data.email&&email&&data.email.toLowerCase()!==email.toLowerCase())return null;
+    return data;
+  }catch(e){return null;}
+}
+function clearPendingSignup(){try{localStorage.removeItem('basedPendingSignup');}catch(e){}}
+
+async function signUpAndSave(){
+  showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Creating your account…</p></div>');
+  const email=pendingEmail||document.getElementById('inp-email').value.trim();
+  const pass=pendingPassword||document.getElementById('inp-password').value;
+  savePendingSignup(email);
+  const {data:signUpData,error:signUpErr}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
+  if(signUpErr){
+    removeModal();
+    clearPendingSignup();
+    if(signUpErr.status===429){showToast('Too many attempts — please wait a few minutes and try again.',true);}
+    else{showToast('Sign up error: '+signUpErr.message,true);}
+    return;
+  }
+  // Supabase returns a "success-looking" response with no error when the email is already
+  // registered (to prevent attackers probing which emails exist) — identities is empty in that case
+  if(signUpData.user&&signUpData.user.identities&&signUpData.user.identities.length===0){
+    removeModal();
+    clearPendingSignup();
+    showToast('That email is already registered — please sign in instead.',true);
+    await openSignIn();
+    document.getElementById('signin-email').value=email;
+    return;
+  }
+  if(document.getElementById('inp-remember-password').checked)await tryStoreCredential(email,pass);
+  if(!signUpData.session){
+    // Email confirmation is required — the profile isn't created yet, since we're not
+    // actually logged in until the link is clicked. It finishes automatically then.
+    removeModal();
+    goTo('screen-check-email');
+    document.getElementById('check-email-address').textContent=email;
+    return;
+  }
+  currentUser=signUpData.user;
+  await finishProfileCreation(signUpData.user.id,email);
+}
+
+function openForgotPassword(){
+  const email=document.getElementById('signin-email').value.trim();
+  document.getElementById('forgot-email').value=email;
+  document.getElementById('forgot-error').style.display='none';
+  goTo('screen-forgot-password');
+}
+
+async function sendPasswordReset(){
+  const email=document.getElementById('forgot-email').value.trim();
+  const err=document.getElementById('forgot-error');
+  if(!email){err.style.display='block';err.textContent='Please enter your email address.';return;}
+  err.style.display='none';
+  showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Sending…</p></div>');
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
+  removeModal();
+  if(error){err.style.display='block';err.textContent=error.message;return;}
+  showToast('Check your email for a reset link');
+  goTo('screen-signin');
+}
+
+async function doResetPassword(){
+  const pass=document.getElementById('reset-password').value;
+  const confirm=document.getElementById('reset-password-confirm').value;
+  const err=document.getElementById('reset-error');
+  if(!pass||!confirm){err.style.display='block';err.textContent='Please fill in both fields.';return;}
+  if(pass.length<6){err.style.display='block';err.textContent='Password must be at least 6 characters.';return;}
+  if(pass!==confirm){err.style.display='block';err.textContent='Passwords do not match.';return;}
+  err.style.display='none';
+  showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Resetting…</p></div>');
+  const {error}=await sb.auth.updateUser({password:pass});
+  removeModal();
+  if(error){err.style.display='block';err.textContent=error.message;return;}
+  await sb.auth.signOut();
+  currentUser=null;
+  showToast('Password reset');
+  await openSignIn();
+  document.getElementById('signin-email').focus();
 }
 
 async function trySignIn(){
@@ -623,6 +801,7 @@ async function trySignIn(){
   const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
   if(error){removeModal();err.style.display='block';err.textContent='Sign in failed: '+error.message;return;}
   currentUser=data.user;
+  rememberEmail(email);
   await restoreSession();
   removeModal();
   await loadBrowseProfiles();
@@ -939,6 +1118,57 @@ async function doHideForever(profileKey){
 
 // ─── Questions flow ───────────────────────────────────────────────────────────
 function selectSex(s){document.getElementById('sex-male').classList.toggle('selected',s==='male');document.getElementById('sex-female').classList.toggle('selected',s==='female');myProfile.sex=s;}
+function togglePasswordVisibility(inputId,btn){
+  const input=document.getElementById(inputId);
+  const showing=input.type==='text';
+  input.type=showing?'password':'text';
+  btn.innerHTML=showing?'<i class="ti ti-eye"></i>':'<i class="ti ti-eye-off"></i>';
+}
+
+// ─── Remember emails used on this device (safe: just email addresses, no passwords) ──
+function getRememberedEmails(){
+  try{return JSON.parse(localStorage.getItem('basedRememberedEmails')||'[]');}catch(e){return [];}
+}
+function rememberEmail(email){
+  if(!email)return;
+  let list=getRememberedEmails().filter(e=>e.toLowerCase()!==email.toLowerCase());
+  list.unshift(email);
+  list=list.slice(0,10);
+  try{localStorage.setItem('basedRememberedEmails',JSON.stringify(list));}catch(e){}
+  renderEmailDatalist();
+}
+function renderEmailDatalist(){
+  const dl=document.getElementById('based-remembered-emails');
+  if(!dl)return;
+  dl.innerHTML=getRememberedEmails().map(e=>`<option value="${e}"></option>`).join('');
+}
+// Passwords are NEVER stored by the app itself — only via the browser's own secure,
+// encrypted credential manager (the Credential Management API), same system behind
+// Safari/Chrome's native "Save password?" prompt.
+async function tryStoreCredential(email,password){
+  if(!('PasswordCredential' in window))return;
+  try{
+    const cred=new PasswordCredential({id:email,password:password,name:email});
+    await navigator.credentials.store(cred);
+  }catch(e){console.warn('Credential store skipped:',e);}
+}
+async function openSignIn(){
+  const emails=getRememberedEmails();
+  if(emails.length)document.getElementById('signin-email').value=emails[0];
+  renderEmailDatalist();
+  goTo('screen-signin');
+  // Ask the browser for a saved credential (email + password) if it has one — this is
+  // what actually lets the password field pre-fill, securely, without us ever touching it.
+  if('credentials' in navigator&&navigator.credentials.get){
+    try{
+      const cred=await navigator.credentials.get({password:true,mediation:'optional'});
+      if(cred&&cred.type==='password'){
+        document.getElementById('signin-email').value=cred.id;
+        document.getElementById('signin-password').value=cred.password;
+      }
+    }catch(e){console.warn('Credential retrieval skipped:',e);}
+  }
+}
 function selectEditSex(s){document.getElementById('edit-sex-male').classList.toggle('selected',s==='male');document.getElementById('edit-sex-female').classList.toggle('selected',s==='female');myProfile.sex=s;}
 function handlePhotoUpload(input){
   const file=input.files[0];if(!file)return;
@@ -1328,10 +1558,26 @@ function updateConnectedNotif(count,oldestDays){
 }
 
 // ─── Edit profile & settings ──────────────────────────────────────────────────
+async function changeEmail(){
+  const note=document.getElementById('edit-email-note');
+  const newEmail=document.getElementById('edit-email').value.trim();
+  const currentEmail=(currentUser&&currentUser.email)||'';
+  if(!newEmail){note.style.color='var(--red)';note.textContent='Please enter an email address.';return;}
+  if(newEmail.toLowerCase()===currentEmail.toLowerCase()){note.style.color='var(--text-muted)';note.textContent='That\'s already your current email.';return;}
+  note.style.color='var(--text-muted)';note.textContent='Sending confirmation…';
+  const {error}=await sb.auth.updateUser({email:newEmail},{emailRedirectTo:window.location.origin+window.location.pathname});
+  if(error){note.style.color='var(--red)';note.textContent=error.message;return;}
+  note.style.color='var(--green)';
+  note.textContent='Confirmation link sent to '+newEmail+' — your email won\'t change until you click it.';
+  showToast('Confirmation email sent');
+}
+
 function openEditProfile(){
   document.getElementById('edit-name').value=myProfile.name||'';
   document.getElementById('edit-dob').value=myProfile.dob||'';
   document.getElementById('edit-location').value=myProfile.location||'';
+  document.getElementById('edit-email').value=(currentUser&&currentUser.email)||'';
+  document.getElementById('edit-email-note').textContent='';
   const init=(myProfile.name||'?').charAt(0).toUpperCase();
   document.getElementById('edit-avatar-initials').textContent=init;
   if(myProfile.photo){document.getElementById('edit-avatar-img').src=myProfile.photo;document.getElementById('edit-avatar-img').style.display='block';document.getElementById('edit-avatar-initials').style.display='none';document.getElementById('edit-reposition-btn').style.display='inline-block';}
@@ -1404,6 +1650,7 @@ document.head.appendChild(spinStyle);
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 (async()=>{
+  renderEmailDatalist();
   browseProfiles=[];
   await loadDemoProfiles();
   renderProfiles(0);
