@@ -80,9 +80,9 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 .tab-bar{display:flex;border-bottom:0.5px solid rgba(255,255,255,0.08);flex-shrink:0;background:var(--navy);}
 .tab-btn{flex:1;background:transparent;border:none;padding:13px 8px;font-size:12px;color:var(--text-muted);cursor:pointer;font-family:var(--sans);border-bottom:2px solid transparent;display:flex;align-items:center;justify-content:center;gap:5px;position:relative;}
 .tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
-.photo-upload-area{border:1.5px dashed rgba(255,255,255,0.2);border-radius:15px;padding:30px 20px;text-align:center;cursor:pointer;overflow:hidden;position:relative;}
-.photo-upload-area.has-photo{border-style:solid;border-color:rgba(201,168,76,0.4);padding:0;height:190px;}
-.photo-preview{width:100%;height:190px;object-fit:cover;border-radius:13px;display:block;}
+.photo-upload-area{border:1.5px dashed rgba(255,255,255,0.2);border-radius:50%;width:180px;height:180px;margin:0 auto;padding:0;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;}
+.photo-upload-area.has-photo{border-style:solid;border-color:rgba(201,168,76,0.4);}
+.photo-preview{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
 .avatar{width:50px;height:50px;border-radius:50%;background:var(--navy-light);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:17px;color:var(--gold);flex-shrink:0;border:1.5px solid rgba(201,168,76,0.3);overflow:hidden;}
 .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .avatar-lg{width:72px;height:72px;border-radius:50%;background:var(--navy-light);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--gold);flex-shrink:0;border:2px solid rgba(201,168,76,0.4);overflow:hidden;}
@@ -149,14 +149,12 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
       <div class="photo-upload-area" id="upload-area" onclick="document.getElementById('photo-input').click()">
         <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)" />
         <div id="upload-placeholder">
-          <i class="ti ti-camera" style="font-size:32px;color:var(--text-muted);margin-bottom:12px;display:block"></i>
-          <p style="font-size:14px;color:var(--text-on-dark);margin-bottom:5px">Upload a photo</p>
-          <p style="font-size:13px;color:var(--text-muted)">Tap to choose from your camera roll</p>
+          <i class="ti ti-camera" style="font-size:28px;color:var(--text-muted)"></i>
         </div>
         <img id="upload-preview" style="display:none" class="photo-preview" alt="Your profile photo" />
-        <button type="button" id="reposition-btn" style="display:none;position:absolute;bottom:8px;right:8px;background:rgba(10,13,22,0.75);border:0.5px solid rgba(255,255,255,0.25);border-radius:20px;padding:6px 12px;font-size:12px;color:var(--text-on-dark);cursor:pointer;font-family:var(--sans);align-items:center;gap:5px" onclick="event.stopPropagation();openRepositionPhoto()"><i class="ti ti-arrows-move" style="font-size:13px"></i>Reposition</button>
+        <button type="button" id="reposition-btn" style="display:none;position:absolute;bottom:2px;right:2px;background:rgba(10,13,22,0.85);border:0.5px solid rgba(255,255,255,0.25);border-radius:50%;width:34px;height:34px;padding:0;color:var(--text-on-dark);cursor:pointer;font-family:var(--sans);align-items:center;justify-content:center" onclick="event.stopPropagation();openRepositionPhoto()" aria-label="Reposition photo"><i class="ti ti-arrows-move" style="font-size:15px"></i></button>
       </div>
-      <p style="font-size:12px;color:var(--text-muted);margin-top:7px">A photo is required to create your profile.</p>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:11px;text-align:center">Tap to upload a photo — required to create your profile.</p>
     </div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" placeholder="Your first name" id="inp-name" autocomplete="given-name" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="date" id="inp-dob" /></div>
