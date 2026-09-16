@@ -368,7 +368,10 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
         <button class="btn-ghost" onclick="inviteFriends()" style="font-size:14px;padding:11px 17px"><i class="ti ti-user-plus" style="margin-right:7px"></i>Invite friends</button>
       </div>
-      <div style="padding-top:18px" class="bottom-safe">
+      <div style="padding-top:14px;padding-bottom:18px">
+        <button class="btn-ghost" onclick="confirmLogout()" style="font-size:14px;padding:11px 17px"><i class="ti ti-logout" style="margin-right:7px"></i>Log out</button>
+      </div>
+      <div style="padding-top:18px;border-top:0.5px solid rgba(255,255,255,0.08)" class="bottom-safe">
         <button onclick="confirmDelete()" style="background:rgba(235,87,87,0.07);border:0.5px solid rgba(235,87,87,0.3);border-radius:13px;padding:14px 20px;font-size:15px;color:var(--red);cursor:pointer;width:100%;font-family:var(--sans);display:flex;align-items:center;justify-content:center;gap:9px"><i class="ti ti-trash"></i>Delete my account</button>
       </div>
     </div>
@@ -511,6 +514,7 @@ sb.auth.onAuthStateChange(async(event,session)=>{
       myProfile.name=pending.name;myProfile.dob=pending.dob;myProfile.location=pending.location;
       myProfile.sex=pending.sex;myProfile.religion=pending.religion;myProfile.photo=pending.photo;
       myProfile.marketing_consent=pending.marketing_consent;myProfile.terms_accepted_at=pending.terms_accepted_at;
+      myProfile.referred_by=pending.referred_by;
       myProfile.photo_file=pending.photo?dataURLtoFile(pending.photo,'profile.jpg'):null;
       myAnswers=pending.answers||myAnswers;
       showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Finishing your profile…</p></div>');
@@ -566,6 +570,13 @@ let currentUser=null; // Supabase auth user
 // not to auto-navigate to the main screen if a confirmation-link completion is about
 // to take over navigation instead (avoids a race where both try to navigate).
 let hasPendingSignupOnLoad=false;
+// Capture a referral code from the URL (?ref=henry) the moment the site loads,
+// and remember it until sign-up completes — this is the influencer-tracking link.
+try{
+  const refParam=new URLSearchParams(window.location.search).get('ref');
+  if(refParam)localStorage.setItem('basedReferralCode',refParam.trim().toLowerCase());
+}catch(e){}
+function getReferralCode(){try{return localStorage.getItem('basedReferralCode')||null;}catch(e){return null;}}
 // Detects landing here via an auth email link (confirmation, recovery, email
 // change) directly from the URL, synchronously, before any async work starts.
 // Replaces an earlier localStorage-based check that stopped working once
@@ -672,11 +683,13 @@ async function tryDetails(){
   if(!name||!email||!pass||!passConfirm||!dobRaw||!location||!myProfile.sex){err.style.display='block';err.textContent='Please fill in all fields.';return;}
   const dob=parseDobToISO(dobRaw);
   if(!dob){err.style.display='block';err.textContent='Please enter a valid date of birth (DD/MM/YYYY).';dobEl.classList.add('input-error');return;}
+  if(calcAge(dob)<18){err.style.display='block';err.textContent='You must be at least 18 to use BASED.';dobEl.classList.add('input-error');return;}
   if(!document.getElementById('inp-agree-terms').checked){err.style.display='block';err.textContent='Please agree to the Terms and Conditions to continue.';return;}
   if(pass.length<6){err.style.display='block';err.textContent='Password must be at least 6 characters.';passEl.classList.add('input-error');confirmEl.classList.add('input-error');return;}
   if(pass!==passConfirm){err.style.display='block';err.textContent='Passwords do not match.';passEl.classList.add('input-error');confirmEl.classList.add('input-error');return;}
   err.style.display='none';
   myProfile.marketing_consent=document.getElementById('inp-marketing-consent').checked;
+  myProfile.referred_by=getReferralCode();
   myProfile.terms_accepted_at=new Date().toISOString();
   const btn=document.getElementById('details-continue-btn');
   const originalLabel=btn.textContent;
@@ -730,7 +743,8 @@ async function finishProfileCreation(userId,email){
     is_hidden:false,is_premium:false,lat,lng,
     email:email,religion:religion,
     marketing_consent:!!myProfile.marketing_consent,
-    terms_accepted_at:myProfile.terms_accepted_at||new Date().toISOString()
+    terms_accepted_at:myProfile.terms_accepted_at||new Date().toISOString(),
+    referred_by:myProfile.referred_by||null
   });
   if(profileErr){
     console.error('Profile save error:', profileErr);
@@ -740,6 +754,7 @@ async function finishProfileCreation(userId,email){
   }
   removeModal();
   rememberEmail(email);
+  try{localStorage.removeItem('basedReferralCode');}catch(e){}
   isPremium=false;profileHidden=false;
   await loadMyInteractions();
   subscribeToInteractions();
@@ -770,7 +785,8 @@ async function stageSignupRemotely(userId){
       body:JSON.stringify({
         user_id:userId,name:myProfile.name,dob:myProfile.dob,location:myProfile.location,
         sex:myProfile.sex,religion:myProfile.religion,photo:myProfile.photo,answers:myAnswers,
-        marketing_consent:!!myProfile.marketing_consent,terms_accepted_at:myProfile.terms_accepted_at
+        marketing_consent:!!myProfile.marketing_consent,terms_accepted_at:myProfile.terms_accepted_at,
+        referred_by:myProfile.referred_by||null
       })
     });
     if(!resp.ok){const body=await resp.json().catch(()=>({}));console.warn('Staging signup failed:',body.error||resp.statusText);}
@@ -865,17 +881,36 @@ async function trySignIn(){
   const email=document.getElementById('signin-email').value.trim();
   const pass=document.getElementById('signin-password').value;
   const err=document.getElementById('signin-error');
-  if(!email||!pass){err.style.display='block';err.textContent='Please enter email and password.';return;}
+  if(!email||!pass){err.style.display='block';err.style.color='var(--red)';err.textContent='Please enter email and password.';return;}
   err.style.display='none';
   showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Signing in…</p></div>');
   const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
-  if(error){removeModal();err.style.display='block';err.textContent='Sign in failed: '+error.message;return;}
+  if(error){
+    removeModal();
+    err.style.color='var(--red)';
+    if(error.code==='email_not_confirmed'||/confirm/i.test(error.message)){
+      err.style.display='block';
+      err.innerHTML='Please confirm your email before signing in. <span style="color:var(--gold);text-decoration:underline;cursor:pointer" onclick="resendConfirmationEmail(\''+email.replace(/'/g,"\\'")+'\')">Resend confirmation email</span>';
+    }else{
+      err.style.display='block';err.textContent='Sign in failed: '+error.message;
+    }
+    return;
+  }
   currentUser=data.user;
   rememberEmail(email);
   await restoreSession();
   removeModal();
   await loadBrowseProfiles();
   goTo('screen-main');renderProfiles(0);
+}
+
+async function resendConfirmationEmail(email){
+  const err=document.getElementById('signin-error');
+  showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Sending…</p></div>');
+  const {error}=await sb.auth.resend({type:'signup',email,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
+  removeModal();
+  if(error){err.style.color='var(--red)';err.style.display='block';err.textContent='Could not resend: '+error.message;return;}
+  err.style.color='var(--green)';err.style.display='block';err.textContent='Confirmation email resent — check your inbox.';
 }
 
 async function restoreSession(){
@@ -1776,6 +1811,7 @@ async function saveProfile(){
   const editDobRaw=document.getElementById('edit-dob').value;
   const editDobParsed=parseDobToISO(editDobRaw);
   if(editDobRaw&&!editDobParsed){showToast('Please enter a valid date of birth (DD/MM/YYYY).',true);return;}
+  if(editDobParsed&&calcAge(editDobParsed)<18){showToast('You must be at least 18 to use BASED.',true);return;}
   myProfile.dob=editDobParsed||myProfile.dob;
   myProfile.location=document.getElementById('edit-location').value||myProfile.location;
   if(currentUser){
@@ -1807,6 +1843,24 @@ function activatePremium(){isPremium=true;goTo('screen-main');renderProfiles(par
 // ─── Delete account ───────────────────────────────────────────────────────────
 function confirmDelete(){
   showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(235,87,87,0.1);border:0.5px solid rgba(235,87,87,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-trash" style="font-size:24px;color:var(--red)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;line-height:1.3">Delete your profile?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Do you want to delete your profile and all your data held on the BASED app?${isPremium?' Your £8.99/month subscription will be cancelled immediately.':''}</p><div style="display:flex;flex-direction:column;gap:11px"><button onclick="executeDelete()" style="background:var(--red);color:white;border:none;border-radius:13px;padding:14px 20px;font-size:15px;font-weight:600;cursor:pointer;width:100%;font-family:var(--sans)">Yes, delete everything</button><button onclick="removeModal()" style="background:transparent;color:var(--text-muted);border:0.5px solid rgba(255,255,255,0.15);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;width:100%;font-family:var(--sans)">Cancel</button></div>`);
+}
+
+function confirmLogout(){
+  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-logout" style="font-size:24px;color:var(--text-on-dark)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;text-align:center">Log out?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px;text-align:center">You can sign back in anytime with your email and password.</p><div style="display:flex;gap:10px"><button onclick="removeModal()" class="btn-ghost" style="flex:1">Cancel</button><button onclick="executeLogout()" class="btn-primary" style="flex:1">Log out</button></div>`);
+}
+async function executeLogout(){
+  removeModal();
+  if(messageChannel)sb.removeChannel(messageChannel);
+  if(interactionsChannel)sb.removeChannel(interactionsChannel);
+  await sb.auth.signOut();
+  isPremium=false;currentUser=null;
+  myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null};
+  myAnswers=new Array(NUM_Q).fill(0);
+  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();profileHidden=false;
+  document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
+  ['inp-name','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('sex-male').classList.remove('selected');document.getElementById('sex-female').classList.remove('selected');
+  goTo('screen-welcome');
 }
 
 async function executeDelete(){
