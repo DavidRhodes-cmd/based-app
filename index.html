@@ -890,9 +890,10 @@ async function doResetPassword(){
   const resetEmail=updateData&&updateData.user&&updateData.user.email;
   await sb.auth.signOut();
   currentUser=null;
-  if(resetEmail)await tryStoreCredential(resetEmail,pass);
+  if(resetEmail){await tryStoreCredential(resetEmail,pass);rememberEmail(resetEmail);}
   showToast('Password reset');
   await openSignIn();
+  if(resetEmail){document.getElementById('signin-email').value=resetEmail;document.getElementById('signin-password').value='';} // openSignIn guesses the most-recently-used email/credential, which may not be this one
   document.getElementById('signin-email').focus();
 }
 
