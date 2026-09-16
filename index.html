@@ -590,6 +590,13 @@ function getReferralCode(){try{return localStorage.getItem('basedReferralCode')|
 // Replaces an earlier localStorage-based check that stopped working once
 // pending sign-up data moved to server-side staging.
 try{hasPendingSignupOnLoad=/access_token|type=recovery|type=signup|type=email_change|type=magiclink/.test(window.location.hash);}catch(e){}
+// Supabase's PASSWORD_RECOVERY event is unreliable in practice — often only a
+// plain SIGNED_IN event fires for a reset link, leaving the app on whatever
+// screen happens to be marked active by default. Detect it directly from the
+// URL instead of trusting the event name.
+let isPasswordRecoveryLink=false;
+try{isPasswordRecoveryLink=/type=recovery/.test(window.location.hash);}catch(e){}
+if(isPasswordRecoveryLink)goTo('screen-reset-password');
 let pendingEmail='',pendingPassword=''; // stored when user moves from details to questions
 let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null};
 let myAnswers=new Array(NUM_Q).fill(0);
