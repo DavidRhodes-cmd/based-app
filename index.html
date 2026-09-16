@@ -597,6 +597,19 @@ try{hasPendingSignupOnLoad=/access_token|type=recovery|type=signup|type=email_ch
 let isPasswordRecoveryLink=false;
 try{isPasswordRecoveryLink=/type=recovery/.test(window.location.hash);}catch(e){}
 if(isPasswordRecoveryLink)goTo('screen-reset-password');
+// A link that's expired or already been used redirects back with an error in the
+// hash rather than a valid session — without this check, that failure was
+// completely invisible: the app just fell back to whatever session already
+// existed in the browser, silently hiding the fact the link itself didn't work.
+let authLinkError=null;
+try{
+  if(/error=/.test(window.location.hash)){
+    const params=new URLSearchParams(window.location.hash.replace(/^#/,''));
+    authLinkError=params.get('error_description')||params.get('error')||'This link is invalid or has expired.';
+    authLinkError=authLinkError.replace(/\+/g,' ');
+    history.replaceState(null,'',window.location.pathname);
+  }
+}catch(e){}
 let pendingEmail='',pendingPassword=''; // stored when user moves from details to questions
 let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null};
 let myAnswers=new Array(NUM_Q).fill(0);
@@ -1948,6 +1961,7 @@ document.head.appendChild(spinStyle);
     updateMatchNotifs();
     if(!hasPendingSignupOnLoad)goTo('screen-main'); // let the confirmation-completion flow navigate instead, if one's in progress
   }
+  if(authLinkError)showToast(authLinkError,true,5000);
 })();
 
 document.getElementById('settings-btn').addEventListener('click',openEditProfile);
