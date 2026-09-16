@@ -833,9 +833,18 @@ async function signUpAndSave(){
   // registered (to prevent attackers probing which emails exist) — identities is empty in that case
   if(signUpData.user&&signUpData.user.identities&&signUpData.user.identities.length===0){
     removeModal();
-    showToast('That email is already registered — please sign in instead.',true);
+    const status=await sb.rpc('email_registration_status',{check_email:email}).then(r=>r.data).catch(()=>null);
     await openSignIn();
     document.getElementById('signin-email').value=email;
+    document.getElementById('signin-password').value='';
+    if(status==='unconfirmed'){
+      const err=document.getElementById('signin-error');
+      err.style.color='var(--red)';
+      err.style.display='block';
+      err.innerHTML='This email is already registered but hasn\'t been confirmed yet.<br><span style="color:var(--gold);text-decoration:underline;cursor:pointer;display:inline-block;margin-top:4px" onclick="resendConfirmationEmail(\''+email.replace(/'/g,"\\'")+'\')">Resend confirmation email</span>';
+    }else{
+      showToast('That email is already registered — please sign in instead.',true);
+    }
     return;
   }
   if(document.getElementById('inp-remember-password').checked)await tryStoreCredential(email,pass);
