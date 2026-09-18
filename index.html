@@ -695,20 +695,23 @@ function haversineDistance(lat1,lng1,lat2,lng2){
 
 async function tryDetails(){
   const err=document.getElementById('details-error');
-  const passEl=document.getElementById('inp-password'),confirmEl=document.getElementById('inp-password-confirm');
-  passEl.classList.remove('input-error');confirmEl.classList.remove('input-error');
+  const nameEl=document.getElementById('inp-name'),passEl=document.getElementById('inp-password'),confirmEl=document.getElementById('inp-password-confirm');
+  const emailEl=document.getElementById('inp-email'),dobEl=document.getElementById('inp-dob'),locationEl=document.getElementById('inp-location');
+  [nameEl,emailEl,dobEl,locationEl,passEl,confirmEl].forEach(el=>el.classList.remove('input-error'));
   if(!myProfile.photo){err.style.display='block';err.textContent='Please upload a photo before continuing.';return;}
-  const name=document.getElementById('inp-name').value.trim();
-  const emailEl=document.getElementById('inp-email');
+  const name=nameEl.value.trim();
   const email=emailEl.value.trim();
-  emailEl.classList.remove('input-error');
   const pass=passEl.value;
   const passConfirm=confirmEl.value;
-  const dobRaw=document.getElementById('inp-dob').value;
-  const dobEl=document.getElementById('inp-dob');
-  dobEl.classList.remove('input-error');
-  const location=document.getElementById('inp-location').value.trim();
-  if(!name||!email||!pass||!passConfirm||!dobRaw||!location||!myProfile.sex){err.style.display='block';err.textContent='Please fill in all fields.';return;}
+  const dobRaw=dobEl.value;
+  const location=locationEl.value.trim();
+  if(!name){err.style.display='block';err.textContent='Please enter your name.';nameEl.classList.add('input-error');return;}
+  if(!email){err.style.display='block';err.textContent='Please enter your email.';emailEl.classList.add('input-error');return;}
+  if(!dobRaw){err.style.display='block';err.textContent='Please enter your date of birth.';dobEl.classList.add('input-error');return;}
+  if(!location){err.style.display='block';err.textContent='Please enter your postcode.';locationEl.classList.add('input-error');return;}
+  if(!pass){err.style.display='block';err.textContent='Please enter a password.';passEl.classList.add('input-error');return;}
+  if(!passConfirm){err.style.display='block';err.textContent='Please confirm your password.';confirmEl.classList.add('input-error');return;}
+  if(!myProfile.sex){err.style.display='block';err.textContent='Please select your biological sex.';return;}
   const dob=parseDobToISO(dobRaw);
   if(!dob){err.style.display='block';err.textContent='Please enter a valid date of birth (DD/MM/YYYY).';dobEl.classList.add('input-error');return;}
   if(calcAge(dob)<18){err.style.display='block';err.textContent='You must be at least 18 to use BASED.';dobEl.classList.add('input-error');return;}
@@ -741,6 +744,7 @@ async function tryDetails(){
   const geo=await geocodePostcode(location);
   if(!geo){
     err.style.display='block';err.textContent="That doesn't look like a valid postcode — please check and try again.";
+    locationEl.classList.add('input-error');
     btn.disabled=false;btn.textContent=originalLabel;
     return;
   }
@@ -897,25 +901,30 @@ function openForgotPassword(){
 }
 
 async function sendPasswordReset(){
-  const email=document.getElementById('forgot-email').value.trim();
+  const emailEl=document.getElementById('forgot-email');
+  emailEl.classList.remove('input-error');
+  const email=emailEl.value.trim();
   const err=document.getElementById('forgot-error');
-  if(!email){err.style.display='block';err.textContent='Please enter your email address.';return;}
+  if(!email){err.style.display='block';err.textContent='Please enter your email address.';emailEl.classList.add('input-error');return;}
   err.style.display='none';
   showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Sending…</p></div>');
   const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
   removeModal();
-  if(error){err.style.display='block';err.textContent=error.message;return;}
+  if(error){err.style.display='block';err.textContent=error.message;emailEl.classList.add('input-error');return;}
   document.getElementById('forgot-form-state').style.display='none';
   document.getElementById('forgot-sent-state').style.display='block';
 }
 
 async function doResetPassword(){
-  const pass=document.getElementById('reset-password').value;
-  const confirm=document.getElementById('reset-password-confirm').value;
+  const passEl=document.getElementById('reset-password'),confirmEl=document.getElementById('reset-password-confirm');
+  passEl.classList.remove('input-error');confirmEl.classList.remove('input-error');
+  const pass=passEl.value;
+  const confirm=confirmEl.value;
   const err=document.getElementById('reset-error');
-  if(!pass||!confirm){err.style.display='block';err.textContent='Please fill in both fields.';return;}
-  if(pass.length<6){err.style.display='block';err.textContent='Password must be at least 6 characters.';return;}
-  if(pass!==confirm){err.style.display='block';err.textContent='Passwords do not match.';return;}
+  if(!pass){err.style.display='block';err.textContent='Please enter a new password.';passEl.classList.add('input-error');return;}
+  if(!confirm){err.style.display='block';err.textContent='Please confirm your new password.';confirmEl.classList.add('input-error');return;}
+  if(pass.length<6){err.style.display='block';err.textContent='Password must be at least 6 characters.';passEl.classList.add('input-error');confirmEl.classList.add('input-error');return;}
+  if(pass!==confirm){err.style.display='block';err.textContent='Passwords do not match.';passEl.classList.add('input-error');confirmEl.classList.add('input-error');return;}
   err.style.display='none';
   showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Resetting…</p></div>');
   const {data:updateData,error}=await sb.auth.updateUser({password:pass});
@@ -932,10 +941,13 @@ async function doResetPassword(){
 }
 
 async function trySignIn(){
-  const email=document.getElementById('signin-email').value.trim();
-  const pass=document.getElementById('signin-password').value;
+  const emailEl=document.getElementById('signin-email'),passwordEl=document.getElementById('signin-password');
+  emailEl.classList.remove('input-error');passwordEl.classList.remove('input-error');
+  const email=emailEl.value.trim();
+  const pass=passwordEl.value;
   const err=document.getElementById('signin-error');
-  if(!email||!pass){err.style.display='block';err.style.color='var(--red)';err.textContent='Please enter email and password.';return;}
+  if(!email){err.style.display='block';err.style.color='var(--red)';err.textContent='Please enter your email.';emailEl.classList.add('input-error');return;}
+  if(!pass){err.style.display='block';err.style.color='var(--red)';err.textContent='Please enter your password.';passwordEl.classList.add('input-error');return;}
   err.style.display='none';
   showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Signing in…</p></div>');
   const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
@@ -947,6 +959,7 @@ async function trySignIn(){
       err.innerHTML='Please confirm your email before signing in.<br><span style="color:var(--gold);text-decoration:underline;cursor:pointer;display:inline-block;margin-top:4px" onclick="resendConfirmationEmail(\''+email.replace(/'/g,"\\'")+'\')">Resend confirmation email</span>';
     }else{
       err.style.display='block';err.textContent='Sign in failed: '+error.message;
+      passwordEl.classList.add('input-error');
     }
     return;
   }
@@ -1831,13 +1844,15 @@ function updateConnectedNotif(count,oldestDays){
 // ─── Edit profile & settings ──────────────────────────────────────────────────
 async function changeEmail(){
   const note=document.getElementById('edit-email-note');
-  const newEmail=document.getElementById('edit-email').value.trim();
+  const emailEl=document.getElementById('edit-email');
+  emailEl.classList.remove('input-error');
+  const newEmail=emailEl.value.trim();
   const currentEmail=(currentUser&&currentUser.email)||'';
-  if(!newEmail){note.style.color='var(--red)';note.textContent='Please enter an email address.';return;}
+  if(!newEmail){note.style.color='var(--red)';note.textContent='Please enter an email address.';emailEl.classList.add('input-error');return;}
   if(newEmail.toLowerCase()===currentEmail.toLowerCase()){note.style.color='var(--text-muted)';note.textContent='That\'s already your current email.';return;}
   note.style.color='var(--text-muted)';note.textContent='Sending confirmation…';
   const {error}=await sb.auth.updateUser({email:newEmail},{emailRedirectTo:window.location.origin+window.location.pathname});
-  if(error){note.style.color='var(--red)';note.textContent=error.message;return;}
+  if(error){note.style.color='var(--red)';note.textContent=error.message;emailEl.classList.add('input-error');return;}
   note.style.color='var(--green)';
   note.textContent='Confirmation link sent to '+newEmail+' — your email won\'t change until you click it.';
   showToast('Confirmation email sent');
@@ -1849,6 +1864,7 @@ function openEditProfile(){
   document.getElementById('edit-location').value=myProfile.location||'';
   document.getElementById('edit-email').value=(currentUser&&currentUser.email)||'';
   document.getElementById('edit-email-note').textContent='';
+  ['edit-name','edit-dob','edit-location'].forEach(id=>document.getElementById(id).classList.remove('input-error'));
   const init=(myProfile.name||'?').charAt(0).toUpperCase();
   document.getElementById('edit-avatar-initials').textContent=init;
   if(myProfile.photo){document.getElementById('edit-avatar-img').src=myProfile.photo;document.getElementById('edit-avatar-img').style.display='block';document.getElementById('edit-avatar-initials').style.display='none';document.getElementById('edit-reposition-btn').style.display='inline-block';}
@@ -1862,13 +1878,15 @@ function openEditProfile(){
 
 async function saveProfile(){
   myProfile.name=document.getElementById('edit-name').value||myProfile.name;
-  const editDobRaw=document.getElementById('edit-dob').value;
+  const editDobEl=document.getElementById('edit-dob'),editLocationEl=document.getElementById('edit-location');
+  editDobEl.classList.remove('input-error');editLocationEl.classList.remove('input-error');
+  const editDobRaw=editDobEl.value;
   const editDobParsed=parseDobToISO(editDobRaw);
-  if(editDobRaw&&!editDobParsed){showToast('Please enter a valid date of birth (DD/MM/YYYY).',true);return;}
-  if(editDobParsed&&calcAge(editDobParsed)<18){showToast('You must be at least 18 to use BASED.',true);return;}
+  if(editDobRaw&&!editDobParsed){showToast('Please enter a valid date of birth (DD/MM/YYYY).',true);editDobEl.classList.add('input-error');return;}
+  if(editDobParsed&&calcAge(editDobParsed)<18){showToast('You must be at least 18 to use BASED.',true);editDobEl.classList.add('input-error');return;}
   myProfile.dob=editDobParsed||myProfile.dob;
   const previousLocation=myProfile.location;
-  myProfile.location=document.getElementById('edit-location').value||myProfile.location;
+  myProfile.location=editLocationEl.value||myProfile.location;
   if(currentUser){
     let photo_url=typeof myProfile.photo==='string'&&myProfile.photo.startsWith('http')?myProfile.photo:'';
     if(myProfile.photo_file){
@@ -1881,6 +1899,7 @@ async function saveProfile(){
     if(!geo){
       myProfile.location=previousLocation; // nothing was saved — keep in-memory state matching the database
       showToast("That doesn't look like a valid postcode — please check and try again.",true);
+      editLocationEl.classList.add('input-error');
       return;
     }
     await sb.from('profiles').update({name:myProfile.name,dob:myProfile.dob,location:myProfile.location,sex:myProfile.sex,is_hidden:profileHidden,photo_url:photo_url||undefined,lat:geo.lat,lng:geo.lng}).eq('id',currentUser.id);
