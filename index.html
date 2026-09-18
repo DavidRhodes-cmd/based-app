@@ -737,8 +737,16 @@ async function tryDetails(){
   }catch(e){
     console.warn('Email availability check exception:',e);
   }
+  btn.textContent='Checking postcode…';
+  const geo=await geocodePostcode(location);
+  if(!geo){
+    err.style.display='block';err.textContent="That doesn't look like a valid postcode — please check and try again.";
+    btn.disabled=false;btn.textContent=originalLabel;
+    return;
+  }
   btn.disabled=false;btn.textContent=originalLabel;
   myProfile.name=name;myProfile.dob=dob;myProfile.location=location;
+  myProfile.lat=geo.lat;myProfile.lng=geo.lng;
   pendingEmail=email;pendingPassword=pass;
   startQuestions();
 }
@@ -757,11 +765,15 @@ async function finishProfileCreation(userId,email){
 
   const based_score=calcBasedScore(myAnswers);
 
-  let lat=null,lng=null;
-  try{
-    const geo=await geocodePostcode(myProfile.location);
-    if(geo){lat=geo.lat;lng=geo.lng;}
-  }catch(e){console.warn('Geocode failed:',e);}
+  let lat=myProfile.lat||null,lng=myProfile.lng||null;
+  if(!lat||!lng){
+    // Falls back to a fresh geocode for the email-confirmation-pending path, where
+    // coordinates weren't part of the staged data carried through to this point.
+    try{
+      const geo=await geocodePostcode(myProfile.location);
+      if(geo){lat=geo.lat;lng=geo.lng;}
+    }catch(e){console.warn('Geocode failed:',e);}
+  }
 
   const religion=myAnswers[FAITH_Q_INDEX]>0?myProfile.religion:null;
   myProfile.religion=religion;
@@ -1855,6 +1867,7 @@ async function saveProfile(){
   if(editDobRaw&&!editDobParsed){showToast('Please enter a valid date of birth (DD/MM/YYYY).',true);return;}
   if(editDobParsed&&calcAge(editDobParsed)<18){showToast('You must be at least 18 to use BASED.',true);return;}
   myProfile.dob=editDobParsed||myProfile.dob;
+  const previousLocation=myProfile.location;
   myProfile.location=document.getElementById('edit-location').value||myProfile.location;
   if(currentUser){
     let photo_url=typeof myProfile.photo==='string'&&myProfile.photo.startsWith('http')?myProfile.photo:'';
@@ -1864,10 +1877,13 @@ async function saveProfile(){
       const {error}=await sb.storage.from('avatars').upload(path,myProfile.photo_file,{upsert:true});
       if(!error){const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;}
     }
-    let lat=null,lng=null;
     const geo=await geocodePostcode(myProfile.location);
-    if(geo){lat=geo.lat;lng=geo.lng;}
-    await sb.from('profiles').update({name:myProfile.name,dob:myProfile.dob,location:myProfile.location,sex:myProfile.sex,is_hidden:profileHidden,photo_url:photo_url||undefined,...(lat?{lat,lng}:{})}).eq('id',currentUser.id);
+    if(!geo){
+      myProfile.location=previousLocation; // nothing was saved — keep in-memory state matching the database
+      showToast("That doesn't look like a valid postcode — please check and try again.",true);
+      return;
+    }
+    await sb.from('profiles').update({name:myProfile.name,dob:myProfile.dob,location:myProfile.location,sex:myProfile.sex,is_hidden:profileHidden,photo_url:photo_url||undefined,lat:geo.lat,lng:geo.lng}).eq('id',currentUser.id);
     showToast('Profile saved');
   }
   goTo('screen-main');
@@ -1959,9 +1975,13 @@ document.head.appendChild(spinStyle);
     document.getElementById('filter-dist-val').textContent=dist+' mi';
     renderProfiles(minPct);
     updateMatchNotifs();
-    if(!hasPendingSignupOnLoad)goTo('screen-main'); // let the confirmation-completion flow navigate instead, if one's in progress
+    if(!hasPendingSignupOnLoad&&!authLinkError)goTo('screen-main'); // let the confirmation-completion flow navigate instead, if one's in progress; stay put on an auth-link error
   }
-  if(authLinkError)showToast(authLinkError,true,5000);
+  if(authLinkError){
+    try{await sb.auth.signOut();}catch(e){}
+    currentUser=null;
+    showToast(authLinkError,true,5000);
+  }
 })();
 
 document.getElementById('settings-btn').addEventListener('click',openEditProfile);
