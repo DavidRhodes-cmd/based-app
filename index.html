@@ -1687,6 +1687,31 @@ function updateFilter(){
 // ─── Messaging ────────────────────────────────────────────────────────────────
 async function switchTab(tab){['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?'block':'none';});if(tab==='matches'){await loadMyInteractions();await loadBrowseProfiles();renderMatchesTab();}if(tab==='messages'){await loadMyInteractions();await loadBrowseProfiles();renderConversationsTab();}}
 
+// ─── Swipe left/right between Search, Interest, and It's mutual ───────────────
+(function initTabSwipe(){
+  const TAB_ORDER=['browse','matches','messages'];
+  const container=document.getElementById('screen-main');
+  let startX=0,startY=0,tracking=false;
+  container.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1)return;
+    startX=e.touches[0].clientX;startY=e.touches[0].clientY;tracking=true;
+  },{passive:true});
+  container.addEventListener('touchend',e=>{
+    if(!tracking)return;
+    tracking=false;
+    const endX=e.changedTouches[0].clientX,endY=e.changedTouches[0].clientY;
+    const dx=endX-startX,dy=endY-startY;
+    // Require a clear, mostly-horizontal swipe of real distance — otherwise this
+    // would fire accidentally during normal vertical scrolling of the lists.
+    if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.5)return;
+    const activeBtn=document.querySelector('.tab-btn.active');
+    const currentKey=activeBtn?activeBtn.id.replace('tab-',''):'browse';
+    const idx=TAB_ORDER.indexOf(currentKey);
+    if(dx<0&&idx<TAB_ORDER.length-1)switchTab(TAB_ORDER[idx+1]); // swiped left — next tab
+    else if(dx>0&&idx>0)switchTab(TAB_ORDER[idx-1]); // swiped right — previous tab
+  },{passive:true});
+})();
+
 async function openChat(partnerId,inits,name,photoUrl){
   activeChatName=name;activeChatPartnerId=partnerId;
   document.getElementById('chat-name-header').textContent=name;
@@ -1706,7 +1731,8 @@ function getMatchId(uid1,uid2){// deterministic match ID from two user IDs
 async function renderChatMessages(){
   if(!currentUser)return;
   const matchId=getMatchId(currentUser.id,activeChatPartnerId);
-  const {data:msgs}=await sb.from('messages').select('*').eq('match_id',matchId).order('created_at',{ascending:true});
+  const {data:msgs,error:msgsErr}=await sb.rpc('get_decrypted_messages',{p_match_id:matchId});
+  if(msgsErr)console.warn('Failed to load messages:',msgsErr.message);
   const el=document.getElementById('chat-messages');
   if(!msgs||!msgs.length){
     el.innerHTML=`<div style="text-align:center;padding:32px 18px"><div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:14px;padding:18px"><i class="ti ti-heart" style="font-size:24px;color:var(--gold);margin-bottom:10px;display:block"></i><p style="font-size:14px;color:var(--gold-light);margin-bottom:5px">It's a match!</p><p style="font-size:13px;color:var(--text-muted)">Say hello to ${activeChatName} — you share the values that matter.</p></div></div>`;
@@ -1735,8 +1761,17 @@ async function sendMessage(){
   if(!text||!currentUser)return;
   const matchId=getMatchId(currentUser.id,activeChatPartnerId);
   input.value='';
-  const {error}=await sb.from('messages').insert({match_id:matchId,sender_id:currentUser.id,content:text});
-  if(error){console.warn('Message send failed:',error.message);showToast('Message failed to send — please try again.',true);input.value=text;return;}
+  const {error}=await sb.rpc('send_encrypted_message',{p_match_id:matchId,p_content:text});
+  if(error){
+    console.warn('Message send failed:',error.message);
+    if(/PROFANITY_BLOCKED/.test(error.message)){
+      showToast("Please keep messages respectful — that one wasn't sent.",true);
+    }else{
+      showToast('Message failed to send — please try again.',true);
+    }
+    input.value=text;
+    return;
+  }
   await renderChatMessages();
 }
 
@@ -1806,31 +1841,36 @@ async function renderConversationsTab(){
   if(!currentUser){document.getElementById('conversations-list').innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">Sign in to see your conversations.</p>';updateConnectedNotif(0,0);return;}
   const matchIds=Array.from(mutualMatches).map(pid=>getMatchId(currentUser.id,pid));
   if(!matchIds.length){document.getElementById('conversations-list').innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet. Match with someone to start chatting.</p>';updateConnectedNotif(0,0);return;}
-  // Get latest message per match
-  let html='';
+  // Gather each conversation's data first, so we can sort by most recent activity
+  // before rendering — newest conversations belong at the top of the list.
   const now=Date.now();
-  let shownCount=0,oldestDays=0;
+  const entries=[];
   for(const pid of mutualMatches){
     const matchId=getMatchId(currentUser.id,pid);
-    const {data:msgs}=await sb.from('messages').select('*').eq('match_id',matchId).order('created_at',{ascending:false}).limit(1);
+    const {data:matchMsgs}=await sb.rpc('get_decrypted_messages',{p_match_id:matchId});
+    const last=matchMsgs&&matchMsgs.length?matchMsgs[matchMsgs.length-1]:null;
     const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
     if(!p)continue;
-    const last=msgs&&msgs.length?msgs[0]:null;
     const preview=last?(last.sender_id===currentUser.id?'You: ':'')+last.content:'Say hello!';
     // Activity status: based on time since last message, or since match formed if no messages yet
     const lastActivityAt=last?last.created_at:matchCreatedAt[pid];
     const daysSince=lastActivityAt?(now-new Date(lastActivityAt).getTime())/86400000:0;
     if(daysSince>=4)continue; // no activity for 4+ days: drop from the list
-    shownCount++;
+    entries.push({pid,p,preview,lastActivityAt,daysSince});
+  }
+  entries.sort((a,b)=>new Date(b.lastActivityAt||0)-new Date(a.lastActivityAt||0)); // most recent first
+  let html='';
+  let oldestDays=0;
+  entries.forEach(({pid,p,preview,daysSince})=>{
     if(daysSince>oldestDays)oldestDays=daysSince;
     const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
     const statusLabel=daysSince>=3?'Inactive 3+ days':daysSince>=2?'Inactive 2+ days':'Active';
     const dot=`<span title="${statusLabel}" style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.06)"></span>`;
     const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
     html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}','${p.photo_url||''}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}</span>${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
-  }
+  });
   document.getElementById('conversations-list').innerHTML=html||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet.</p>';
-  updateConnectedNotif(shownCount,oldestDays);
+  updateConnectedNotif(entries.length,oldestDays);
 }
 function updateConnectedNotif(count,oldestDays){
   const badge=document.getElementById('msg-notif');
