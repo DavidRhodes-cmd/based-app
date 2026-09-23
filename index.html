@@ -52,7 +52,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 .btn-primary:active{opacity:0.85;}
 .btn-ghost{background:transparent;color:var(--text-muted);border:0.5px solid rgba(255,255,255,0.15);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;width:100%;font-family:var(--sans);}
 .btn-ghost:active{background:rgba(255,255,255,0.05);}
-.scrollable{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;}
+.scrollable{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;scrollbar-gutter:stable;}
 .form-input{width:100%;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);border-radius:11px;padding:13px 14px;color:var(--text-on-dark);font-size:16px;font-family:var(--sans);outline:none;-webkit-appearance:none;appearance:none;}
 .form-input:focus{border-color:var(--gold);}
 .form-input::placeholder{color:rgba(255,255,255,0.22);}
@@ -353,7 +353,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
       </div>
       <p style="font-size:12px;color:var(--text-muted);margin-top:7px" id="edit-email-note"></p>
     </div>
-    <div style="margin-bottom:22px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Biological sex</label><div style="display:flex;gap:10px"><button class="sex-btn" id="edit-sex-male" onclick="selectEditSex('male')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>Male</button><button class="sex-btn" id="edit-sex-female" onclick="selectEditSex('female')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>Female</button></div></div>
+
     <div style="border-top:0.5px solid rgba(255,255,255,0.08);padding-top:20px;display:flex;flex-direction:column;gap:2px">
       <div class="toggle-row">
         <div style="flex:1;padding-right:16px">
@@ -1380,7 +1380,7 @@ async function openSignIn(){
     }catch(e){console.warn('Credential retrieval skipped:',e);}
   }
 }
-function selectEditSex(s){document.getElementById('edit-sex-male').classList.toggle('selected',s==='male');document.getElementById('edit-sex-female').classList.toggle('selected',s==='female');myProfile.sex=s;}
+
 function handlePhotoUpload(input){
   const file=input.files[0];if(!file)return;
   const r=new FileReader();
@@ -1719,7 +1719,7 @@ function openEnlargedPhoto(){
   overlay.id='photo-lightbox';
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px';
   overlay.onclick=closeEnlargedPhoto;
-  overlay.innerHTML=`<img src="${activeChatPhotoUrl}" style="max-width:100%;max-height:100%;border-radius:14px;object-fit:contain" /><button onclick="event.stopPropagation();closeEnlargedPhoto();" style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.15);border:none;width:38px;height:38px;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="ti ti-x"></i></button>`;
+  overlay.innerHTML=`<div style="width:min(80vw,80vh);height:min(80vw,80vh);border-radius:50%;overflow:hidden"><img src="${activeChatPhotoUrl}" style="width:100%;height:100%;object-fit:cover" /></div><button onclick="event.stopPropagation();closeEnlargedPhoto();" style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.15);border:none;width:38px;height:38px;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="ti ti-x"></i></button>`;
   document.body.appendChild(overlay);
 }
 function closeEnlargedPhoto(){const el=document.getElementById('photo-lightbox');if(el)el.remove();}
@@ -1929,8 +1929,6 @@ function openEditProfile(){
   document.getElementById('edit-avatar-initials').textContent=init;
   if(myProfile.photo){document.getElementById('edit-avatar-img').src=myProfile.photo;document.getElementById('edit-avatar-img').style.display='block';document.getElementById('edit-avatar-initials').style.display='none';document.getElementById('edit-reposition-btn').style.display='inline-block';}
   else{document.getElementById('edit-avatar-img').style.display='none';document.getElementById('edit-avatar-initials').style.display='block';document.getElementById('edit-reposition-btn').style.display='none';}
-  document.getElementById('edit-sex-male').classList.toggle('selected',myProfile.sex==='male');
-  document.getElementById('edit-sex-female').classList.toggle('selected',myProfile.sex==='female');
   document.getElementById('hide-toggle').classList.toggle('on',profileHidden);
   document.getElementById('hidden-banner').style.display=profileHidden?'block':'none';
   goTo('screen-edit-profile');
