@@ -262,7 +262,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
     <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:13px;padding:13px;margin-bottom:16px">
       <div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:11px">Filter matches</div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
-        <span style="font-size:13px;color:var(--text-on-dark);min-width:90px">Min compatibility</span>
+        <span style="font-size:13px;color:var(--text-on-dark);min-width:90px;display:flex;align-items:center;gap:5px">Min compatibility<button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="What does compatibility mean?">i</button></span>
         <input type="range" class="q-slider" style="flex:1" min="0" max="100" step="5" value="0" id="filter-min" oninput="updateFilter()" />
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-min-val">0%</span>
       </div>
