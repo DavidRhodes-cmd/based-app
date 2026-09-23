@@ -91,7 +91,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 .act-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-radius:14px;padding:13px 8px;font-size:11px;cursor:pointer;font-family:var(--sans);flex:1;border:0.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:var(--text-muted);}
 .act-btn i{font-size:22px;}
 .act-btn.interested{border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.1);color:var(--gold);}
-.act-btn.expressed{border-color:rgba(201,168,76,0.5);background:rgba(201,168,76,0.12);color:var(--gold);pointer-events:none;}
+.act-btn.expressed{border-color:rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:var(--text-muted);pointer-events:none;opacity:0.7;cursor:default;}
 @keyframes heartPop{0%{transform:scale(1);}45%{transform:scale(1.4);}100%{transform:scale(1);}}
 .heart-pop{animation:heartPop 0.5s ease;display:inline-block;}
 .act-btn.hide-profile{border-color:rgba(235,87,87,0.3);color:var(--red);background:rgba(235,87,87,0.06);}
@@ -1136,7 +1136,9 @@ function handleProfileTap(aStr,compat,basedScore,inits,name,age,location,photoUr
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
 }
 
+let profileOpenContext='search';
 function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,context='search',theirReligion=null){
+  profileOpenContext=context;
   document.getElementById('profile-back-btn').onclick=context==='chat'?()=>goTo('screen-chat'):()=>goTo('screen-main');
   const hasInterest=expressedInterest.has(profileKey);
   const isMutual=mutualMatches.has(profileKey);
@@ -1198,8 +1200,9 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   } else {
     const intCls=hasInterest?'act-btn expressed':'act-btn interested';
     const intClick=hasInterest?'':` onclick="doExpressInterest('${profileKey}','${inits}','${aEncoded}',${compat},${basedScore},'${age}','${location}','${photoUrl||''}','${name}','${theirReligion||''}')"`;
+    const intInner=hasInterest?'<i class="ti ti-check" style="margin-right:6px"></i>Interest sent':'<svg id="interest-heart-icon" width="15" height="15" viewBox="0 0 24 24" style="vertical-align:-3px;margin-right:6px" fill="none"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="none" stroke="currentColor" stroke-width="2"/></svg>Interested';
     const moveOnBtn=context==='incoming'?'':`<button class="act-btn" onclick="doMoveOn('${profileKey}')"><i class="ti ti-arrow-right"></i>Move on</button>`;
-    actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}"${intClick}><svg id="interest-heart-icon" width="15" height="15" viewBox="0 0 24 24" style="vertical-align:-3px;margin-right:6px" fill="none"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="none" stroke="currentColor" stroke-width="2"/></svg>Interested</button>${moveOnBtn}<button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
+    actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}"${intClick}>${intInner}</button>${moveOnBtn}<button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
   }
   const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden"><img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${name}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4);color:var(--text-on-dark)">${inits}</div>`;
   document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
@@ -1294,7 +1297,9 @@ async function doHideForever(profileKey){
   await recordInteraction(profileKey,'hide_forever');
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   renderMatchesTab();
-  goTo('screen-main');
+  if(profileOpenContext==='chat'){goTo('screen-main');switchTab('messages');}
+  else if(profileOpenContext==='incoming'){goTo('screen-main');switchTab('matches');}
+  else{goTo('screen-main');switchTab('browse');}
 }
 
 // ─── Questions flow ───────────────────────────────────────────────────────────
