@@ -311,8 +311,8 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
   <div class="app-header">
     <button class="btn-back" onclick="goTo('screen-main');switchTab('messages')"><i class="ti ti-arrow-left"></i></button>
     <div style="display:flex;align-items:center;gap:11px">
-      <div id="chat-avatar-header" class="avatar" style="width:36px;height:36px;font-size:13px"></div>
-      <div><p style="font-size:15px;color:var(--text-on-dark);font-weight:600" id="chat-name-header"></p><p style="font-size:11px;color:var(--green)">Mutual match</p></div>
+      <div id="chat-avatar-header" class="avatar" style="width:36px;height:36px;font-size:13px;cursor:pointer" onclick="openEnlargedPhoto()"></div>
+      <div style="cursor:pointer" onclick="openChatPartnerProfile()"><p style="font-size:15px;color:var(--text-on-dark);font-weight:600" id="chat-name-header"></p><p style="font-size:11px;color:var(--green)">Mutual match</p></div>
     </div>
     <div style="width:28px"></div>
   </div>
@@ -619,7 +619,7 @@ let matchCreatedAt={}; // profileKey -> ISO timestamp of when the match formed
 let incomingInterestAt={}; // profileKey -> ISO timestamp of when they expressed interest in me
 let myInterestedAt={}; // profileKey -> ISO timestamp of when I expressed interest in them
 let hiddenForever=new Set(),passedProfiles=new Set(),dismissedIncoming=new Set();
-let conversations={},activeChatName='',activeChatPartnerId=null;
+let conversations={},activeChatName='',activeChatPartnerId=null,activeChatPhotoUrl=null;
 let browseProfiles=[]; // loaded from Supabase + demo
 let lastProfileList=[]; // snapshot of current sorted/filtered search results, for Move On navigation
 let messageChannel=null; // Supabase realtime channel
@@ -1137,6 +1137,7 @@ function handleProfileTap(aStr,compat,basedScore,inits,name,age,location,photoUr
 }
 
 function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,context='search',theirReligion=null){
+  document.getElementById('profile-back-btn').onclick=context==='chat'?()=>goTo('screen-chat'):()=>goTo('screen-main');
   const hasInterest=expressedInterest.has(profileKey);
   const isMutual=mutualMatches.has(profileKey);
   const scoreColor=compat>=80?'var(--green)':compat>=60?'var(--gold)':'var(--red)';
@@ -1712,8 +1713,27 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
   },{passive:true});
 })();
 
+function openEnlargedPhoto(){
+  if(!activeChatPhotoUrl)return; // no photo (e.g. initials-only avatar) — nothing to enlarge
+  const overlay=document.createElement('div');
+  overlay.id='photo-lightbox';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px';
+  overlay.onclick=closeEnlargedPhoto;
+  overlay.innerHTML=`<img src="${activeChatPhotoUrl}" style="max-width:100%;max-height:100%;border-radius:14px;object-fit:contain" /><button onclick="event.stopPropagation();closeEnlargedPhoto();" style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.15);border:none;width:38px;height:38px;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="ti ti-x"></i></button>`;
+  document.body.appendChild(overlay);
+}
+function closeEnlargedPhoto(){const el=document.getElementById('photo-lightbox');if(el)el.remove();}
+
+function openChatPartnerProfile(){
+  const p=browseProfiles.find(x=>x.id===activeChatPartnerId||x.name===activeChatPartnerId);
+  if(!p){showToast("Couldn't load their profile — please try again.",true);return;}
+  const compat=calcCompat(p.answers);
+  const basedScore=calcBasedScore(p.answers);
+  openProfile(p.answers,compat,basedScore,p.initials,p.name,p.age,p.location,p.photo_url,activeChatPartnerId,'chat',p.religion||null);
+}
+
 async function openChat(partnerId,inits,name,photoUrl){
-  activeChatName=name;activeChatPartnerId=partnerId;
+  activeChatName=name;activeChatPartnerId=partnerId;activeChatPhotoUrl=photoUrl||null;
   document.getElementById('chat-name-header').textContent=name;
   const headerAvatar=document.getElementById('chat-avatar-header');
   if(photoUrl){headerAvatar.innerHTML=`<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;}
