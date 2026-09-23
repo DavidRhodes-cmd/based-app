@@ -91,7 +91,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 .act-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-radius:14px;padding:13px 8px;font-size:11px;cursor:pointer;font-family:var(--sans);flex:1;border:0.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:var(--text-muted);}
 .act-btn i{font-size:22px;}
 .act-btn.interested{border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.1);color:var(--gold);}
-.act-btn.expressed{border-color:rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:var(--text-muted);pointer-events:none;opacity:0.7;cursor:default;}
+.act-btn.expressed{pointer-events:none;opacity:0.4;cursor:default;}
 @keyframes heartPop{0%{transform:scale(1);}45%{transform:scale(1.4);}100%{transform:scale(1);}}
 .heart-pop{animation:heartPop 0.5s ease;display:inline-block;}
 .act-btn.hide-profile{border-color:rgba(235,87,87,0.3);color:var(--red);background:rgba(235,87,87,0.06);}
@@ -1297,6 +1297,7 @@ async function doHideForever(profileKey){
   await recordInteraction(profileKey,'hide_forever');
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   renderMatchesTab();
+  showToast('Removed — you won\'t see them again');
   if(profileOpenContext==='chat'){goTo('screen-main');switchTab('messages');}
   else if(profileOpenContext==='incoming'){goTo('screen-main');switchTab('matches');}
   else{goTo('screen-main');switchTab('browse');}
@@ -1839,7 +1840,7 @@ function renderMatchesTab(){
       return `<div style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</span>${dot}</div><div style="font-size:13px;color:var(--gold);margin-top:3px"><i class="ti ti-heart" style="font-size:13px"></i> Interested in you</div></div><button onclick="event.stopPropagation();doDismissIncoming('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Remove from list"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button></div>`;
     }).join('');
   }
-  const expIds=Array.from(expressedInterest).filter(id=>!mutualMatches.has(id));
+  const expIds=Array.from(expressedInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id));
   if(!expIds.length){ee.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">You haven\'t expressed interest in anyone yet.</p>';}
   else{
     ee.innerHTML=expIds.map(pid=>{
