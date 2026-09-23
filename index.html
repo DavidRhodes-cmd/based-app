@@ -1015,9 +1015,19 @@ function subscribeToInteractions(){
       })
     .subscribe();
 }
+async function recordProfileView(profileKey){
+  if(isPremium||!currentUser||viewedProfiles.has(profileKey))return; // premium has no limit to track; no point re-recording a repeat view
+  viewedProfiles.add(profileKey);
+  const {error}=await sb.from('profile_views').insert({viewer_id:currentUser.id,viewed_profile_id:profileKey});
+  if(error)console.warn('Failed to record profile view:',error.message);
+}
+
 async function loadMyInteractions(){
   if(!currentUser)return;
   expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();
+  viewedProfiles=new Set();
+  const {data:views}=await sb.from('profile_views').select('viewed_profile_id').eq('viewer_id',currentUser.id);
+  if(views)views.forEach(r=>viewedProfiles.add(r.viewed_profile_id));
   // What I've done to others
   const {data:mine}=await sb.from('interactions').select('to_user,action,created_at').eq('from_user',currentUser.id);
   if(mine)mine.forEach(r=>{
@@ -1131,7 +1141,7 @@ function renderProfiles(minPct){
 function handleProfileTap(aStr,compat,basedScore,inits,name,age,location,photoUrl,profileKey,religion){
   if(!isPremium&&!viewedProfiles.has(profileKey)&&viewedProfiles.size>=FREE_LIMIT){goTo('screen-paywall');return;}
   let answers;try{answers=JSON.parse(aStr.replace(/&quot;/g,'"'));}catch(e){answers=new Array(NUM_Q).fill(0);}
-  viewedProfiles.add(profileKey);
+  recordProfileView(profileKey);
   openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,'search',religion||null);
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
 }
@@ -1225,7 +1235,7 @@ function advanceToNextProfile(profileKey){
     const key=next.id||next.name;
     const isLocked=!isPremium&&!viewedProfiles.has(key)&&viewedProfiles.size>=FREE_LIMIT;
     if(isLocked){goTo('screen-paywall');return;}
-    viewedProfiles.add(key);
+    recordProfileView(key);
     openProfile(next.answers,next.compat,next.basedScore,next.initials,next.name,next.age,next.location,next.photo_url,key,'search',next.religion||null);
   }else{
     goTo('screen-main');
@@ -1859,7 +1869,7 @@ function openIncomingProfile(pid){
   const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
   if(!p)return;
   const compat=calcCompat(p.answers);
-  viewedProfiles.add(pid);
+  recordProfileView(pid);
   openProfile(p.answers,compat,p.basedScore,p.initials,p.name,p.age,p.location,p.photo_url,pid,'incoming',p.religion||null);
 }
 
