@@ -23,7 +23,7 @@
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
 }
-html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify-content:center;font-family:var(--sans);}
+html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify-content:center;font-family:var(--sans);overflow-x:hidden;}
 .app-shell{
   background:var(--navy);
   width:min(100%,430px);flex:0 0 auto;
@@ -1844,7 +1844,7 @@ function renderMatchesTab(){
       const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
       const statusLabel=daysSince>=3?'3+ days ago':daysSince>=2?'2-3 days ago':'Less than 2 days ago';
       const dot=`<span title="${statusLabel}" style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.06)"></span>`;
-      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px"><div class="avatar">${p.initials}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</span>${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">Waiting for them to respond…</div></div><button onclick="doWithdrawInterest('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Withdraw interest"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button></div>`;
+      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${p.initials}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</span>${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">Waiting for them to respond…</div></div><button onclick="event.stopPropagation();doWithdrawInterest('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Withdraw interest"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button></div>`;
     }).join('');
   }
 }
@@ -1887,7 +1887,7 @@ async function renderConversationsTab(){
     const statusLabel=daysSince>=3?'Inactive 3+ days':daysSince>=2?'Inactive 2+ days':'Active';
     const dot=`<span title="${statusLabel}" style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.06)"></span>`;
     const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
-    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}','${p.photo_url||''}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}</span>${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
+    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}','${p.photo_url||''}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px;min-width:0"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${p.name}</span>${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
   });
   document.getElementById('conversations-list').innerHTML=html||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet.</p>';
   updateConnectedNotif(entries.length,oldestDays);
