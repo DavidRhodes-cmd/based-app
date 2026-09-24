@@ -778,6 +778,7 @@ async function finishProfileCreation(userId,email){
       if(geo){lat=geo.lat;lng=geo.lng;}
     }catch(e){console.warn('Geocode failed:',e);}
   }
+  myProfile.lat=lat;myProfile.lng=lng; // keep in-memory state in sync with what's being saved, so the very next render (e.g. showResults) filters correctly rather than waiting for a future reload
 
   const religion=myAnswers[FAITH_Q_INDEX]>0?myProfile.religion:null;
   myProfile.religion=religion;
