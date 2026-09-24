@@ -273,12 +273,12 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
         <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0">No younger than</span>
-        <input type="range" class="q-slider" style="flex:1" min="18" max="100" step="1" value="18" id="filter-age-min" oninput="updateFilter()" />
+        <input type="range" class="q-slider" style="flex:1" min="18" max="100" step="1" value="18" id="filter-age-min" oninput="updateFilter('filter-age-min')" />
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-age-min-val">18</span>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0">No older than</span>
-        <input type="range" class="q-slider" style="flex:1" min="18" max="100" step="1" value="100" id="filter-age-max" oninput="updateFilter()" />
+        <input type="range" class="q-slider" style="flex:1" min="18" max="100" step="1" value="100" id="filter-age-max" oninput="updateFilter('filter-age-max')" />
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-age-max-val">100</span>
       </div>
     </div>
@@ -1689,13 +1689,19 @@ function showResults(){
   renderProfiles(0);
 }
 
-function updateFilter(){
+function updateFilter(source){
   const v=parseInt(document.getElementById('filter-min').value);
   const d=parseInt(document.getElementById('filter-dist').value);
   let aMin=parseInt(document.getElementById('filter-age-min').value);
   let aMax=parseInt(document.getElementById('filter-age-max').value);
-  if(aMin>aMax){aMax=aMin;document.getElementById('filter-age-max').value=aMax;}
-  if(aMax<aMin){aMin=aMax;document.getElementById('filter-age-min').value=aMin;}
+  if(aMin>aMax){
+    // Whichever slider you're actively dragging pushes the other one along with
+    // it — dragging "No younger than" up past "No older than" pushes that one
+    // up too, and dragging "No older than" down past "No younger than" pushes
+    // that one down too, rather than snapping the one you're dragging back.
+    if(source==='filter-age-max'){aMin=aMax;document.getElementById('filter-age-min').value=aMin;}
+    else{aMax=aMin;document.getElementById('filter-age-max').value=aMax;}
+  }
   document.getElementById('filter-min-val').textContent=v+'%';
   document.getElementById('filter-dist-val').textContent=d+' mi';
   document.getElementById('filter-age-min-val').textContent=aMin;
