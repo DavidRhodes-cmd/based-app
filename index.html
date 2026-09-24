@@ -1695,6 +1695,7 @@ function updateFilter(){
   let aMin=parseInt(document.getElementById('filter-age-min').value);
   let aMax=parseInt(document.getElementById('filter-age-max').value);
   if(aMin>aMax){aMax=aMin;document.getElementById('filter-age-max').value=aMax;}
+  if(aMax<aMin){aMin=aMax;document.getElementById('filter-age-min').value=aMin;}
   document.getElementById('filter-min-val').textContent=v+'%';
   document.getElementById('filter-dist-val').textContent=d+' mi';
   document.getElementById('filter-age-min-val').textContent=aMin;
