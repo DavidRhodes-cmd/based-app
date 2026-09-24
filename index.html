@@ -1751,6 +1751,28 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
   },{passive:true});
 })();
 
+// ─── Swipe right on the paywall screen to go back ─────────────────────────────
+// The paywall is only ever reached from Search (locked cards, the free-views
+// banner, tapping a locked profile), so its back button already correctly
+// returns to screen-main with Search still active — this just makes that
+// same action reachable by swipe, same pattern as the profile screen.
+(function initPaywallSwipeBack(){
+  const container=document.getElementById('screen-paywall');
+  let startX=0,startY=0,tracking=false;
+  container.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1)return;
+    startX=e.touches[0].clientX;startY=e.touches[0].clientY;tracking=true;
+  },{passive:true});
+  container.addEventListener('touchend',e=>{
+    if(!tracking)return;
+    tracking=false;
+    const endX=e.changedTouches[0].clientX,endY=e.changedTouches[0].clientY;
+    const dx=endX-startX,dy=endY-startY;
+    if(dx<60||Math.abs(dx)<Math.abs(dy)*1.5)return; // right swipes only, and a clear, mostly-horizontal one
+    goTo('screen-main');
+  },{passive:true});
+})();
+
 function openEnlargedPhoto(){
   if(!activeChatPhotoUrl)return; // no photo (e.g. initials-only avatar) — nothing to enlarge
   const overlay=document.createElement('div');
