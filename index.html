@@ -1712,6 +1712,7 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
   let startX=0,startY=0,tracking=false;
   container.addEventListener('touchstart',e=>{
     if(e.touches.length!==1)return;
+    if(e.target.closest('input[type="range"]'))return; // dragging a slider is a horizontal gesture too — don't mistake it for a tab swipe
     startX=e.touches[0].clientX;startY=e.touches[0].clientY;tracking=true;
   },{passive:true});
   container.addEventListener('touchend',e=>{
