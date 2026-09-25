@@ -124,9 +124,9 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
       <span style="font-family:var(--serif);font-size:30px;color:var(--text-on-dark);letter-spacing:2px">BASED</span>
       <span style="color:var(--text-muted);font-size:18px"><i class="ti ti-microphone"></i></span>
     </div>
-    <p style="font-size:15px;color:var(--text-muted);margin-top:-10px;margin-bottom:24px">on values</p>
-    <p style="color:var(--text-on-dark);font-size:15px;line-height:1.5;margin-bottom:24px">Find someone<br>who shares what matters</p>
-    <p style="color:var(--text-muted);font-size:15px;line-height:1.6;max-width:270px;margin-bottom:24px">Honest answers to real questions</p>
+    <p style="font-size:15px;color:var(--text-on-dark);margin-top:-10px;margin-bottom:24px">on values</p>
+    <p style="color:var(--text-muted);font-size:15px;line-height:1.5;margin-bottom:24px">Find someone<br>who shares what matters</p>
+    <p style="color:var(--text-on-dark);font-size:15px;line-height:1.6;max-width:270px;margin-bottom:24px">Honest answers to real questions</p>
     <div style="display:flex;flex-direction:column;gap:12px;width:100%">
       <button class="btn-primary" onclick="openSignIn()">Sign in</button>
       <button class="btn-ghost" onclick="goTo('screen-details')">Create profile</button>
@@ -309,7 +309,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 <!-- CHAT -->
 <div id="screen-chat" class="screen">
   <div class="app-header">
-    <button class="btn-back" onclick="goTo('screen-main');switchTab('messages')"><i class="ti ti-arrow-left"></i></button>
+    <button class="btn-back" id="chat-back-btn" onclick="goTo('screen-main');switchTab('messages')"><i class="ti ti-arrow-left"></i></button>
     <div style="display:flex;align-items:center;gap:11px">
       <div id="chat-avatar-header" class="avatar" style="width:36px;height:36px;font-size:13px;cursor:pointer" onclick="openEnlargedPhoto()"></div>
       <div style="cursor:pointer" onclick="openChatPartnerProfile()"><p style="font-size:15px;color:var(--text-on-dark);font-weight:600" id="chat-name-header"></p><p style="font-size:11px;color:var(--green)">Mutual match</p></div>
@@ -1203,7 +1203,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     </div>`;
   }).join('');
   let topBanner='';
-  if(isMutual)topBanner=`<div style="background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.35);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px"><i class="ti ti-heart" style="font-size:22px;color:var(--green)"></i><div><p style="font-size:15px;color:var(--green);font-weight:600">It's a match!</p><p style="font-size:13px;color:var(--text-muted)">You both expressed interest. You can now message each other.</p></div></div>`;
+  if(isMutual)topBanner=`<div style="background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.35);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px"><i class="ti ti-heart" style="font-size:22px;color:var(--green)"></i><div><p style="font-size:15px;color:var(--green);font-weight:600">It's mutual!</p><p style="font-size:13px;color:var(--text-muted)">You both expressed interest. You can now message each other.</p></div></div>`;
   const aEncoded=JSON.stringify(answers).replace(/"/g,'&quot;');
   let actionRow='';
   if(isMutual){
@@ -1282,7 +1282,7 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
   let isMutual=false;
   if(currentUser){
     const {data}=await sb.from('interactions').select('id,created_at').eq('from_user',profileKey).eq('to_user',currentUser.id).eq('action','interested');
-    if(data&&data.length){mutualMatches.add(profileKey);incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();showToast("It's a match with "+name+"! 🎉");isMutual=true;}
+    if(data&&data.length){mutualMatches.add(profileKey);incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();showToast("It's mutual with "+name+"! 🎉");isMutual=true;}
   }
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   renderMatchesTab();
@@ -1343,8 +1343,8 @@ function isoToDobDisplay(iso){
 }
 function firstPostcodePart(loc){
   if(!loc)return loc;
-  const m=loc.match(/^[A-Za-z]*\d+/); // leading letters + the first run of digits, e.g. "LS1 4BR" -> "LS1"
-  return m?m[0]:loc; // no digits at all (e.g. a demo city name like "Leeds") — show unchanged
+  const m=loc.match(/^[A-Za-z]+/); // just the leading letters (postcode area), e.g. "LS1 4BR" -> "LS"
+  return m?m[0]:loc; // no leading letters at all — show unchanged (shouldn't normally happen, but safe fallback)
 }
 function togglePasswordVisibility(inputId,btn){
   const input=document.getElementById(inputId);
@@ -1706,7 +1706,25 @@ function updateFilter(source){
   document.getElementById('filter-dist-val').textContent=d+' mi';
   document.getElementById('filter-age-min-val').textContent=aMin;
   document.getElementById('filter-age-max-val').textContent=aMax;
+  try{localStorage.setItem('basedFilterPrefs',JSON.stringify({min:v,dist:d,ageMin:aMin,ageMax:aMax}));}catch(e){}
   renderProfiles(v);
+}
+function restoreFilterPrefs(){
+  // Remembers your Search filter settings across logout/login on this device —
+  // a plain device-local preference, not something that needs to sync across
+  // your other devices, so localStorage rather than the database.
+  try{
+    const saved=JSON.parse(localStorage.getItem('basedFilterPrefs'));
+    if(!saved)return;
+    if(saved.min!=null)document.getElementById('filter-min').value=saved.min;
+    if(saved.dist!=null)document.getElementById('filter-dist').value=saved.dist;
+    if(saved.ageMin!=null)document.getElementById('filter-age-min').value=saved.ageMin;
+    if(saved.ageMax!=null)document.getElementById('filter-age-max').value=saved.ageMax;
+    document.getElementById('filter-min-val').textContent=(saved.min??0)+'%';
+    document.getElementById('filter-dist-val').textContent=(saved.dist??25)+' mi';
+    document.getElementById('filter-age-min-val').textContent=saved.ageMin??18;
+    document.getElementById('filter-age-max-val').textContent=saved.ageMax??100;
+  }catch(e){}
 }
 
 // ─── Messaging ────────────────────────────────────────────────────────────────
@@ -1781,6 +1799,25 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
   },{passive:true});
 })();
 
+// ─── Swipe right on the chat screen to go back to It's mutual ────────────────
+(function initChatSwipeBack(){
+  const container=document.getElementById('screen-chat');
+  let startX=0,startY=0,tracking=false;
+  container.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1)return;
+    if(e.target.closest('#chat-input'))return; // don't hijack swipes/selection while typing a message
+    startX=e.touches[0].clientX;startY=e.touches[0].clientY;tracking=true;
+  },{passive:true});
+  container.addEventListener('touchend',e=>{
+    if(!tracking)return;
+    tracking=false;
+    const endX=e.changedTouches[0].clientX,endY=e.changedTouches[0].clientY;
+    const dx=endX-startX,dy=endY-startY;
+    if(dx<60||Math.abs(dx)<Math.abs(dy)*1.5)return; // right swipes only, and a clear, mostly-horizontal one
+    document.getElementById('chat-back-btn').click();
+  },{passive:true});
+})();
+
 function openEnlargedPhoto(){
   if(!activeChatPhotoUrl)return; // no photo (e.g. initials-only avatar) — nothing to enlarge
   const overlay=document.createElement('div');
@@ -1823,7 +1860,7 @@ async function renderChatMessages(){
   if(msgsErr)console.warn('Failed to load messages:',msgsErr.message);
   const el=document.getElementById('chat-messages');
   if(!msgs||!msgs.length){
-    el.innerHTML=`<div style="text-align:center;padding:32px 18px"><div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:14px;padding:18px"><i class="ti ti-heart" style="font-size:24px;color:var(--gold);margin-bottom:10px;display:block"></i><p style="font-size:14px;color:var(--gold-light);margin-bottom:5px">It's a match!</p><p style="font-size:13px;color:var(--text-muted)">Say hello to ${activeChatName} — you share the values that matter.</p></div></div>`;
+    el.innerHTML=`<div style="text-align:center;padding:32px 18px"><div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:14px;padding:18px"><i class="ti ti-heart" style="font-size:24px;color:var(--gold);margin-bottom:10px;display:block"></i><p style="font-size:14px;color:var(--gold-light);margin-bottom:5px">It's mutual!</p><p style="font-size:13px;color:var(--text-muted)">Say hello to ${activeChatName} —<br>you share the values that matter.</p></div></div>`;
     return;
   }
   el.innerHTML=msgs.map(m=>{const mine=m.sender_id===currentUser.id;return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div class="msg-bubble ${mine?'mine':'theirs'}">${m.content}</div></div>`;}).join('');
@@ -2114,6 +2151,7 @@ document.head.appendChild(spinStyle);
   const restored=await restoreSession();
   if(restored){
     await loadBrowseProfiles();
+    restoreFilterPrefs();
     const minPct=parseInt(document.getElementById('filter-min').value)||0;
     const dist=parseInt(document.getElementById('filter-dist').value)||50;
     document.getElementById('filter-min-val').textContent=minPct+'%';
