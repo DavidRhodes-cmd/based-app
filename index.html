@@ -1735,8 +1735,7 @@ function applyLocationModeUI(){
   const label=document.getElementById('location-mode-label');
   if(locationMode==='current'){
     icon.className='ti ti-current-location';
-    label.textContent='Using your current location';
-    label.style.display='block';
+    label.style.display='none';
   }else{
     icon.className='ti ti-home';
     label.style.display='none';
@@ -1754,18 +1753,32 @@ function toggleLocationMode(){
         locationMode='current';
         applyLocationModeUI();
         renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+        showToast('Using your current location',false,2000);
       },
       err=>{
         applyLocationModeUI(); // reverts the icon back to home, since the mode never actually changed
-        showToast("Couldn't access your location — check your device's location permissions.",true);
+        // Give a specific message per failure type so the fix is obvious
+        let msg;
+        if(err.code===1){
+          msg=/iPhone|iPad|iPod/.test(navigator.userAgent)
+            ? "Location is blocked. On iPhone: Settings → Privacy & Security → Location Services → Safari Websites → While Using the App, then try again."
+            : "Location is blocked for this site. Allow location in your browser's site settings, then try again.";
+        }else if(err.code===3){
+          msg="Couldn't get a location fix in time — try again, ideally near a window or with Wi-Fi on.";
+        }else{
+          msg="Your device couldn't determine its location right now. Check Location Services is switched on and try again.";
+        }
+        showToast(msg,true,8000);
       },
-      {timeout:10000}
+      // Accept a fix up to 5 minutes old (much faster indoors), and allow longer before giving up
+      {enableHighAccuracy:false,timeout:20000,maximumAge:300000}
     );
   }else{
     locationMode='home';
     liveLocationCoords=null;
     applyLocationModeUI();
     renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+    showToast('Using your saved postcode',false,2000);
   }
 }
 
@@ -2169,6 +2182,7 @@ async function executeDelete(){
     if(interactionsChannel)sb.removeChannel(interactionsChannel);
     await sb.auth.signOut();
   }
+  const wasPremium=isPremium;
   isPremium=false;currentUser=null;
   myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null};
   myAnswers=new Array(NUM_Q).fill(0);
@@ -2176,7 +2190,7 @@ async function executeDelete(){
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
   ['inp-name','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('sex-male').classList.remove('selected');document.getElementById('sex-female').classList.remove('selected');
-  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-check" style="font-size:24px;color:var(--green)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px">Account deleted</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Your profile and all data have been permanently removed.${isPremium?' Your subscription has been cancelled.':''} We hope to see you again someday.</p><button onclick="removeModal();goTo('screen-welcome')" class="btn-primary">Back to home</button>`);
+  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-check" style="font-size:24px;color:var(--green)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px">Account deleted</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Your profile and all data have been permanently removed.${wasPremium?' Your subscription has been cancelled.':''} We hope to see you again someday.</p><button onclick="window.location.replace(window.location.pathname)" class="btn-primary">Back to home</button>`);
 }
 
 // ─── Spinner CSS (for loading states) ────────────────────────────────────────
