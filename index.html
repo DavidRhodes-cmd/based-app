@@ -270,8 +270,8 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
         <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0;display:flex;align-items:center;gap:6px">Distance<button id="location-mode-btn" onclick="toggleLocationMode()" style="background:transparent;border:none;padding:2px;cursor:pointer;color:var(--gold);display:flex;align-items:center" aria-label="Filter by home postcode or current location"><i class="ti ti-home" id="location-mode-icon" style="font-size:16px"></i></button></span>
-        <input type="range" class="q-slider" style="flex:1" min="5" max="100" step="5" value="25" id="filter-dist" oninput="updateFilter()" />
-        <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-dist-val">25 mi</span>
+        <input type="range" class="q-slider" style="flex:1" min="5" max="200" step="5" value="25" id="filter-dist" oninput="updateFilter()" />
+        <span style="font-size:13px;color:var(--gold);min-width:54px;text-align:right" id="filter-dist-val">25 mi</span>
       </div>
       <p id="location-mode-label" style="font-size:11px;color:var(--text-muted);margin:-4px 0 9px 122px;display:none"></p>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
@@ -1118,7 +1118,7 @@ function renderProfiles(minPct){
       if(myLat!=null&&myLng!=null&&p.lat!=null&&p.lng!=null){
         const dist=haversineDistance(myLat,myLng,p.lat,p.lng);
         console.log(p.name+': '+dist.toFixed(1)+' miles (max '+maxDist+') lat='+p.lat+' lng='+p.lng);
-        if(dist>maxDist)return false;
+        if(maxDist<DIST_MAX&&dist>maxDist)return false;
       } else {
         console.log(p.name+': no coords (myLat='+myLat+' p.lat='+p.lat+')');
       }
@@ -1711,7 +1711,7 @@ function updateFilter(source){
     else{aMax=aMin;document.getElementById('filter-age-max').value=aMax;}
   }
   document.getElementById('filter-min-val').textContent=v+'%';
-  document.getElementById('filter-dist-val').textContent=d+' mi';
+  document.getElementById('filter-dist-val').textContent=distLabel(d);
   document.getElementById('filter-age-min-val').textContent=aMin;
   document.getElementById('filter-age-max-val').textContent=aMax;
   try{localStorage.setItem('basedFilterPrefs',JSON.stringify({min:v,dist:d,ageMin:aMin,ageMax:aMax}));}catch(e){}
@@ -1734,6 +1734,8 @@ function toggleReligionFilter(r){
   renderReligionFilter();
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
 }
+const DIST_MAX=200; // far-right position on the Distance slider means "200+ mi" — no distance limit
+function distLabel(d){return d>=DIST_MAX?DIST_MAX+'+ mi':d+' mi';}
 function restoreFilterPrefs(){
   // Remembers your Search filter settings across logout/login on this device —
   // a plain device-local preference, not something that needs to sync across
@@ -1746,7 +1748,7 @@ function restoreFilterPrefs(){
     if(saved.ageMin!=null)document.getElementById('filter-age-min').value=saved.ageMin;
     if(saved.ageMax!=null)document.getElementById('filter-age-max').value=saved.ageMax;
     document.getElementById('filter-min-val').textContent=(saved.min??0)+'%';
-    document.getElementById('filter-dist-val').textContent=(saved.dist??25)+' mi';
+    document.getElementById('filter-dist-val').textContent=distLabel(saved.dist??25);
     document.getElementById('filter-age-min-val').textContent=saved.ageMin??18;
     document.getElementById('filter-age-max-val').textContent=saved.ageMax??100;
   }catch(e){}
@@ -2235,7 +2237,7 @@ document.head.appendChild(spinStyle);
     const minPct=parseInt(document.getElementById('filter-min').value)||0;
     const dist=parseInt(document.getElementById('filter-dist').value)||50;
     document.getElementById('filter-min-val').textContent=minPct+'%';
-    document.getElementById('filter-dist-val').textContent=dist+' mi';
+    document.getElementById('filter-dist-val').textContent=distLabel(dist);
     renderProfiles(minPct);
     updateMatchNotifs();
     if(!hasPendingSignupOnLoad&&!authLinkError)goTo('screen-main'); // let the confirmation-completion flow navigate instead, if one's in progress; stay put on an auth-link error
