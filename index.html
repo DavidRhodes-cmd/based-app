@@ -110,6 +110,10 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .toggle-track.on .toggle-thumb{left:23px;}
 .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:0.5px solid rgba(255,255,255,0.07);}
 .modal-backdrop{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(8,11,22,0.88);display:flex;align-items:center;justify-content:center;z-index:100;border-radius:inherit;}
+.safety-scroll{max-height:46vh;overflow-y:auto;text-align:left;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.1);border-radius:12px;padding:4px 14px 14px;margin-bottom:14px;-webkit-overflow-scrolling:touch;}
+.safety-scroll h4{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--gold);margin:14px 0 8px;}
+.safety-scroll p{font-size:13px;color:var(--text-muted);line-height:1.55;margin:0 0 9px;}
+.safety-scroll p b{color:var(--text-on-dark);font-weight:600;}
 .modal-box{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.15);border-radius:20px;padding:28px 22px;margin:24px;text-align:center;width:100%;}
 .bottom-safe{padding-bottom:calc(var(--safe-bottom) + 12px);}
 </style>
@@ -1969,7 +1973,50 @@ function openChatPartnerProfile(){
   openProfile(p.answers,compat,basedScore,p.initials,p.name,p.age,p.location,p.photo_url,activeChatPartnerId,'chat',p.religion||null);
 }
 
+// ─── First-chat safety notice ────────────────────────────────────────────────
+// Shown the first time you open a chat with each person. OK only unlocks once
+// you've scrolled to the bottom. Acknowledgements are stored per person in
+// chat_safety_acks, so it won't reappear on another device.
+const SAFETY_TIPS=[
+  ['Meeting location and setup',[
+    ['Choose public spaces','Pick a busy café, pub, restaurant or park with plenty of people around and a good phone signal.'],
+    ['Avoid private places','Never agree to meet at your home, their home, a quiet car park or an isolated area for a first date.'],
+    ['Arrange independent transport','Drive yourself, use public transport, or take a taxi or Uber. Don’t let your date pick you up from home, so they don’t learn where you live.']]],
+  ['Communication and sharing details',[
+    ['Keep your location shared','Share your live location with a trusted friend (for example with Find My on iPhone, or WhatsApp live location). Tell them who you’re meeting, where you’re going and when you expect to be home.'],
+    ['Verify their identity','Have a video call or phone conversation before meeting to check they look like their profile and are who they say they are.'],
+    ['Protect personal information','Don’t share your home address, workplace, daily routine or bank details early on.']]],
+  ['Personal boundaries and awareness',[
+    ['Stay sober','Avoid or limit alcohol and drugs so you keep a clear head and good judgement.'],
+    ['Keep an exit strategy','Keep some cash or a taxi app ready on your phone so you can leave straight away if you feel uncomfortable.'],
+    ['Trust your instincts','Leave the date straight away if something feels wrong or the person makes you feel unsafe.']]]
+];
+let pendingChatArgs=null;
 async function openChat(partnerId,inits,name,photoUrl){
+  let acked=false;
+  try{
+    const {data}=await sb.from('chat_safety_acks').select('partner_id').eq('user_id',currentUser.id).eq('partner_id',partnerId).maybeSingle();
+    acked=!!data;
+  }catch(e){}
+  if(acked)return openChatNow(partnerId,inits,name,photoUrl);
+  pendingChatArgs=[partnerId,inits,name,photoUrl];
+  const body=SAFETY_TIPS.map(([h,items])=>`<h4>${h}</h4>`+items.map(([t,d])=>`<p><b>${t}:</b> ${d}</p>`).join('')).join('');
+  showModal(`<i class="ti ti-shield-check" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:6px">Before you chat with ${name}</p><p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Please read these safety tips — scroll to the bottom to continue.</p><div class="safety-scroll" id="safety-scroll" onscroll="checkSafetyScrolled()">${body}</div><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="pendingChatArgs=null;removeModal()">Cancel</button><button class="btn-primary" id="safety-ok" style="flex:1;opacity:0.4;pointer-events:none" onclick="acceptSafetyTips()">OK</button></div>`);
+  checkSafetyScrolled(); // in case it all fits without scrolling
+}
+function checkSafetyScrolled(){
+  const s=document.getElementById('safety-scroll'),ok=document.getElementById('safety-ok');
+  if(!s||!ok)return;
+  if(s.scrollTop+s.clientHeight>=s.scrollHeight-8){ok.style.opacity='1';ok.style.pointerEvents='auto';}
+}
+async function acceptSafetyTips(){
+  const args=pendingChatArgs;pendingChatArgs=null;
+  removeModal();
+  if(!args)return;
+  try{await sb.from('chat_safety_acks').insert({user_id:currentUser.id,partner_id:args[0]});}catch(e){console.warn('Safety ack save failed:',e);}
+  openChatNow(...args);
+}
+async function openChatNow(partnerId,inits,name,photoUrl){
   activeChatName=name;activeChatPartnerId=partnerId;activeChatPhotoUrl=photoUrl||null;
   document.getElementById('chat-name-header').textContent=name;
   const headerAvatar=document.getElementById('chat-avatar-header');
