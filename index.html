@@ -66,6 +66,7 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
 .pw-toggle{position:absolute;right:2px;top:50%;transform:translateY(-50%);background:transparent;border:none;cursor:pointer;color:var(--text-muted);padding:10px;display:flex;align-items:center;justify-content:center;}
 .pw-toggle:hover{color:var(--text-on-dark);}
 .religion-box{background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:11px 8px;font-size:13px;color:var(--text-on-dark);text-align:center;cursor:pointer;font-family:var(--sans);transition:all 0.15s;}
+.religion-box.filter-off{opacity:0.35;background:rgba(255,255,255,0.02);border-color:rgba(255,255,255,0.1);color:var(--text-muted);}
 .religion-box.selected{background:rgba(201,168,76,0.15);border-color:var(--gold);color:var(--gold);font-weight:600;}
 .info-icon-btn{flex-shrink:0;width:19px;height:19px;min-width:19px;border-radius:50%;background:transparent;border:1px solid rgba(255,255,255,0.28);color:var(--text-muted);font-size:11px;font-family:Georgia,serif;font-style:italic;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;line-height:1;margin-top:1px;}
 .info-icon-btn:hover{border-color:var(--gold);color:var(--gold);}
@@ -365,6 +366,8 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
       </div>
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
         <button class="btn-ghost" onclick="openModifyAnswers()" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px;display:inline-block;transform:rotate(90deg)"></i>Modify my answers</button>
+        <p style="font-size:14px;color:var(--text-on-dark);margin:18px 0 10px">Show me the following religions</p>
+        <div id="religion-filter-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
       </div>
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
         <button class="btn-ghost" onclick="inviteFriends()" style="font-size:14px;padding:11px 17px"><i class="ti ti-user-plus" style="margin-right:7px"></i>Invite friends</button>
@@ -1109,6 +1112,7 @@ function renderProfiles(minPct){
       if(p.compat<minPct)return false;
       if(excluded.has(p.id)||excluded.has(p.name))return false;
       if(p.age!=null&&(p.age<minAge||p.age>maxAge))return false;
+      if(excludedReligions.has(p.religion||NONE_STATED))return false;
       // Distance filter — skip if neither user has coordinates, or if within range
       if(myLat!=null&&myLng!=null&&p.lat!=null&&p.lng!=null){
         const dist=haversineDistance(myLat,myLng,p.lat,p.lng);
@@ -1712,6 +1716,23 @@ function updateFilter(source){
   try{localStorage.setItem('basedFilterPrefs',JSON.stringify({min:v,dist:d,ageMin:aMin,ageMax:aMax}));}catch(e){}
   renderProfiles(v);
 }
+// ─── Religion filter (Settings → "Show me the following religions") ─────────
+// Stores the religions the user has switched OFF, so any religion added to
+// RELIGIONS later is shown by default. Device-local, like the other filters.
+const NONE_STATED='None stated'; // filter-only option for profiles with no religion recorded
+let excludedReligions=new Set();
+try{excludedReligions=new Set(JSON.parse(localStorage.getItem('basedReligionFilter')||'[]'));}catch(e){}
+function renderReligionFilter(){
+  const grid=document.getElementById('religion-filter-grid');
+  if(!grid)return;
+  grid.innerHTML=[...RELIGIONS,NONE_STATED].map(r=>`<button type="button" class="religion-box ${excludedReligions.has(r)?'filter-off':'selected'}" onclick="toggleReligionFilter('${r}')">${r}</button>`).join('');
+}
+function toggleReligionFilter(r){
+  if(excludedReligions.has(r))excludedReligions.delete(r);else excludedReligions.add(r);
+  try{localStorage.setItem('basedReligionFilter',JSON.stringify([...excludedReligions]));}catch(e){}
+  renderReligionFilter();
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+}
 function restoreFilterPrefs(){
   // Remembers your Search filter settings across logout/login on this device —
   // a plain device-local preference, not something that needs to sync across
@@ -2201,6 +2222,7 @@ document.head.appendChild(spinStyle);
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 (async()=>{
   renderEmailDatalist();
+  renderReligionFilter();
   browseProfiles=[];
   await loadDemoProfiles();
   renderProfiles(0);
