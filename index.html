@@ -447,6 +447,8 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
     <p style="font-size:14px;color:var(--text-muted);line-height:1.6;max-width:280px;margin-bottom:6px">We've sent a confirmation link to</p>
     <p style="font-size:14px;color:var(--text-on-dark);font-weight:600;margin-bottom:22px" id="check-email-address"></p>
     <p style="font-size:13px;color:var(--text-muted);line-height:1.6;max-width:280px">Tap the link in that email on this device to finish setting up your profile.</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.6;max-width:280px;margin-top:18px">Nothing arrived after a few minutes? Check your spam folder, or <span style="color:var(--gold);text-decoration:underline;cursor:pointer" onclick="resendConfirmationEmail(document.getElementById('check-email-address').textContent)">send it again</span>.</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.6;max-width:280px;margin-top:12px">Already have a BASED account? <span style="color:var(--gold);text-decoration:underline;cursor:pointer" onclick="openSignIn().then(()=>{document.getElementById('signin-email').value=document.getElementById('check-email-address').textContent;})">Sign in</span> — or reset your password from there if you've forgotten it.</p>
   </div>
 </div>
 
@@ -694,6 +696,23 @@ function haversineDistance(lat1,lng1,lat2,lng2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
+// ─── Breached-password check ─────────────────────────────────────────────────
+// Checks the password against HaveIBeenPwned's list of passwords exposed in data
+// breaches. Only the first 5 characters of the password's SHA-1 fingerprint are
+// sent (k-anonymity) — never the password itself. If the service can't be
+// reached, sign-up isn't blocked.
+async function isBreachedPassword(pass){
+  try{
+    const buf=await crypto.subtle.digest('SHA-1',new TextEncoder().encode(pass));
+    const hex=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
+    const res=await fetch('https://api.pwnedpasswords.com/range/'+hex.slice(0,5),{headers:{'Add-Padding':'true'}});
+    if(!res.ok)return false;
+    const suffix=hex.slice(5);
+    return (await res.text()).split('\n').some(line=>{const [s,n]=line.trim().split(':');return s===suffix&&parseInt(n)>0;});
+  }catch(e){return false;}
+}
+const BREACHED_MSG='That password has appeared in a known data breach, so it isn\'t safe to use. Please choose a different one.';
+
 // ─── Photo privacy ────────────────────────────────────────────────────────────
 // Real photos live in the PRIVATE "avatars" bucket: only the owner and their
 // mutual matches can open them, via short-lived signed links. Everyone else only
@@ -783,21 +802,14 @@ async function tryDetails(){
   myProfile.terms_accepted_at=new Date().toISOString();
   const btn=document.getElementById('details-continue-btn');
   const originalLabel=btn.textContent;
-  btn.disabled=true;btn.textContent='Checking email…';
-  try{
-    const {data:emailTaken,error:checkErr}=await sb.rpc('email_is_registered',{check_email:email});
-    if(checkErr){
-      // If the check itself fails (e.g. network issue), don't block sign-up on it — Supabase will still
-      // catch a genuine duplicate at final sign-up time as a fallback.
-      console.warn('Email availability check failed:',checkErr.message);
-    }else if(emailTaken){
-      err.style.display='block';err.textContent='That email is already registered — please sign in instead.';
-      emailEl.classList.add('input-error');
-      btn.disabled=false;btn.textContent=originalLabel;
-      return;
-    }
-  }catch(e){
-    console.warn('Email availability check exception:',e);
+  btn.disabled=true;btn.textContent='Checking password…';
+  // (No "is this email already registered?" check here — for privacy, the app
+  // never reveals whether an email address has a BASED account.)
+  if(await isBreachedPassword(pass)){
+    err.style.display='block';err.textContent=BREACHED_MSG;
+    passEl.classList.add('input-error');confirmEl.classList.add('input-error');
+    btn.disabled=false;btn.textContent=originalLabel;
+    return;
   }
   btn.textContent='Checking postcode…';
   const geo=await geocodePostcode(location);
@@ -921,19 +933,11 @@ async function signUpAndSave(){
   // Supabase returns a "success-looking" response with no error when the email is already
   // registered (to prevent attackers probing which emails exist) — identities is empty in that case
   if(signUpData.user&&signUpData.user.identities&&signUpData.user.identities.length===0){
+    // Deliberately identical to a brand-new sign-up, so nobody can use this
+    // screen to find out whether an email address has a BASED account.
     removeModal();
-    const status=await sb.rpc('email_registration_status',{check_email:email}).then(r=>r.data).catch(()=>null);
-    await openSignIn();
-    document.getElementById('signin-email').value=email;
-    document.getElementById('signin-password').value='';
-    if(status==='unconfirmed'){
-      const err=document.getElementById('signin-error');
-      err.style.color='var(--red)';
-      err.style.display='block';
-      err.innerHTML='This email is already registered but hasn\'t been confirmed yet.<br><span style="color:var(--gold);text-decoration:underline;cursor:pointer;display:inline-block;margin-top:4px" onclick="resendConfirmationEmail(\''+email.replace(/'/g,"\\'")+'\')">Resend confirmation email</span>';
-    }else{
-      showToast('That email is already registered — please sign in instead.',true);
-    }
+    goTo('screen-check-email');
+    document.getElementById('check-email-address').textContent=email;
     return;
   }
   if(document.getElementById('inp-remember-password').checked)await tryStoreCredential(email,pass);
@@ -985,6 +989,7 @@ async function doResetPassword(){
   if(!confirm){err.style.display='block';err.textContent='Please confirm your new password.';confirmEl.classList.add('input-error');return;}
   if(pass.length<6){err.style.display='block';err.textContent='Password must be at least 6 characters.';passEl.classList.add('input-error');confirmEl.classList.add('input-error');return;}
   if(pass!==confirm){err.style.display='block';err.textContent='Passwords do not match.';passEl.classList.add('input-error');confirmEl.classList.add('input-error');return;}
+  if(await isBreachedPassword(pass)){err.style.display='block';err.textContent=BREACHED_MSG;passEl.classList.add('input-error');confirmEl.classList.add('input-error');return;}
   err.style.display='none';
   showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Resetting…</p></div>');
   const {data:updateData,error}=await sb.auth.updateUser({password:pass});
@@ -1036,8 +1041,10 @@ async function resendConfirmationEmail(email){
   showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Sending…</p></div>');
   const {error}=await sb.auth.resend({type:'signup',email,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
   removeModal();
-  if(error){err.style.color='var(--red)';err.style.display='block';err.textContent='Could not resend: '+error.message;return;}
-  err.style.color='var(--green)';err.style.display='block';err.textContent='Confirmation email resent — check your inbox.';
+  // Same neutral wording whether or not the address has an account
+  if(error&&error.status===429){showToast('Please wait a minute before asking for another email.',true);return;}
+  err.style.color='var(--green)';err.style.display='block';err.textContent='If that address needs confirming, a new link is on its way.';
+  showToast('If that address needs confirming, a new link is on its way.');
 }
 
 async function restoreSession(){
