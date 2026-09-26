@@ -267,10 +267,11 @@ html,body{height:100%;background:#0f1220;display:flex;align-items:center;justify
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-min-val">0%</span>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
-        <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0">Distance</span>
+        <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0;display:flex;align-items:center;gap:6px">Distance<button id="location-mode-btn" onclick="toggleLocationMode()" style="background:transparent;border:none;padding:2px;cursor:pointer;color:var(--gold);display:flex;align-items:center" aria-label="Filter by home postcode or current location"><i class="ti ti-home" id="location-mode-icon" style="font-size:16px"></i></button></span>
         <input type="range" class="q-slider" style="flex:1" min="5" max="100" step="5" value="25" id="filter-dist" oninput="updateFilter()" />
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-dist-val">25 mi</span>
       </div>
+      <p id="location-mode-label" style="font-size:11px;color:var(--text-muted);margin:-4px 0 9px 122px;display:none"></p>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
         <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0">No younger than</span>
         <input type="range" class="q-slider" style="flex:1" min="18" max="100" step="1" value="18" id="filter-age-min" oninput="updateFilter('filter-age-min')" />
@@ -620,6 +621,7 @@ let incomingInterestAt={}; // profileKey -> ISO timestamp of when they expressed
 let myInterestedAt={}; // profileKey -> ISO timestamp of when I expressed interest in them
 let hiddenForever=new Set(),passedProfiles=new Set(),dismissedIncoming=new Set();
 let conversations={},activeChatName='',activeChatPartnerId=null,activeChatPhotoUrl=null;
+let locationMode='home',liveLocationCoords=null; // 'home' = saved postcode, 'current' = live device GPS
 let browseProfiles=[]; // loaded from Supabase + demo
 let lastProfileList=[]; // snapshot of current sorted/filtered search results, for Move On navigation
 let messageChannel=null; // Supabase realtime channel
@@ -1098,7 +1100,8 @@ function renderProfiles(minPct){
   const maxDist=parseInt(document.getElementById('filter-dist').value)||50;
   const minAge=parseInt(document.getElementById('filter-age-min').value)||18;
   const maxAge=parseInt(document.getElementById('filter-age-max').value)||100;
-  const myLat=myProfile.lat,myLng=myProfile.lng;
+  const myLat=locationMode==='current'&&liveLocationCoords?liveLocationCoords.lat:myProfile.lat;
+  const myLng=locationMode==='current'&&liveLocationCoords?liveLocationCoords.lng:myProfile.lng;
   console.log('renderProfiles: myLat='+myLat+' myLng='+myLng+' maxDist='+maxDist+' minAge='+minAge+' maxAge='+maxAge+' profiles='+browseProfiles.length);
   const list=browseProfiles
     .map(p=>({...p,compat:calcCompat(p.answers)}))
@@ -1725,6 +1728,45 @@ function restoreFilterPrefs(){
     document.getElementById('filter-age-min-val').textContent=saved.ageMin??18;
     document.getElementById('filter-age-max-val').textContent=saved.ageMax??100;
   }catch(e){}
+}
+
+function applyLocationModeUI(){
+  const icon=document.getElementById('location-mode-icon');
+  const label=document.getElementById('location-mode-label');
+  if(locationMode==='current'){
+    icon.className='ti ti-current-location';
+    label.textContent='Using your current location';
+    label.style.display='block';
+  }else{
+    icon.className='ti ti-home';
+    label.style.display='none';
+  }
+}
+
+function toggleLocationMode(){
+  if(locationMode==='home'){
+    if(!navigator.geolocation){showToast("Your device doesn't support location access.",true);return;}
+    const icon=document.getElementById('location-mode-icon');
+    icon.className='ti ti-loader-2'; // brief loading state while waiting for a GPS fix
+    navigator.geolocation.getCurrentPosition(
+      pos=>{
+        liveLocationCoords={lat:pos.coords.latitude,lng:pos.coords.longitude};
+        locationMode='current';
+        applyLocationModeUI();
+        renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+      },
+      err=>{
+        applyLocationModeUI(); // reverts the icon back to home, since the mode never actually changed
+        showToast("Couldn't access your location — check your device's location permissions.",true);
+      },
+      {timeout:10000}
+    );
+  }else{
+    locationMode='home';
+    liveLocationCoords=null;
+    applyLocationModeUI();
+    renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  }
 }
 
 // ─── Messaging ────────────────────────────────────────────────────────────────
