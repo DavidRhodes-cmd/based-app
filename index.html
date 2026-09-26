@@ -694,6 +694,59 @@ function haversineDistance(lat1,lng1,lat2,lng2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
+// ─── Photo privacy ────────────────────────────────────────────────────────────
+// Real photos live in the PRIVATE "avatars" bucket: only the owner and their
+// mutual matches can open them, via short-lived signed links. Everyone else only
+// ever receives a tiny pre-blurred copy from the public "avatars-blur" bucket.
+const BLUR_BASE='https://okubbpsvaogqzdtajiqz.supabase.co/storage/v1/object/public/avatars-blur/';
+function photoPathFromUrl(u){if(!u||typeof u!=='string')return null;const i=u.indexOf('/avatars/');return i===-1?null:u.slice(i+9).split('?')[0];}
+async function signedPhotoUrls(paths){
+  const uniq=[...new Set(paths.filter(Boolean))];
+  if(!uniq.length)return {};
+  const {data,error}=await sb.storage.from('avatars').createSignedUrls(uniq,3600);
+  if(error||!data){console.warn('Signed photo links failed:',error&&error.message);return {};}
+  const map={};data.forEach(d=>{if(d.signedUrl)map[d.path]=d.signedUrl;});
+  return map;
+}
+// Makes the small blurred copy other people see before a match (16x16 — unrecognisable by design)
+async function uploadBlurCopy(userId,file){
+  try{
+    const url=URL.createObjectURL(file);
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
+    const s=Math.min(img.naturalWidth,img.naturalHeight),cv=document.createElement('canvas');
+    cv.width=16;cv.height=16;
+    cv.getContext('2d').drawImage(img,(img.naturalWidth-s)/2,(img.naturalHeight-s)/2,s,s,0,0,16,16);
+    URL.revokeObjectURL(url);
+    const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.7));
+    const {error}=await sb.storage.from('avatars-blur').upload(`${userId}/blur.jpg`,blob,{upsert:true,contentType:'image/jpeg'});
+    if(error)console.warn('Blurred copy upload failed:',error.message);
+  }catch(e){console.warn('Blurred copy exception:',e);}
+}
+
+// If this account has a photo but no blurred copy yet, make one quietly in the background
+async function ensureBlurCopy(userId,signedUrl){
+  try{
+    if(!signedUrl)return;
+    const {data}=await sb.storage.from('avatars-blur').list(userId,{limit:1});
+    if(data&&data.length)return;
+    const blob=await (await fetch(signedUrl)).blob();
+    await uploadBlurCopy(userId,blob);
+  }catch(e){console.warn('ensureBlurCopy:',e);}
+}
+
+// ─── Distances ────────────────────────────────────────────────────────────────
+// Real profiles: worked out on the server (distHome / distCurrent), which never
+// sends anyone's postcode or coordinates. Demo profiles: worked out here.
+function distanceFor(p){
+  const useCurrent=locationMode==='current'&&liveLocationCoords;
+  if(p.id&&!p.isDemo)return useCurrent?p.distCurrent:p.distHome;
+  const o=useCurrent?liveLocationCoords:{lat:myProfile.lat,lng:myProfile.lng};
+  if(o.lat==null||o.lng==null||p.lat==null||p.lng==null)return null;
+  return Math.max(1,Math.round(haversineDistance(o.lat,o.lng,p.lat,p.lng)));
+}
+function distanceText(p){const d=distanceFor(p);return d==null?'':`(${d} mile${d===1?'':'s'} away)`;}
+function distanceSpan(p){const t=distanceText(p);return t?` <span style="font-size:13px;font-weight:400;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';}
+
 // ─── Auth: sign up / sign in ──────────────────────────────────────────────────
 // We use email+password via Supabase Auth.
 // The welcome screen "Create my profile" collects details then signs up.
@@ -769,7 +822,7 @@ async function finishProfileCreation(userId,email){
       const path=`${userId}/avatar.${ext}`;
       const {error:upErr}=await sb.storage.from('avatars').upload(path,myProfile.photo_file,{upsert:true});
       if(upErr){console.warn('Photo upload failed:',upErr.message);}
-      else{const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;}
+      else{const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;myProfile.photo_ref=photo_url;await uploadBlurCopy(userId,myProfile.photo_file);}
     }
   }catch(e){console.warn('Photo upload exception:',e);}
 
@@ -994,7 +1047,11 @@ async function restoreSession(){
   // Load profile
   const {data:p,error:pErr}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();
   if(p){
-    myProfile={name:p.name,dob:p.dob,location:p.location,sex:p.sex,photo:p.photo_url,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null};
+    myProfile={name:p.name,dob:p.dob,location:p.location,sex:p.sex,photo:null,photo_ref:p.photo_url||null,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null};
+    // Your own photo is private too — open it through a short-lived signed link
+    const ownPath=photoPathFromUrl(p.photo_url);
+    if(ownPath){const s=await signedPhotoUrls([ownPath]);myProfile.photo=s[ownPath]||null;}
+    if(ownPath)ensureBlurCopy(currentUser.id,myProfile.photo);
     myAnswers=p.answers||new Array(NUM_Q).fill(0);
     isPremium=p.is_premium||false;
     profileHidden=p.is_hidden||false;
@@ -1071,25 +1128,26 @@ async function loadBrowseProfiles(){
   }
   const oppSex=myProfile.sex==='male'?'female':'male';
   console.log('loadBrowseProfiles: looking for', oppSex, 'profiles');
-  const demoForSex=DEMO_PROFILES.filter(p=>p.sex===oppSex);
+  const demoForSex=DEMO_PROFILES.filter(p=>p.sex===oppSex).map(p=>({...p,isDemo:true}));
   browseProfiles=[...demoForSex];
-  const {data:profiles}=await sb.from('profiles')
-    .select('*')
-    .eq('sex',oppSex)
-    .eq('is_hidden',false)
-    .neq('id',currentUser.id);
+  // Secure server lookup: returns only what the app needs, plus distances
+  // from your home postcode and (if known) your current location.
+  const cur=liveLocationCoords||{};
+  const {data:profiles,error:bErr}=await sb.rpc('browse_profiles',{p_cur_lat:cur.lat??null,p_cur_lng:cur.lng??null});
+  if(bErr)console.warn('browse_profiles failed:',bErr.message);
   if(profiles&&profiles.length){
+    const signed=await signedPhotoUrls(profiles.filter(p=>p.is_mutual).map(p=>p.photo_path));
     const real=profiles.map(p=>({
       id:p.id,
       initials:initials(p.name),
       name:p.name,
-      age:calcAge(p.dob),
-      location:p.location,
+      age:p.age,
       basedScore:p.based_score,
       answers:p.answers||new Array(NUM_Q).fill(0),
-      photo_url:p.photo_url,
-      lat:p.lat||null,
-      lng:p.lng||null,
+      // Mutual match → real photo (signed link); everyone else → blurred copy only
+      photo_url:(p.is_mutual&&signed[p.photo_path])||(p.blur_path?BLUR_BASE+p.blur_path:null),
+      distHome:p.dist_home_mi,
+      distCurrent:p.dist_current_mi,
       religion:p.religion||null
     }));
     browseProfiles=[...real,...demoForSex];
@@ -1104,9 +1162,6 @@ function renderProfiles(minPct){
   const maxDist=parseInt(document.getElementById('filter-dist').value)||50;
   const minAge=parseInt(document.getElementById('filter-age-min').value)||18;
   const maxAge=parseInt(document.getElementById('filter-age-max').value)||100;
-  const myLat=locationMode==='current'&&liveLocationCoords?liveLocationCoords.lat:myProfile.lat;
-  const myLng=locationMode==='current'&&liveLocationCoords?liveLocationCoords.lng:myProfile.lng;
-  console.log('renderProfiles: myLat='+myLat+' myLng='+myLng+' maxDist='+maxDist+' minAge='+minAge+' maxAge='+maxAge+' profiles='+browseProfiles.length);
   const list=browseProfiles
     .map(p=>({...p,compat:calcCompat(p.answers)}))
     .filter(p=>{
@@ -1114,14 +1169,9 @@ function renderProfiles(minPct){
       if(excluded.has(p.id)||excluded.has(p.name))return false;
       if(p.age!=null&&(p.age<minAge||p.age>maxAge))return false;
       if(excludedReligions.has(p.religion||NONE_STATED))return false;
-      // Distance filter — skip if neither user has coordinates, or if within range
-      if(myLat!=null&&myLng!=null&&p.lat!=null&&p.lng!=null){
-        const dist=haversineDistance(myLat,myLng,p.lat,p.lng);
-        console.log(p.name+': '+dist.toFixed(1)+' miles (max '+maxDist+') lat='+p.lat+' lng='+p.lng);
-        if(maxDist<DIST_MAX&&dist>maxDist)return false;
-      } else {
-        console.log(p.name+': no coords (myLat='+myLat+' p.lat='+p.lat+')');
-      }
+      // Distance filter — profiles with no known distance are never filtered out
+      const dist=distanceFor(p);
+      if(dist!=null&&maxDist<DIST_MAX&&dist>maxDist)return false;
       return true;
     })
     .sort((a,b)=>b.compat-a.compat);
@@ -1141,7 +1191,7 @@ function renderProfiles(minPct){
     const avatarContent=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" />`:`<span style="color:var(--text-on-dark)">${p.initials}</span>`;
     const aStr=JSON.stringify(p.answers).replace(/"/g,'&quot;');
     if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="goTo('screen-paywall')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:7px">Upgrade to view</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div></div>`;}
-    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${aStr}',${p.compat},${p.basedScore},'${p.initials}','${p.name}',${p.age},'${p.location}','${p.photo_url||''}','${profileKey}','${p.religion||''}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px;padding-right:72px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.name}, ${p.age}</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">${firstPostcodePart(p.location)}${badge}</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
+    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${aStr}',${p.compat},${p.basedScore},'${p.initials}','${p.name}',${p.age},'','${p.photo_url||''}','${profileKey}','${p.religion||''}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px;padding-right:72px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.name}, ${p.age}${distanceSpan(p)}</div>${badge?`<div style="margin-bottom:6px">${badge}</div>`:'<div style="margin-bottom:6px"></div>'}<div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
   });
   if(!isPremium&&viewedProfiles.size>=FREE_LIMIT){html+=`<div style="background:rgba(15,18,30,0.95);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;padding:22px;margin-top:6px;text-align:center"><i class="ti ti-crown" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:8px">You've seen your 5 free profiles</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">Unlock unlimited browsing to keep meeting people who share your values.</p><button class="btn-primary" onclick="goTo('screen-paywall')" style="font-size:15px;padding:14px">Unlock unlimited access</button></div>`;}
   container.innerHTML=html;
@@ -1224,7 +1274,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}"${intClick}>${intInner}</button>${moveOnBtn}<button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
   }
   const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden"><img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${name}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4);color:var(--text-on-dark)">${inits}</div>`;
-  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
+  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);const t=pp?distanceText(pp):'';return t?` <span style="font-family:var(--sans);font-size:14px;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';})()}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
   goTo('screen-profile');
   document.getElementById('profile-detail-body').scrollTop=0;
 }
@@ -1290,7 +1340,7 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
   let isMutual=false;
   if(currentUser){
     const {data}=await sb.from('interactions').select('id,created_at').eq('from_user',profileKey).eq('to_user',currentUser.id).eq('action','interested');
-    if(data&&data.length){mutualMatches.add(profileKey);incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();showToast("It's mutual with "+name+"! 🎉");isMutual=true;}
+    if(data&&data.length){mutualMatches.add(profileKey);loadBrowseProfiles();incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();showToast("It's mutual with "+name+"! 🎉");isMutual=true;}
   }
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   renderMatchesTab();
@@ -1348,11 +1398,6 @@ function isoToDobDisplay(iso){
   if(!iso)return'';
   const m=iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
   return m?`${m[3]}/${m[2]}/${m[1]}`:'';
-}
-function firstPostcodePart(loc){
-  if(!loc)return loc;
-  const m=loc.match(/^[A-Za-z]+/); // just the leading letters (postcode area), e.g. "LS1 4BR" -> "LS"
-  return m?m[0]:loc; // no leading letters at all — show unchanged (shouldn't normally happen, but safe fallback)
 }
 function togglePasswordVisibility(inputId,btn){
   const input=document.getElementById(inputId);
@@ -1772,10 +1817,11 @@ function toggleLocationMode(){
     const icon=document.getElementById('location-mode-icon');
     icon.className='ti ti-loader-2'; // brief loading state while waiting for a GPS fix
     navigator.geolocation.getCurrentPosition(
-      pos=>{
+      async pos=>{
         liveLocationCoords={lat:pos.coords.latitude,lng:pos.coords.longitude};
         locationMode='current';
         applyLocationModeUI();
+        await loadBrowseProfiles(); // server works out distances from where you are now
         renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
         showToast('Using your current location',false,2000);
       },
@@ -2015,7 +2061,7 @@ function renderMatchesTab(){
       const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
       const statusLabel=daysSince>=3?'3+ days ago':daysSince>=2?'2-3 days ago':'Less than 2 days ago';
       const dot=`<span title="${statusLabel}" style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.06)"></span>`;
-      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</span>${dot}</div><div style="font-size:13px;color:var(--gold);margin-top:3px"><i class="ti ti-heart" style="font-size:13px"></i> Interested in you</div></div><button onclick="event.stopPropagation();doDismissIncoming('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Remove from list"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button></div>`;
+      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}${distanceSpan(p)}</span>${dot}</div><div style="font-size:13px;color:var(--gold);margin-top:3px"><i class="ti ti-heart" style="font-size:13px"></i> Interested in you</div></div><button onclick="event.stopPropagation();doDismissIncoming('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Remove from list"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button></div>`;
     }).join('');
   }
   const expIds=Array.from(expressedInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id));
@@ -2029,7 +2075,7 @@ function renderMatchesTab(){
       const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
       const statusLabel=daysSince>=3?'3+ days ago':daysSince>=2?'2-3 days ago':'Less than 2 days ago';
       const dot=`<span title="${statusLabel}" style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.06)"></span>`;
-      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}</span>${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">Waiting for them to respond…</div></div><button onclick="event.stopPropagation();doWithdrawInterest('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Withdraw interest"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button></div>`;
+      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}${distanceSpan(p)}</span>${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">Waiting for them to respond…</div></div><button onclick="event.stopPropagation();doWithdrawInterest('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Withdraw interest"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button></div>`;
     }).join('');
   }
 }
@@ -2072,7 +2118,7 @@ async function renderConversationsTab(){
     const statusLabel=daysSince>=3?'Inactive 3+ days':daysSince>=2?'Inactive 2+ days':'Active';
     const dot=`<span title="${statusLabel}" style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.06)"></span>`;
     const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
-    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}','${p.photo_url||''}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px;min-width:0"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${p.name}</span>${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
+    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}','${p.photo_url||''}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px;min-width:0"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${p.name}</span>${distanceSpan(p)}${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
   });
   document.getElementById('conversations-list').innerHTML=html||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet.</p>';
   updateConnectedNotif(entries.length,oldestDays);
@@ -2131,12 +2177,12 @@ async function saveProfile(){
   const previousLocation=myProfile.location;
   myProfile.location=editLocationEl.value||myProfile.location;
   if(currentUser){
-    let photo_url=typeof myProfile.photo==='string'&&myProfile.photo.startsWith('http')?myProfile.photo:'';
+    let photo_url=myProfile.photo_ref||'';
     if(myProfile.photo_file){
       const ext=myProfile.photo_file.name.split('.').pop();
       const path=`${currentUser.id}/avatar.${ext}`;
       const {error}=await sb.storage.from('avatars').upload(path,myProfile.photo_file,{upsert:true});
-      if(!error){const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;}
+      if(!error){const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;myProfile.photo_ref=photo_url;await uploadBlurCopy(currentUser.id,myProfile.photo_file);myProfile.photo_file=null;}
     }
     const geo=await geocodePostcode(myProfile.location);
     if(!geo){
@@ -2146,6 +2192,9 @@ async function saveProfile(){
       return;
     }
     await sb.from('profiles').update({name:myProfile.name,dob:myProfile.dob,location:myProfile.location,sex:myProfile.sex,is_hidden:profileHidden,photo_url:photo_url||undefined,lat:geo.lat,lng:geo.lng}).eq('id',currentUser.id);
+    myProfile.lat=geo.lat;myProfile.lng=geo.lng;
+    await loadBrowseProfiles(); // distances from the (possibly new) home postcode
+    renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
     showToast('Profile saved');
   }
   goTo('screen-main');
