@@ -1207,7 +1207,11 @@ async function trySignIn(){
   await restoreSession();
   removeModal();
   await loadBrowseProfiles();
-  goTo('screen-main');renderProfiles(0);
+  restoreFilterPrefs();
+  goTo('screen-main');
+  await switchTab('browse');
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  updateMatchNotifs();
 }
 
 async function resendConfirmationEmail(email){
@@ -2456,17 +2460,15 @@ function confirmLogout(){
 }
 async function executeLogout(){
   removeModal();
-  if(messageChannel)sb.removeChannel(messageChannel);
-  if(interactionsChannel)sb.removeChannel(interactionsChannel);
-  await sb.auth.signOut();
-  isPremium=false;currentUser=null;
-  myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null};
-  myAnswers=new Array(NUM_Q).fill(0);
-  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();profileHidden=false;
-  document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
-  ['inp-name','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('sex-male').classList.remove('selected');document.getElementById('sex-female').classList.remove('selected');
-  goTo('screen-welcome');
+  try{
+    if(messageChannel)sb.removeChannel(messageChannel);
+    if(interactionsChannel)sb.removeChannel(interactionsChannel);
+    await sb.auth.signOut();
+  }catch(e){console.warn('Sign-out error:',e);}
+  // Full fresh start, so nothing from this account (conversations, interest
+  // lists, badges, cached profiles, live connections) can carry over to the
+  // next person who signs in on this device.
+  window.location.replace(window.location.pathname);
 }
 
 async function executeDelete(){
