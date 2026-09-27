@@ -2199,8 +2199,12 @@ async function openChatNow(partnerId,inits,name,photoUrl){
   const headerAvatar=document.getElementById('chat-avatar-header');
   if(photoUrl){headerAvatar.innerHTML=`<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;}
   else{headerAvatar.textContent=inits;}
-  await renderChatMessages();
+  // Show the chat screen FIRST, then load messages into it. Filling a hidden
+  // scroll area and then revealing it can leave it unpainted on iPhone Safari.
+  const msgEl=document.getElementById('chat-messages');
+  msgEl.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:13px"><i class="ti ti-loader" style="font-size:22px;color:var(--gold);animation:spin 1s linear infinite;display:block;margin:0 auto 8px"></i>Loading messages…</div>';
   goTo('screen-chat');
+  await renderChatMessages();
   subscribeToMessages(partnerId);
   updateMatchNotifs();
 }
@@ -2213,6 +2217,7 @@ async function renderChatMessages(){
   if(!currentUser)return;
   const matchId=getMatchId(currentUser.id,activeChatPartnerId);
   const {data:msgs,error:msgsErr}=await sb.rpc('get_decrypted_messages',{p_match_id:matchId});
+  if(getMatchId(currentUser.id,activeChatPartnerId)!==matchId)return; // switched chats while loading
   if(msgsErr)console.warn('Failed to load messages:',msgsErr.message);
   const el=document.getElementById('chat-messages');
   if(!msgs||!msgs.length){
@@ -2220,6 +2225,7 @@ async function renderChatMessages(){
     return;
   }
   el.innerHTML=msgs.map(m=>{const mine=m.sender_id===currentUser.id;return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div class="msg-bubble ${mine?'mine':'theirs'}">${m.content}</div></div>`;}).join('');
+  void el.offsetHeight; // make Safari lay out the new messages before scrolling
   scrollChatToBottom();
 }
 function scrollChatToBottom(){
