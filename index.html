@@ -779,8 +779,19 @@ function applyCountryUI(prefix){
   inp.placeholder=isUK?'e.g. LS1 4BR':'Start typing, e.g. '+({FR:'Lyon',US:'Austin',IE:'Galway',AU:'Perth',CA:'Ottawa',NZ:'Nelson',DE:'Bonn',ES:'Seville'}[cc]||'your town');
   inp.autocomplete=isUK?'postal-code':'address-level2';
 }
+let editPrevCountry='GB'; // the country shown in Settings before the latest change
 function onCountryChange(prefix){
   const cc=document.getElementById(prefix+'-country').value;
+  if(prefix==='edit'&&!openCountries.has(cc)){
+    // Not open yet: explain, and put the previous country (and its location) back
+    const sel=document.getElementById('edit-country');sel.value=editPrevCountry;
+    const note=document.getElementById('edit-country-note');
+    note.textContent=`BASED isn't available in ${countryName(cc)} yet, so you can't move your profile there for now.`;
+    note.style.display='block';
+    showToast(`BASED isn't available in ${countryName(cc)} yet.`,true,4000);
+    return;
+  }
+  if(prefix==='edit'){editPrevCountry=cc;document.getElementById('edit-country-note').style.display='none';}
   locState[prefix].picked=null;
   document.getElementById(prefix+'-location').value='';
   hideSuggest(prefix);
@@ -795,10 +806,7 @@ function onCountryChange(prefix){
     const we=document.getElementById('waitlist-email'),ie=document.getElementById('inp-email');
     if(!open&&!we.value&&ie.value)we.value=ie.value;
   }else{
-    const note=document.getElementById('edit-country-note');
-    note.style.display=open?'none':'block';
-    note.textContent=open?'':`BASED isn't available in ${countryName(cc)} yet, so you can't move your profile there for now.`;
-    if(open)setUnits(defaultUnitsFor(cc),true);
+    setUnits(defaultUnitsFor(cc),true);
   }
 }
 async function joinWaitlist(){
@@ -2552,7 +2560,7 @@ async function changeEmail(){
 function openEditProfile(){
   document.getElementById('edit-name').value=myProfile.name||'';
   document.getElementById('edit-dob').value=isoToDobDisplay(myProfile.dob);
-  const ec=document.getElementById('edit-country');ec.innerHTML=countryOptionsHtml(myProfile.country||'GB');
+  const ec=document.getElementById('edit-country');ec.innerHTML=countryOptionsHtml(myProfile.country||'GB');editPrevCountry=myProfile.country||'GB';
   document.getElementById('edit-country-note').style.display='none';
   applyCountryUI('edit');locState.edit.picked=null;hideSuggest('edit');
   document.getElementById('edit-location').value=myProfile.location||'';
