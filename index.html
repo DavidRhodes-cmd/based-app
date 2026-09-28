@@ -103,6 +103,12 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .msg-bubble.theirs{background:rgba(255,255,255,0.07);color:var(--text-on-dark);align-self:flex-start;border-bottom-left-radius:4px;}
 .notif-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;margin-left:2px;}
 .notif-badge{min-width:16px;height:16px;padding:0 4px;border-radius:8px;color:#0a0d16;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-left:4px;line-height:1;}
+.unread-badge{position:absolute;top:2px;right:2px;min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;font-weight:700;line-height:17px;text-align:center;box-shadow:0 0 0 2px var(--navy);font-family:var(--sans);}
+.live-banner{position:absolute;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:9000;display:flex;align-items:center;gap:12px;background:rgba(26,31,46,0.97);border:0.5px solid rgba(201,168,76,0.55);border-radius:16px;padding:12px 14px;box-shadow:0 14px 34px rgba(0,0,0,0.5);cursor:pointer;transform:translateY(-140%);opacity:0;transition:transform .32s cubic-bezier(.2,.9,.3,1.2),opacity .25s;}
+.live-banner.show{transform:translateY(0);opacity:1;}
+.live-banner .lb-av{width:40px;height:40px;border-radius:50%;overflow:hidden;background:var(--navy-light);display:flex;align-items:center;justify-content:center;font-family:var(--serif);color:var(--gold);flex-shrink:0;}
+.live-banner .lb-title{font-size:14px;font-weight:600;color:var(--text-on-dark);}
+.live-banner .lb-sub{font-size:13px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .notif-superdot{position:absolute;top:4px;right:6px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px var(--navy);}
 .toggle-track{width:46px;height:26px;border-radius:13px;background:rgba(255,255,255,0.12);position:relative;cursor:pointer;transition:background 0.25s;flex-shrink:0;}
 .toggle-track.on{background:var(--green);}
@@ -292,7 +298,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-browse" onclick="switchTab('browse')"><i class="ti ti-search" style="font-size:15px"></i> Search</button>
     <button class="tab-btn" id="tab-matches" onclick="switchTab('matches')"><i class="ti ti-heart" style="font-size:15px"></i> Interest <span id="matches-notif" style="display:none" class="notif-superdot"></span></button>
-    <button class="tab-btn" id="tab-messages" onclick="switchTab('messages')"><svg width="17" height="15" viewBox="0 0 28 24" fill="none" style="flex-shrink:0"><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" opacity="0.65" transform="translate(0,3) scale(0.8)"/><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" transform="translate(9,3) scale(0.8)"/></svg> It's mutual <span id="msg-notif" style="display:none" class="notif-superdot"></span></button>
+    <button class="tab-btn" id="tab-messages" onclick="switchTab('messages')"><svg width="17" height="15" viewBox="0 0 28 24" fill="none" style="flex-shrink:0"><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" opacity="0.65" transform="translate(0,3) scale(0.8)"/><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" transform="translate(9,3) scale(0.8)"/></svg> It's mutual <span id="msg-notif" style="display:none" class="notif-superdot"></span><span id="unread-notif" class="unread-badge" style="display:none"></span></button>
   </div>
   <div id="tab-browse-content" class="scrollable" style="padding:16px">
     <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:13px;padding:13px;margin-bottom:16px">
@@ -1062,6 +1068,7 @@ async function finishProfileCreation(userId,email){
   isPremium=false;profileHidden=false;
   await loadMyInteractions();
   subscribeToInteractions();
+  subscribeToAllMessages();
   await loadBrowseProfiles();
   showResults();
   return true;
@@ -1261,6 +1268,7 @@ async function restoreSession(){
   }
   await loadMyInteractions();
   subscribeToInteractions();
+  subscribeToAllMessages();
   return true;
 }
 
@@ -1271,8 +1279,21 @@ function subscribeToInteractions(){
   interactionsChannel=sb.channel('interactions:'+currentUser.id)
     .on('postgres_changes',{event:'*',schema:'public',table:'interactions',filter:`to_user=eq.${currentUser.id}`},
       async()=>{
+        const prevMutual=new Set(mutualMatches),prevIncoming=new Set(incomingInterest);
         await loadMyInteractions();
         await loadBrowseProfiles(); // also refresh cached profile data (photos, names) — not just match status
+        const newMatch=[...mutualMatches].find(id=>!prevMutual.has(id));
+        const newInterest=[...incomingInterest].find(id=>!prevIncoming.has(id)&&!hiddenForever.has(id));
+        const pp=id=>browseProfiles.find(x=>x.id===id);
+        if(newMatch&&pp(newMatch)){
+          const p=pp(newMatch);
+          showLiveBanner({title:`It's mutual with ${p.name}! 🎉`,sub:'You can now message each other',photo:p.photo_url,initials:p.initials,
+            onTap:()=>{goTo('screen-main');switchTab('messages');}});
+        }else if(newInterest&&pp(newInterest)){
+          const p=pp(newInterest);
+          showLiveBanner({title:`${p.name} is interested in you`,sub:'Tap to see their profile',photo:p.photo_url,initials:p.initials,
+            onTap:()=>{goTo('screen-main');switchTab('matches');}});
+        }
         renderMatchesTab();
         renderConversationsTab();
         renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
@@ -2179,6 +2200,49 @@ function openChatPartnerProfile(){
   openProfile(p.answers,compat,basedScore,p.initials,p.name,p.age,p.location,p.photo_url,activeChatPartnerId,'chat',p.religion||null);
 }
 
+// ─── In-app alerts (while the app is open) ───────────────────────────────────
+// A banner slides down for a new match, new interest, or a message from someone
+// whose chat you're not currently looking at. Tapping it takes you there.
+const unreadFrom=new Map(); // partnerId -> number of unread messages
+let bannerTimer=null;
+function showLiveBanner({title,sub,photo,initials,onTap,icon}){
+  let b=document.getElementById('live-banner');
+  if(!b){b=document.createElement('div');b.id='live-banner';b.className='live-banner';document.getElementById('app-shell').appendChild(b);}
+  const av=icon?`<i class="ti ${icon}" style="font-size:20px;color:var(--gold)"></i>`:photo?`<img src="${photo}" style="width:100%;height:100%;object-fit:cover" />`:(initials||'?');
+  b.innerHTML=`<div class="lb-av">${av}</div><div style="flex:1;min-width:0"><div class="lb-title">${title}</div>${sub?`<div class="lb-sub">${sub}</div>`:''}</div><i class="ti ti-chevron-right" style="color:var(--text-muted)"></i>`;
+  b.onclick=()=>{hideLiveBanner();onTap&&onTap();};
+  requestAnimationFrame(()=>b.classList.add('show'));
+  try{if(navigator.vibrate)navigator.vibrate(30);}catch(e){}
+  clearTimeout(bannerTimer);bannerTimer=setTimeout(hideLiveBanner,5000);
+}
+function hideLiveBanner(){const b=document.getElementById('live-banner');if(b)b.classList.remove('show');}
+function updateUnreadBadge(){
+  const el=document.getElementById('unread-notif');if(!el)return;
+  let n=0;unreadFrom.forEach(v=>n+=v);
+  el.textContent=n>9?'9+':String(n);el.style.display=n?'block':'none';
+}
+function viewingChatWith(pid){return document.getElementById('screen-chat').classList.contains('active')&&activeChatPartnerId===pid;}
+let allMessagesChannel=null;
+function subscribeToAllMessages(){
+  if(allMessagesChannel)sb.removeChannel(allMessagesChannel);
+  if(!currentUser)return;
+  // Server-side rules only deliver messages from your own current matches
+  allMessagesChannel=sb.channel('inbox:'+currentUser.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},payload=>{
+      const m=payload.new||{};
+      if(!m.match_id||String(m.sender_id)===currentUser.id)return;
+      const parts=m.match_id.split('__');if(!parts.includes(currentUser.id))return;
+      const pid=String(m.sender_id);
+      if(viewingChatWith(pid))return; // already on screen
+      unreadFrom.set(pid,(unreadFrom.get(pid)||0)+1);updateUnreadBadge();
+      const p=browseProfiles.find(x=>x.id===pid);
+      if(document.getElementById('screen-main').classList.contains('active')&&document.getElementById('tab-messages-content').style.display==='block')renderConversationsTab();
+      showLiveBanner({title:`New message from ${p?p.name:'your match'}`,sub:'Tap to open the chat',photo:p&&p.photo_url,initials:p&&p.initials,
+        onTap:()=>{if(p)openChat(pid,p.initials,p.name,p.photo_url||'');}});
+    })
+    .subscribe();
+}
+
 // ─── Chat ⋯ menu: Block / Report ─────────────────────────────────────────────
 function toggleChatMenu(e){e.stopPropagation();document.getElementById('chat-menu').classList.toggle('open');}
 function closeChatMenu(){const m=document.getElementById('chat-menu');if(m)m.classList.remove('open');}
@@ -2284,6 +2348,7 @@ async function acceptSafetyTips(){
   openChatNow(...args);
 }
 async function openChatNow(partnerId,inits,name,photoUrl){
+  unreadFrom.delete(partnerId);updateUnreadBadge();
   activeChatName=name;activeChatPartnerId=partnerId;activeChatPhotoUrl=photoUrl||null;
   document.getElementById('chat-name-header').textContent=name;
   const headerAvatar=document.getElementById('chat-avatar-header');
@@ -2453,7 +2518,7 @@ async function renderConversationsTab(){
     const statusLabel=daysSince>=3?'Inactive 3+ days':daysSince>=2?'Inactive 2+ days':'Active';
     const dot=`<span title="${statusLabel}" style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.06)"></span>`;
     const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
-    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}','${p.photo_url||''}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px;min-width:0"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${p.name}</span>${distanceSpan(p)}${dot}</div><div style="font-size:13px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
+    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}','${p.photo_url||''}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px;min-width:0"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${p.name}</span>${distanceSpan(p)}${dot}${unreadFrom.get(pid)?`<span class="unread-badge" style="position:static;box-shadow:none;margin-left:auto">${unreadFrom.get(pid)}</span>`:''}</div><div style="font-size:13px;color:${unreadFrom.get(pid)?'var(--text-on-dark)':'var(--text-muted)'};font-weight:${unreadFrom.get(pid)?'600':'400'};margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
   });
   document.getElementById('conversations-list').innerHTML=html||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet.</p>';
   updateConnectedNotif(entries.length,oldestDays);
