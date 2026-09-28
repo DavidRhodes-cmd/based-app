@@ -124,6 +124,12 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 .unit-toggle{display:flex;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);border-radius:11px;padding:3px;gap:3px;}
 .unit-toggle button{flex:1;background:transparent;border:none;border-radius:8px;padding:9px 0;color:var(--text-muted);font-size:14px;font-family:var(--sans);cursor:pointer;}
 .unit-toggle button.on{background:rgba(201,168,76,0.15);color:var(--gold);font-weight:600;}
+.chat-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:200px;background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.18);border-radius:12px;overflow:hidden;z-index:50;box-shadow:0 12px 28px rgba(0,0,0,0.45);}
+.chat-menu.open{display:block;}
+.chat-menu button{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:none;border-bottom:0.5px solid rgba(255,255,255,0.08);padding:13px 16px;color:var(--text-on-dark);font-size:15px;font-family:var(--sans);cursor:pointer;text-align:left;}
+.chat-menu button:last-child{border-bottom:none;}
+.chat-menu button i{font-size:18px;color:var(--text-muted);}
+.chat-menu button.danger,.chat-menu button.danger i{color:var(--red);}
 .modal-box{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.15);border-radius:20px;padding:28px 22px;margin:24px;text-align:center;width:100%;}
 .bottom-safe{padding-bottom:calc(var(--safe-bottom) + 12px);}
 </style>
@@ -345,7 +351,13 @@ select.form-input option{background:#1a1f2e;color:#fff;}
       <div id="chat-avatar-header" class="avatar" style="width:36px;height:36px;font-size:13px;cursor:pointer" onclick="openEnlargedPhoto()"></div>
       <div style="cursor:pointer" onclick="openChatPartnerProfile()"><p style="font-size:15px;color:var(--text-on-dark);font-weight:600" id="chat-name-header"></p><p style="font-size:11px;color:var(--green)">Mutual match</p></div>
     </div>
-    <button onclick="openReport(activeChatPartnerId,activeChatName)" aria-label="Report" style="background:transparent;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;width:28px;padding:0"><i class="ti ti-flag"></i></button>
+    <div style="position:relative">
+      <button id="chat-menu-btn" onclick="toggleChatMenu(event)" aria-label="More options" aria-haspopup="true" style="background:transparent;border:none;color:var(--text-on-dark);font-size:22px;cursor:pointer;width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center"><i class="ti ti-dots"></i></button>
+      <div id="chat-menu" class="chat-menu" role="menu">
+        <button role="menuitem" onclick="closeChatMenu();confirmBlock()"><i class="ti ti-ban"></i>Block this user</button>
+        <button role="menuitem" class="danger" onclick="closeChatMenu();openReport(activeChatPartnerId,activeChatName)"><i class="ti ti-flag"></i>Report this user</button>
+      </div>
+    </div>
   </div>
   <div class="scrollable" style="padding:16px;display:flex;flex-direction:column;gap:11px" id="chat-messages"></div>
   <div style="padding:12px 16px;border-top:0.5px solid rgba(255,255,255,0.08);display:flex;gap:10px;flex-shrink:0" class="bottom-safe">
@@ -612,6 +624,9 @@ async function loadDemoProfiles(){
 
 // ─── App state ────────────────────────────────────────────────────────────────
 const FREE_LIMIT=5;
+let freeViewsCarried=0; // free views used by a previously deleted account with the same email (set by the server)
+function freeViewsUsed(){return viewedProfiles.size+freeViewsCarried;}
+function outOfFreeViews(){return freeViewsUsed()>=FREE_LIMIT;}
 let currentUser=null; // Supabase auth user
 // Checked synchronously at load, before any async work — lets the boot sequence know
 // not to auto-navigate to the main screen if a confirmation-link completion is about
@@ -1283,6 +1298,7 @@ async function loadMyInteractions(){
   if(!currentUser)return;
   expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();
   viewedProfiles=new Set();
+  try{const {data:me}=await sb.from('profiles').select('free_views_carried').eq('id',currentUser.id).maybeSingle();freeViewsCarried=(me&&me.free_views_carried)||0;}catch(e){}
   const {data:views}=await sb.from('profile_views').select('viewed_profile_id').eq('viewer_id',currentUser.id);
   if(views)views.forEach(r=>viewedProfiles.add(r.viewed_profile_id));
   // What I've done to others
@@ -1373,11 +1389,11 @@ function renderProfiles(minPct){
   lastProfileList=list;
   if(!list.length){container.innerHTML='<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px 0">No profiles match your filters.</p>';return;}
   let html='';
-  if(!isPremium){const used=viewedProfiles.size;const dots=Array.from({length:FREE_LIMIT},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<used?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px"><span style="font-size:13px;color:var(--text-muted)">${FREE_LIMIT-used} free view${FREE_LIMIT-used===1?'':'s'} remaining</span><span>${dots}</span></div>`;}
+  if(!isPremium){const used=Math.min(FREE_LIMIT,freeViewsUsed());const dots=Array.from({length:FREE_LIMIT},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<used?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px"><span style="font-size:13px;color:var(--text-muted)">${Math.max(0,FREE_LIMIT-used)} free view${FREE_LIMIT-used===1?'':'s'} remaining</span><span>${dots}</span></div>`;}
   else{html+=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:13px;background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:9px;padding:8px 12px"><i class="ti ti-crown" style="font-size:14px;color:var(--gold)"></i><span style="font-size:13px;color:var(--gold-light)">Unlimited access active</span></div>`;}
   list.forEach(p=>{
     const profileKey=p.id||p.name;
-    const isLocked=!isPremium&&!viewedProfiles.has(profileKey)&&viewedProfiles.size>=FREE_LIMIT;
+    const isLocked=!isPremium&&!viewedProfiles.has(profileKey)&&outOfFreeViews();
     const isMutual=mutualMatches.has(profileKey);
     const theyLiked=false; // determined server-side now
     const hasInterest=expressedInterest.has(profileKey);
@@ -1388,12 +1404,12 @@ function renderProfiles(minPct){
     if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="goTo('screen-paywall')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:7px">Upgrade to view</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div></div>`;}
     else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${aStr}',${p.compat},${p.basedScore},'${p.initials}','${p.name}',${p.age},'','${p.photo_url||''}','${profileKey}','${p.religion||''}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px;padding-right:72px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.name}, ${p.age}${distanceSpan(p)}</div>${badge?`<div style="margin-bottom:6px">${badge}</div>`:'<div style="margin-bottom:6px"></div>'}<div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
   });
-  if(!isPremium&&viewedProfiles.size>=FREE_LIMIT){html+=`<div style="background:rgba(15,18,30,0.95);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;padding:22px;margin-top:6px;text-align:center"><i class="ti ti-crown" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:8px">You've seen your 5 free profiles</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">Unlock unlimited browsing to keep meeting people who share your values.</p><button class="btn-primary" onclick="goTo('screen-paywall')" style="font-size:15px;padding:14px">Unlock unlimited access</button></div>`;}
+  if(!isPremium&&outOfFreeViews()){html+=`<div style="background:rgba(15,18,30,0.95);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;padding:22px;margin-top:6px;text-align:center"><i class="ti ti-crown" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:8px">You've seen your 5 free profiles</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">Unlock unlimited browsing to keep meeting people who share your values.</p><button class="btn-primary" onclick="goTo('screen-paywall')" style="font-size:15px;padding:14px">Unlock unlimited access</button></div>`;}
   container.innerHTML=html;
 }
 
 function handleProfileTap(aStr,compat,basedScore,inits,name,age,location,photoUrl,profileKey,religion){
-  if(!isPremium&&!viewedProfiles.has(profileKey)&&viewedProfiles.size>=FREE_LIMIT){goTo('screen-paywall');return;}
+  if(!isPremium&&!viewedProfiles.has(profileKey)&&outOfFreeViews()){goTo('screen-paywall');return;}
   let answers;try{answers=JSON.parse(aStr.replace(/&quot;/g,'"'));}catch(e){answers=new Array(NUM_Q).fill(0);}
   recordProfileView(profileKey);
   openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,'search',religion||null);
@@ -1489,7 +1505,7 @@ function advanceToNextProfile(profileKey){
   }
   if(next){
     const key=next.id||next.name;
-    const isLocked=!isPremium&&!viewedProfiles.has(key)&&viewedProfiles.size>=FREE_LIMIT;
+    const isLocked=!isPremium&&!viewedProfiles.has(key)&&outOfFreeViews();
     if(isLocked){goTo('screen-paywall');return;}
     recordProfileView(key);
     openProfile(next.answers,next.compat,next.basedScore,next.initials,next.name,next.age,next.location,next.photo_url,key,'search',next.religion||null);
@@ -2163,6 +2179,31 @@ function openChatPartnerProfile(){
   openProfile(p.answers,compat,basedScore,p.initials,p.name,p.age,p.location,p.photo_url,activeChatPartnerId,'chat',p.religion||null);
 }
 
+// ─── Chat ⋯ menu: Block / Report ─────────────────────────────────────────────
+function toggleChatMenu(e){e.stopPropagation();document.getElementById('chat-menu').classList.toggle('open');}
+function closeChatMenu(){const m=document.getElementById('chat-menu');if(m)m.classList.remove('open');}
+document.addEventListener('click',e=>{if(!e.target.closest('#chat-menu'))closeChatMenu();});
+function confirmBlock(){
+  const name=activeChatName||'this person';
+  showModal(`<i class="ti ti-ban" style="font-size:28px;color:var(--red);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px">Block ${name}?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.55;margin-bottom:20px">You'll be unmatched and neither of you will be able to see or contact the other again. This conversation will disappear. ${name} won't be told you blocked them.</p><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1;background:var(--red);color:#fff" onclick="executeBlock()">Block</button></div>`);
+}
+async function executeBlock(){
+  removeModal();
+  const id=activeChatPartnerId,name=activeChatName;
+  if(!id)return;
+  // Same server-enforced, two-way removal as "Don't show again"; the conversation
+  // is hidden from both people but kept privately for 90 days for safety reviews.
+  const ok=await recordInteraction(id,'hide_forever');
+  if(!ok){showToast('Something went wrong — please try again.',true);return;}
+  hiddenForever.add(id);mutualMatches.delete(id);expressedInterest.delete(id);incomingInterest.delete(id);
+  if(messageChannel){sb.removeChannel(messageChannel);messageChannel=null;}
+  await loadBrowseProfiles();
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  renderMatchesTab();
+  goTo('screen-main');await switchTab('messages');
+  showToast(`${name} has been blocked.`);
+}
+
 // ─── Report a user ────────────────────────────────────────────────────────────
 // Sends a private report for review and hides both people from each other,
 // exactly like "Don't show again". The conversation is kept privately so it
@@ -2377,7 +2418,8 @@ function openIncomingProfile(pid){
   const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
   if(!p)return;
   const compat=calcCompat(p.answers);
-  recordProfileView(pid);
+  // Opening someone from the Interest tab doesn't use a free view — you've either
+  // seen them already or they came to you.
   openProfile(p.answers,compat,p.basedScore,p.initials,p.name,p.age,p.location,p.photo_url,pid,'incoming',p.religion||null);
 }
 
