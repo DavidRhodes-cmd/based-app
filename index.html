@@ -103,12 +103,14 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .msg-bubble.theirs{background:rgba(255,255,255,0.07);color:var(--text-on-dark);align-self:flex-start;border-bottom-left-radius:4px;}
 .notif-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;margin-left:2px;}
 .notif-badge{min-width:16px;height:16px;padding:0 4px;border-radius:8px;color:#0a0d16;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-left:4px;line-height:1;}
+.unread-badge.dot-only{min-width:10px;width:10px;height:10px;padding:0;top:4px;right:4px;}
 .unread-badge{position:absolute;top:2px;right:2px;min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;font-weight:700;line-height:17px;text-align:center;box-shadow:0 0 0 2px var(--navy);font-family:var(--sans);}
 .live-banner{position:absolute;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:9000;display:flex;align-items:center;gap:12px;background:rgba(26,31,46,0.97);border:0.5px solid rgba(201,168,76,0.55);border-radius:16px;padding:12px 14px;box-shadow:0 14px 34px rgba(0,0,0,0.5);cursor:pointer;transform:translateY(-140%);opacity:0;transition:transform .32s cubic-bezier(.2,.9,.3,1.2),opacity .25s;}
 .live-banner.show{transform:translateY(0);opacity:1;}
 .live-banner .lb-av{width:40px;height:40px;border-radius:50%;overflow:hidden;background:var(--navy-light);display:flex;align-items:center;justify-content:center;font-family:var(--serif);color:var(--gold);flex-shrink:0;}
 .live-banner .lb-title{font-size:14px;font-weight:600;color:var(--text-on-dark);}
 .live-banner .lb-sub{font-size:13px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.notif-superdot.with-count{width:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;top:1px;right:0;font-size:11px;font-weight:700;line-height:18px;text-align:center;font-family:var(--sans);}
 .notif-superdot{position:absolute;top:4px;right:6px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px var(--navy);}
 .toggle-track{width:46px;height:26px;border-radius:13px;background:rgba(255,255,255,0.12);position:relative;cursor:pointer;transition:background 0.25s;flex-shrink:0;}
 .toggle-track.on{background:var(--green);}
@@ -298,7 +300,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-browse" onclick="switchTab('browse')"><i class="ti ti-search" style="font-size:15px"></i> Search</button>
     <button class="tab-btn" id="tab-matches" onclick="switchTab('matches')"><i class="ti ti-heart" style="font-size:15px"></i> Interest <span id="matches-notif" style="display:none" class="notif-superdot"></span></button>
-    <button class="tab-btn" id="tab-messages" onclick="switchTab('messages')"><svg width="17" height="15" viewBox="0 0 28 24" fill="none" style="flex-shrink:0"><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" opacity="0.65" transform="translate(0,3) scale(0.8)"/><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" transform="translate(9,3) scale(0.8)"/></svg> It's mutual <span id="msg-notif" style="display:none" class="notif-superdot"></span><span id="unread-notif" class="unread-badge" style="display:none"></span></button>
+    <button class="tab-btn" id="tab-messages" onclick="switchTab('messages')"><svg width="17" height="15" viewBox="0 0 28 24" fill="none" style="flex-shrink:0"><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" opacity="0.65" transform="translate(0,3) scale(0.8)"/><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" transform="translate(9,3) scale(0.8)"/></svg> It's mutual <span id="msg-notif" style="display:none" class="notif-superdot"></span></button>
   </div>
   <div id="tab-browse-content" class="scrollable" style="padding:16px">
     <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:13px;padding:13px;margin-bottom:16px">
@@ -1280,6 +1282,7 @@ async function restoreSession(){
   await loadMyInteractions();
   subscribeToInteractions();
   subscribeToAllMessages();
+  setTimeout(()=>{refreshUnreadCounts();},0); // after profiles load; doesn't hold up sign-in
   return true;
 }
 
@@ -1410,6 +1413,11 @@ function renderProfiles(minPct){
     .filter(p=>{
       if(p.compat<minPct)return false;
       if(excluded.has(p.id)||excluded.has(p.name))return false;
+      const pk=p.id||p.name;
+      // Shown on Interest / It's mutual instead — except someone you've cleared from
+      // "Interested in me", who comes back to Search in case you change your mind
+      if(expressedInterest.has(pk)||mutualMatches.has(pk))return false;
+      if(incomingInterest.has(pk)&&!dismissedIncoming.has(pk))return false;
       if(p.age!=null&&(p.age<minAge||p.age>maxAge))return false;
       if(excludedReligions.has(p.religion||NONE_STATED))return false;
       // Distance filter — profiles with no known distance are never filtered out
@@ -1421,7 +1429,7 @@ function renderProfiles(minPct){
   lastProfileList=list;
   if(!list.length){container.innerHTML='<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px 0">No profiles match your filters.</p>';return;}
   let html='';
-  if(!isPremium){const used=Math.min(FREE_LIMIT,freeViewsUsed());const dots=Array.from({length:FREE_LIMIT},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<used?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px"><span style="font-size:13px;color:var(--text-muted)">${Math.max(0,FREE_LIMIT-used)} free view${FREE_LIMIT-used===1?'':'s'} remaining</span><span>${dots}</span></div>`;}
+  if(!isPremium){const used=Math.min(FREE_LIMIT,freeViewsUsed());const dots=Array.from({length:FREE_LIMIT},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<FREE_LIMIT-used?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px"><span style="font-size:13px;color:var(--text-muted)">${Math.max(0,FREE_LIMIT-used)} free view${FREE_LIMIT-used===1?'':'s'} remaining</span><span>${dots}</span></div>`;}
   else{html+=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:13px;background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:9px;padding:8px 12px"><i class="ti ti-crown" style="font-size:14px;color:var(--gold)"></i><span style="font-size:13px;color:var(--gold-light)">Unlimited access active</span></div>`;}
   list.forEach(p=>{
     const profileKey=p.id||p.name;
@@ -1504,7 +1512,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     </div>`;
   }).join('');
   let topBanner='';
-  if(isMutual)topBanner=`<div style="background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.35);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px"><i class="ti ti-heart" style="font-size:22px;color:var(--green)"></i><div><p style="font-size:15px;color:var(--green);font-weight:600">It's mutual!</p><p style="font-size:13px;color:var(--text-muted)">You both expressed interest. You can now message each other.</p></div></div>`;
+  if(isMutual)topBanner=`<div style="background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.35);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px"><i class="ti ti-heart" style="font-size:22px;color:var(--green)"></i><div><p style="font-size:15px;color:var(--green);font-weight:600">It's mutual!</p><p style="font-size:13px;color:var(--text-muted)">You both expressed interest.<br>You can now message each other.</p></div></div>`;
   const aEncoded=JSON.stringify(answers).replace(/"/g,'&quot;');
   let actionRow='';
   if(isMutual){
@@ -1551,6 +1559,7 @@ async function doDismissIncoming(profileKey){
   dismissedIncoming.add(profileKey);
   incomingInterest.delete(profileKey);
   renderMatchesTab();
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0); // they're back in Search
 }
 
 async function doWithdrawInterest(profileKey){
@@ -2227,11 +2236,7 @@ function showLiveBanner({title,sub,photo,initials,onTap,icon}){
   clearTimeout(bannerTimer);bannerTimer=setTimeout(hideLiveBanner,5000);
 }
 function hideLiveBanner(){const b=document.getElementById('live-banner');if(b)b.classList.remove('show');}
-function updateUnreadBadge(){
-  const el=document.getElementById('unread-notif');if(!el)return;
-  let n=0;unreadFrom.forEach(v=>n+=v);
-  el.textContent=n>9?'9+':String(n);el.style.display=n?'block':'none';
-}
+function updateUnreadBadge(){renderMutualBadge();}
 function viewingChatWith(pid){return document.getElementById('screen-chat').classList.contains('active')&&activeChatPartnerId===pid;}
 let allMessagesChannel=null;
 function subscribeToAllMessages(){
@@ -2252,6 +2257,42 @@ function subscribeToAllMessages(){
         onTap:()=>{if(p)openChat(pid,p.initials,p.name,p.photo_url||'');}});
     })
     .subscribe();
+}
+
+// ─── Read tracking (per chat, remembered on the server) ─────────────────────
+let chatLastRead={}; // matchId -> ISO time you last had that chat open
+async function loadChatReads(){
+  if(!currentUser)return;
+  try{const {data}=await sb.from('chat_reads').select('match_id,last_read_at').eq('user_id',currentUser.id);
+    // Keep whichever is newer: what the server has, or a read we've just recorded on this device
+    (data||[]).forEach(r=>{const local=chatLastRead[r.match_id];
+      if(!local||new Date(r.last_read_at)>new Date(local))chatLastRead[r.match_id]=r.last_read_at;});}catch(e){}
+}
+async function markChatRead(partnerId){
+  if(!currentUser||!partnerId)return;
+  const matchId=getMatchId(currentUser.id,partnerId),now=new Date().toISOString();
+  chatLastRead[matchId]=now;unreadFrom.delete(partnerId);updateUnreadBadge();
+  try{await sb.from('chat_reads').upsert({user_id:currentUser.id,match_id:matchId,last_read_at:now},{onConflict:'user_id,match_id'});}catch(e){}
+}
+function countUnread(msgs,matchId){
+  const since=chatLastRead[matchId]?new Date(chatLastRead[matchId]).getTime():0;
+  return (msgs||[]).filter(m=>m.sender_id!==currentUser.id&&new Date(m.created_at).getTime()>since).length;
+}
+// Works out unread counts for every chat (used at sign-in so the tab dot is right straight away)
+async function refreshUnreadCounts(){
+  if(!currentUser)return;
+  await loadChatReads();
+  unreadFrom.clear();
+  let count=0,oldest=0;const now=Date.now();
+  for(const pid of mutualMatches){
+    const matchId=getMatchId(currentUser.id,pid);
+    const {data:msgs}=await sb.rpc('get_decrypted_messages',{p_match_id:matchId});
+    const n=countUnread(msgs,matchId);if(n)unreadFrom.set(pid,n);
+    const last=msgs&&msgs.length?msgs[msgs.length-1].created_at:matchCreatedAt[pid];
+    const days=last?(now-new Date(last).getTime())/86400000:0;
+    count++;if(days>oldest)oldest=days;
+  }
+  updateConnectedNotif(count,oldest);
 }
 
 // ─── Chat ⋯ menu: Block / Report ─────────────────────────────────────────────
@@ -2361,7 +2402,7 @@ async function acceptSafetyTips(){
   openChatNow(...args);
 }
 async function openChatNow(partnerId,inits,name,photoUrl){
-  unreadFrom.delete(partnerId);updateUnreadBadge();
+  markChatRead(partnerId);
   activeChatName=name;activeChatPartnerId=partnerId;activeChatPhotoUrl=photoUrl||null;
   document.getElementById('chat-name-header').textContent=name;
   const headerAvatar=document.getElementById('chat-avatar-header');
@@ -2441,7 +2482,7 @@ function subscribeToMessages(partnerId){
   const matchId=getMatchId(currentUser?.id||'',partnerId);
   messageChannel=sb.channel('messages:'+matchId)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`match_id=eq.${matchId}`},
-      async()=>{await renderChatMessages();updateMatchNotifs();})
+      async()=>{await renderChatMessages();if(viewingChatWith(partnerId))markChatRead(partnerId);updateMatchNotifs();})
     .subscribe();
 }
 
@@ -2462,7 +2503,7 @@ function updateMatchNotifs(){
 function renderMatchesTab(){
   const inList=document.getElementById('incoming-interest-list'),ee=document.getElementById('expressed-list');
   const visible=id=>browseProfiles.some(x=>(x.id||x.name)===id);
-  const incomingIds=Array.from(incomingInterest).filter(id=>!hiddenForever.has(id)&&!dismissedIncoming.has(id)&&visible(id));
+  const incomingIds=Array.from(incomingInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&!dismissedIncoming.has(id)&&visible(id));
   if(!incomingIds.length){inList.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No one has expressed interest in you yet.</p>';}
   else{
     inList.innerHTML=incomingIds.map(pid=>{
@@ -2509,9 +2550,12 @@ async function renderConversationsTab(){
   // before rendering — newest conversations belong at the top of the list.
   const now=Date.now();
   const entries=[];
+  await loadChatReads();
+  unreadFrom.clear();
   for(const pid of mutualMatches){
     const matchId=getMatchId(currentUser.id,pid);
     const {data:matchMsgs}=await sb.rpc('get_decrypted_messages',{p_match_id:matchId});
+    const unreadN=countUnread(matchMsgs,matchId);if(unreadN)unreadFrom.set(pid,unreadN);
     const last=matchMsgs&&matchMsgs.length?matchMsgs[matchMsgs.length-1]:null;
     const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
     if(!p)continue;
@@ -2519,9 +2563,9 @@ async function renderConversationsTab(){
     // Activity status: based on time since last message, or since match formed if no messages yet
     const lastActivityAt=last?last.created_at:matchCreatedAt[pid];
     const daysSince=lastActivityAt?(now-new Date(lastActivityAt).getTime())/86400000:0;
-    if(daysSince>=4)continue; // no activity for 4+ days: drop from the list
     entries.push({pid,p,preview,lastActivityAt,daysSince});
   }
+  updateUnreadBadge();
   entries.sort((a,b)=>new Date(b.lastActivityAt||0)-new Date(a.lastActivityAt||0)); // most recent first
   let html='';
   let oldestDays=0;
@@ -2536,12 +2580,23 @@ async function renderConversationsTab(){
   document.getElementById('conversations-list').innerHTML=html||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet.</p>';
   updateConnectedNotif(entries.length,oldestDays);
 }
+// It's mutual tab badge: COLOUR = how long your quietest chat has gone without a
+// message (green <2 days, amber 2–3, red 3+); NUMBER inside = total unread messages.
+let mutualChatCount=0,mutualOldestDays=0;
 function updateConnectedNotif(count,oldestDays){
+  mutualChatCount=count;mutualOldestDays=oldestDays;
+  renderMutualBadge();
+}
+function renderMutualBadge(){
   const badge=document.getElementById('msg-notif');
   if(!badge)return;
-  if(!count){badge.style.display='none';return;}
-  const color=oldestDays>=3?'var(--red)':oldestDays>=2?'var(--gold)':'var(--green)';
-  badge.style.background=color;
+  let unread=0;unreadFrom.forEach(v=>unread+=v);
+  if(!mutualChatCount&&!unread){badge.style.display='none';return;}
+  const d=mutualOldestDays;
+  badge.style.background=d>=3?'var(--red)':d>=2?'var(--gold)':'var(--green)';
+  badge.style.color=d>=3?'#fff':'#1a1f2e';
+  badge.textContent=unread?(unread>9?'9+':String(unread)):'';
+  badge.classList.toggle('with-count',!!unread);
   badge.style.display='block';
 }
 
