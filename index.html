@@ -110,8 +110,7 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .live-banner .lb-av{width:40px;height:40px;border-radius:50%;overflow:hidden;background:var(--navy-light);display:flex;align-items:center;justify-content:center;font-family:var(--serif);color:var(--gold);flex-shrink:0;}
 .live-banner .lb-title{font-size:14px;font-weight:600;color:var(--text-on-dark);}
 .live-banner .lb-sub{font-size:13px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.notif-superdot.with-count{width:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;top:1px;right:0;font-size:11px;font-weight:700;line-height:18px;text-align:center;font-family:var(--sans);}
-.notif-superdot{position:absolute;top:4px;right:6px;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px var(--navy);}
+.notif-superdot{position:relative;top:-8px;margin-left:1px;flex-shrink:0;box-sizing:border-box;min-width:18px;height:18px;padding:0 5px;border-radius:9px;font-size:11px;font-weight:700;line-height:18px;text-align:center;font-family:var(--sans);box-shadow:0 0 0 2px var(--navy);}
 .toggle-track{width:46px;height:26px;border-radius:13px;background:rgba(255,255,255,0.12);position:relative;cursor:pointer;transition:background 0.25s;flex-shrink:0;}
 .toggle-track.on{background:var(--green);}
 .toggle-thumb{width:20px;height:20px;border-radius:50%;background:white;position:absolute;top:3px;left:3px;transition:left 0.25s;}
@@ -2573,9 +2572,12 @@ async function renderConversationsTab(){
     if(daysSince>oldestDays)oldestDays=daysSince;
     const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
     const statusLabel=daysSince>=3?'Inactive 3+ days':daysSince>=2?'Inactive 2+ days':'Active';
-    const dot=`<span title="${statusLabel}" style="width:9px;height:9px;border-radius:50%;background:${statusColor};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.06)"></span>`;
+    const unreadN=unreadFrom.get(pid)||0;
+    const dot=unreadN
+      ?`<span title="${statusLabel} · ${unreadN} unread" style="min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:${statusColor};color:${daysSince>=3?'#fff':'#1a1f2e'};font-size:11px;font-weight:700;line-height:18px;text-align:center;display:inline-block;flex-shrink:0;box-sizing:border-box;margin-left:auto">${unreadN>9?'9+':unreadN}</span>`
+      :`<span title="${statusLabel}" style="width:18px;height:18px;border-radius:9px;background:${statusColor};display:inline-block;flex-shrink:0;margin-left:auto"></span>`;
     const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
-    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}','${p.photo_url||''}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px;min-width:0"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${p.name}</span>${distanceSpan(p)}${dot}${unreadFrom.get(pid)?`<span class="unread-badge" style="position:static;box-shadow:none;margin-left:auto">${unreadFrom.get(pid)}</span>`:''}</div><div style="font-size:13px;color:${unreadFrom.get(pid)?'var(--text-on-dark)':'var(--text-muted)'};font-weight:${unreadFrom.get(pid)?'600':'400'};margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
+    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}','${p.photo_url||''}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px;min-width:0"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${p.name}</span>${distanceSpan(p)}${dot}</div><div style="font-size:13px;color:${unreadFrom.get(pid)?'var(--text-on-dark)':'var(--text-muted)'};font-weight:${unreadFrom.get(pid)?'600':'400'};margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div></div>`;
   });
   document.getElementById('conversations-list').innerHTML=html||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet.</p>';
   updateConnectedNotif(entries.length,oldestDays);
