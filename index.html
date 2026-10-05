@@ -2901,7 +2901,16 @@ async function changeEmail(){
   if(newEmail.toLowerCase()===currentEmail.toLowerCase()){note.style.color='var(--text-muted)';note.textContent='That\'s already your current email.';return;}
   note.style.color='var(--text-muted)';note.textContent='Sending confirmation…';
   const {error}=await sb.auth.updateUser({email:newEmail},{emailRedirectTo:window.location.origin+window.location.pathname});
-  if(error){note.style.color='var(--red)';note.textContent=error.message;emailEl.classList.add('input-error');return;}
+  // Whatever happens, the field goes back to the address actually on the account
+  emailEl.value=currentEmail;
+  if(error){
+    note.style.color='var(--red)';
+    if(error.status===429)note.textContent='Too many attempts — please wait a few minutes and try again.';
+    else if(error.code==='email_exists'||/already/i.test(error.message||''))note.textContent=newEmail+' can’t be used. Please try a different email address.'; // neutral, so this can't be used to find out who has an account
+    else if(/invalid/i.test(error.message||''))note.textContent=newEmail+' doesn’t look like a valid email address.';
+    else note.textContent='Couldn’t change your email just now. Please try again.';
+    return;
+  }
   note.style.color='var(--green)';
   note.textContent='Confirmation link sent to '+newEmail+' — your email won\'t change until you click it.';
   showToast('Confirmation email sent');
