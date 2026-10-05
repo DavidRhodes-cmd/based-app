@@ -413,7 +413,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 <!-- MY PROFILE / EDIT -->
 <div id="screen-edit-profile" class="screen">
   <div class="app-header">
-    <button class="btn-back" onclick="goTo('screen-main')"><i class="ti ti-arrow-left"></i></button>
+    <button class="btn-back" onclick="leaveEditProfile()"><i class="ti ti-arrow-left"></i></button>
     <span style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark)">My profile</span>
     <button onclick="saveProfile()" style="background:transparent;border:none;font-size:14px;color:var(--gold);cursor:pointer;font-family:var(--sans);font-weight:600">Save</button>
   </div>
@@ -2081,7 +2081,7 @@ function afterResults(){
   openVerifyScreen(requireVerification?'gate':'signup');
 }
 function skipVerification(){
-  if(verifyContext==='settings'){openEditProfile();return;}
+  if(verifyContext==='settings'){renderVerifyRow();goTo('screen-edit-profile');return;}
   if(verifyContext==='header'){goMain();return;}
   if(needsVerificationGate())return;
   goMain();
@@ -2121,7 +2121,7 @@ function openVerifyScreen(context){
   const gate=verifyContext==='gate'||needsVerificationGate();
   const backBtn=document.getElementById('verify-back-btn');
   backBtn.style.visibility=(verifyContext==='settings'||verifyContext==='header')?'visible':'hidden';
-  backBtn.onclick=()=>{clearTimeout(verifyPollTimer);if(verifyContext==='header')goMain();else openEditProfile();};
+  backBtn.onclick=()=>{clearTimeout(verifyPollTimer);if(verifyContext==='header')goMain();else{renderVerifyRow();goTo('screen-edit-profile');}};
   const skip=document.getElementById('verify-skip-btn');
   skip.style.display=(verifyContext==='settings'||verifyContext==='header'||gate)?'none':'block';
   skip.textContent='Skip for now';skip.onclick=skipVerification;
@@ -2282,13 +2282,21 @@ try{excludedReligions=new Set(JSON.parse(localStorage.getItem('basedReligionFilt
 function renderReligionFilter(){
   const grid=document.getElementById('religion-filter-grid');
   if(!grid)return;
-  grid.innerHTML=[...RELIGIONS,NONE_STATED].map(r=>`<button type="button" class="religion-box ${excludedReligions.has(r)?'filter-off':'selected'}" onclick="toggleReligionFilter('${r}')">${r}</button>`).join('');
+  const set=pendingReligions||excludedReligions;
+  grid.innerHTML=[...RELIGIONS,NONE_STATED].map(r=>`<button type="button" class="religion-box ${set.has(r)?'filter-off':'selected'}" onclick="toggleReligionFilter('${r}')">${r}</button>`).join('');
 }
+// Changes are held here until "Save" on My profile; the back arrow offers to save or discard them
+let pendingReligions=null;
 function toggleReligionFilter(r){
-  if(excludedReligions.has(r))excludedReligions.delete(r);else excludedReligions.add(r);
+  if(!pendingReligions)pendingReligions=new Set(excludedReligions);
+  if(pendingReligions.has(r))pendingReligions.delete(r);else pendingReligions.add(r);
+  renderReligionFilter();
+}
+function commitReligionFilter(){
+  if(!pendingReligions)return;
+  excludedReligions=new Set(pendingReligions);pendingReligions=null;
   try{localStorage.setItem('basedReligionFilter',JSON.stringify([...excludedReligions]));}catch(e){}
   renderReligionFilter();
-  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
 }
 // Far-right position on the Distance slider means "200+ mi" / "300+ km" — no distance limit
 function distLabel(d){const u=myUnits()==='km'?' km':' mi';return d>=distMax()?distMax()+'+'+u:d+u;}
@@ -2918,7 +2926,37 @@ function openEditProfile(){
   document.getElementById('hide-toggle').classList.toggle('on',profileHidden);
   document.getElementById('hidden-banner').style.display=profileHidden?'block':'none';
   renderVerifyRow();
+  pendingReligions=new Set(excludedReligions);renderReligionFilter();
+  editBefore={units:myUnits(),photo:myProfile.photo,photo_file:myProfile.photo_file||null};
+  editSnapshot=editFormState();
   goTo('screen-edit-profile');
+}
+// ─── Unsaved changes on My profile ────────────────────────────────────────────
+let editSnapshot=null,editBefore=null;
+function editFormState(){
+  return JSON.stringify({
+    name:document.getElementById('edit-name').value.trim(),
+    dob:document.getElementById('edit-dob').value.trim(),
+    country:document.getElementById('edit-country').value,
+    location:document.getElementById('edit-location').value.trim(),
+    units:myUnits(),
+    religions:[...(pendingReligions||excludedReligions)].sort(),
+    photo:myProfile.photo_file?myProfile.photo:null
+  });
+}
+function editHasChanges(){return editSnapshot!==null&&editFormState()!==editSnapshot;}
+function leaveEditProfile(){
+  if(!editHasChanges()){discardEditChanges();return;}
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Save your changes?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">You’ve made changes to your profile that haven’t been saved.</p><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" onclick="removeModal();saveProfile()">Save changes</button><button class="btn-ghost" onclick="removeModal();discardEditChanges()">Discard changes</button><button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;padding:6px">Keep editing</button></div>`);
+}
+function discardEditChanges(){
+  pendingReligions=null;renderReligionFilter();
+  if(editBefore){
+    if(myUnits()!==editBefore.units)setUnits(editBefore.units,true);
+    myProfile.photo=editBefore.photo;myProfile.photo_file=editBefore.photo_file;
+  }
+  editSnapshot=null;editBefore=null;
+  goTo('screen-main');
 }
 
 async function saveProfile(){
@@ -2959,6 +2997,9 @@ async function saveProfile(){
     renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
     showToast('Profile saved');
   }
+  commitReligionFilter();
+  editSnapshot=null;editBefore=null;
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   goTo('screen-main');
 }
 
