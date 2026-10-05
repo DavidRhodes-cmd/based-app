@@ -17,7 +17,7 @@
   --navy:#1a1f2e;--navy-mid:#252b3d;--navy-light:#2f3650;
   --gold:#c9a84c;--gold-light:#e8c97a;
   --text-on-dark:#e8e4dc;--text-muted:#8a8fa8;
-  --green:#6fcf97;--red:#eb5757;--verified:#5aa9ff;
+  --green:#6fcf97;--red:#eb5757;--verified:#e8c97a;
   --serif:Georgia,'Times New Roman',serif;
   --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;
   --safe-top:env(safe-area-inset-top,0px);
@@ -299,7 +299,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
     <div style="width:28px"></div>
   </div>
   <div class="scrollable" style="padding:28px 16px;flex:1;display:flex;flex-direction:column;align-items:center">
-    <div style="width:72px;height:72px;border-radius:50%;background:rgba(90,169,255,0.1);border:0.5px solid rgba(90,169,255,0.35);display:flex;align-items:center;justify-content:center;margin-bottom:18px"><i class="ti ti-discount-check-filled" style="font-size:38px;color:var(--verified)"></i></div>
+    <div style="width:72px;height:72px;border-radius:50%;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.35);display:flex;align-items:center;justify-content:center;margin-bottom:18px"><i class="ti ti-discount-check-filled" style="font-size:38px;color:var(--verified)"></i></div>
     <p style="font-family:var(--serif);font-size:24px;color:var(--text-on-dark);text-align:center;margin-bottom:10px">Verify your identity</p>
     <p style="font-size:14px;color:var(--text-muted);text-align:center;line-height:1.55;margin-bottom:22px;max-width:340px">BASED is for real people who are who they say they are. A quick check of your photo ID and a selfie earns you a <span style="color:var(--verified);white-space:nowrap"><i class="ti ti-discount-check-filled"></i> Verified</span> badge, so your matches know you’re genuine.</p>
     <div style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
@@ -419,7 +419,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
       <input type="file" id="edit-photo-input" accept="image/*" style="display:none" onchange="handleEditPhoto(this)" />
     </div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" id="edit-name" /></div>
-    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="edit-dob" oninput="formatDobInput(this)" /></div>
+    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="edit-dob" oninput="formatDobInput(this)" /><p id="edit-dob-note" style="display:none;font-size:11px;color:var(--text-muted);margin-top:7px"><i class="ti ti-lock" style="margin-right:4px"></i>Confirmed by your ID, so it can’t be changed.</p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Country</label><select class="form-input" id="edit-country" onchange="onCountryChange('edit')"></select><p id="edit-country-note" style="font-size:12px;color:var(--red);margin-top:7px;display:none"></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block" id="edit-location-label">Postcode</label><div class="loc-wrap"><input class="form-input" type="text" id="edit-location" oninput="onLocationInput('edit')" onblur="setTimeout(()=>hideSuggest('edit'),200)" /><div class="loc-suggest" id="edit-loc-suggest"></div></div><p style="font-size:11px;color:var(--text-muted);margin-top:7px">Used to calculate distances — not shown to other users.</p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Show distances in</label><div class="unit-toggle"><button type="button" id="units-mi" onclick="setUnits('mi')">Miles</button><button type="button" id="units-km" onclick="setUnits('km')">Kilometres</button></div></div>
@@ -1104,7 +1104,7 @@ async function finishProfileCreation(userId,email){
   removeModal();
   rememberEmail(email);
   try{localStorage.removeItem('basedReferralCode');}catch(e){}
-  isPremium=false;profileHidden=false;myVerificationStatus='unverified';
+  isPremium=false;profileHidden=false;myVerificationStatus='unverified';myVerificationIssue=null;
   await loadMyInteractions();
   subscribeToInteractions();
   subscribeToAllMessages();
@@ -1303,6 +1303,7 @@ async function restoreSession(){
     isPremium=p.is_premium||false;
     profileHidden=p.is_hidden||false;
     myVerificationStatus=p.verification_status||'unverified';
+    myVerificationIssue=p.verification_issue||null;
     console.log('Profile restored:', p.name, 'sex:', p.sex, 'lat:', p.lat, 'lng:', p.lng);
   } else {
     console.warn('No profile found for user:', currentUser.id, pErr?.message);
@@ -2032,6 +2033,7 @@ function showResults(){
 // The server decides the result (webhook + check); the SDK's own result is only
 // used to know when to ask the server.
 let myVerificationStatus='unverified'; // unverified | pending | in_review | approved | declined
+let myVerificationIssue=null;          // dob_mismatch | underage | no_dob (why an ID check was held back)
 let requireVerification=false;         // app_config.require_verification
 let verifyContext='signup';            // signup | gate | settings
 const VERIFIED_TICK='<i class="ti ti-discount-check-filled" title="Verified" style="color:var(--verified);font-size:0.95em;margin-left:4px;vertical-align:-1px"></i>';
@@ -2068,17 +2070,41 @@ function setVerifyMsg(text,kind){
   el.style.color=kind==='error'?'var(--red)':kind==='ok'?'var(--green)':'var(--text-muted)';
   el.innerHTML=text;
 }
+// Shows the right message and buttons when an ID check passed but was held back
+function showVerifyIssue(issue){
+  const btn=document.getElementById('verify-start-btn'),skip=document.getElementById('verify-skip-btn');
+  btn.disabled=false;btn.style.opacity='1';
+  if(issue==='underage'){
+    btn.style.display='none';skip.style.display='none';
+    setVerifyMsg('Your ID shows you’re under 18. BASED is only for adults aged 18 and over, so your profile has been hidden. If you think this is a mistake, please contact support@baseddatingonline.com.','error');
+    return true;
+  }
+  if(issue==='dob_mismatch'){
+    btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
+    skip.style.display='block';skip.textContent='Edit my date of birth';skip.onclick=()=>{openEditProfile();setTimeout(()=>document.getElementById('edit-dob').focus(),300);};
+    setVerifyMsg('Your ID checked out, but its date of birth doesn’t match the one on your profile. If your profile is wrong, correct it in Settings, then tap <b>Check again</b>. You won’t need to scan your ID again.','error');
+    return true;
+  }
+  if(issue==='no_dob'){
+    btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
+    setVerifyMsg('Thanks, we couldn’t read the date of birth on your ID automatically, so it’s being checked by hand. Your badge will appear once approved.');
+    return true;
+  }
+  return false;
+}
 function openVerifyScreen(context){
   verifyContext=context||'signup';
   const gate=verifyContext==='gate'||needsVerificationGate();
   document.getElementById('verify-back-btn').style.visibility=verifyContext==='settings'?'visible':'hidden';
   const skip=document.getElementById('verify-skip-btn');
   skip.style.display=(verifyContext==='settings'||gate)?'none':'block';
-  skip.textContent='Skip for now';
+  skip.textContent='Skip for now';skip.onclick=skipVerification;
+  document.getElementById('verify-start-btn').style.display='block';
   document.getElementById('verify-logout-btn').style.display=gate&&verifyContext!=='settings'?'inline-block':'none';
   const start=document.getElementById('verify-start-btn');
   start.disabled=false;start.style.opacity='1';
   setVerifyMsg('');
+  if(myVerificationIssue&&myVerificationStatus!=='approved'&&showVerifyIssue(myVerificationIssue)){goTo('screen-verify');return;}
   if(myVerificationStatus==='in_review'){
     setVerifyMsg('Your verification is being reviewed. This usually takes a few minutes.');
     start.textContent='Check again';start.onclick=()=>pollVerification(1);
@@ -2161,7 +2187,8 @@ async function pollVerification(tries){
   btn.disabled=true;btn.style.opacity='0.6';
   const {data}=await callDiditSession('check');
   const st=data&&data.status;
-  if(st)myVerificationStatus=st;
+  if(st){myVerificationStatus=st;myVerificationIssue=(data&&data.issue)||null;}
+  if(myVerificationIssue&&st!=='approved'){clearTimeout(verifyPollTimer);showVerifyIssue(myVerificationIssue);return;}
   if(st==='approved'){btn.disabled=false;btn.style.opacity='1';onVerified();return;}
   if(st==='declined'){
     btn.disabled=false;btn.style.opacity='1';
@@ -2183,7 +2210,7 @@ async function pollVerification(tries){
 }
 
 function onVerified(){
-  myVerificationStatus='approved';
+  myVerificationStatus='approved';myVerificationIssue=null;
   showToast('You’re verified ✓');
   if(verifyContext==='settings'){openEditProfile();return;}
   goMain();
@@ -2193,9 +2220,10 @@ function renderVerifyRow(){
   const row=document.getElementById('verify-row');
   if(!row)return;
   const st=myVerificationStatus;
-  const label={approved:'Verified',in_review:'Under review',declined:'Not approved',pending:'Not finished',unverified:'Not verified'}[st]||'Not verified';
+  const iss=st==='approved'?null:myVerificationIssue;
+  const label=iss==='dob_mismatch'?'Date of birth doesn’t match your ID':iss==='underage'?'Not eligible (under 18)':({approved:'Verified',in_review:'Under review',declined:'Not approved',pending:'Not finished',unverified:'Not verified'}[st]||'Not verified');
   const col=st==='approved'?'var(--verified)':st==='declined'?'var(--red)':'var(--text-muted)';
-  const btn=st==='approved'?'':`<button onclick="openVerifyScreen('settings')" style="background:rgba(90,169,255,0.1);border:0.5px solid rgba(90,169,255,0.4);border-radius:11px;padding:9px 15px;color:var(--verified);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">${st==='in_review'?'Check':st==='declined'?'Try again':'Verify now'}</button>`;
+  const btn=(st==='approved'||iss==='underage')?'':`<button onclick="openVerifyScreen('settings')" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);border-radius:11px;padding:9px 15px;color:var(--verified);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">${(st==='in_review'||iss==='dob_mismatch')?'Check':st==='declined'?'Try again':'Verify now'}</button>`;
   row.innerHTML=`<i class="ti ${st==='approved'?'ti-discount-check-filled':'ti-discount-check'}" style="font-size:24px;color:${col}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Identity verification</p><p style="font-size:13px;color:${col}">${label}</p></div>${btn}`;
 }
 
@@ -2848,6 +2876,7 @@ async function changeEmail(){
 function openEditProfile(){
   document.getElementById('edit-name').value=myProfile.name||'';
   document.getElementById('edit-dob').value=isoToDobDisplay(myProfile.dob);
+  {const locked=myVerificationStatus==='approved';const d=document.getElementById('edit-dob');d.readOnly=locked;d.style.opacity=locked?'0.6':'1';document.getElementById('edit-dob-note').style.display=locked?'block':'none';}
   const ec=document.getElementById('edit-country');ec.innerHTML=countryOptionsHtml(myProfile.country||'GB');editPrevCountry=myProfile.country||'GB';
   document.getElementById('edit-country-note').style.display='none';
   applyCountryUI('edit');locState.edit.picked=null;hideSuggest('edit');
