@@ -2906,7 +2906,7 @@ async function changeEmail(){
   if(error){
     note.style.color='var(--red)';
     if(error.status===429)note.textContent='Too many attempts — please wait a few minutes and try again.';
-    else if(error.code==='email_exists'||/already/i.test(error.message||''))note.textContent=newEmail+' can’t be used. Please try a different email address.'; // neutral, so this can't be used to find out who has an account
+    else if(error.code==='email_exists'||/already/i.test(error.message||''))note.textContent=newEmail+' can’t be used.'; // neutral, so this can't be used to find out who has an account
     else if(/invalid/i.test(error.message||''))note.textContent=newEmail+' doesn’t look like a valid email address.';
     else note.textContent='Couldn’t change your email just now. Please try again.';
     return;
