@@ -17,7 +17,7 @@
   --navy:#1a1f2e;--navy-mid:#252b3d;--navy-light:#2f3650;
   --gold:#c9a84c;--gold-light:#e8c97a;
   --text-on-dark:#e8e4dc;--text-muted:#8a8fa8;
-  --green:#6fcf97;--red:#eb5757;
+  --green:#6fcf97;--red:#eb5757;--verified:#5aa9ff;
   --serif:Georgia,'Times New Roman',serif;
   --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;
   --safe-top:env(safe-area-inset-top,0px);
@@ -139,6 +139,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 .chat-menu button.danger,.chat-menu button.danger i{color:var(--red);}
 .modal-box{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.15);border-radius:20px;padding:28px 22px;margin:24px;text-align:center;width:100%;}
 .bottom-safe{padding-bottom:calc(var(--safe-bottom) + 12px);}
+.btn-safe{margin-bottom:calc(var(--safe-bottom) + 12px);}
 </style>
 </head>
 <body>
@@ -210,7 +211,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
     <div class="banner-note" style="margin-bottom:22px">We don't want to rob you of conversation, so you can figure out the rest.</div>
     <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-terms" tabindex="9" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to the BASED <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms();">Terms and Conditions</span></span></label>
     <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:22px;cursor:pointer"><input type="checkbox" id="inp-marketing-consent" tabindex="10" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">Send me updates and offers from BASED (optional — you can unsubscribe anytime)</span></label>
-    <button class="btn-primary bottom-safe" id="details-continue-btn" tabindex="11" onclick="tryDetails()">Continue to questions</button>
+    <button class="btn-primary btn-safe" id="details-continue-btn" tabindex="11" onclick="tryDetails()">Continue to questions</button>
         <p style="font-size:12px;color:var(--red);text-align:center;margin-top:9px;display:none" id="details-error">Please upload a photo before continuing.</p>
     </div>
   </div>
@@ -284,8 +285,33 @@ select.form-input option{background:#1a1f2e;color:#fff;}
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;width:100%" class="bottom-safe">
-      <button class="btn-primary" onclick="goTo('screen-main')">Find my matches</button>
+      <button class="btn-primary" onclick="afterResults()">Find my matches</button>
       <button class="btn-ghost" onclick="goTo('screen-questions');resetQuestions()">Redo questions</button>
+    </div>
+  </div>
+</div>
+
+<!-- VERIFY IDENTITY -->
+<div id="screen-verify" class="screen">
+  <div class="app-header">
+    <button class="btn-back" id="verify-back-btn" style="visibility:hidden" onclick="clearTimeout(verifyPollTimer);openEditProfile()"><i class="ti ti-arrow-left"></i></button>
+    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div style="width:28px"></div>
+  </div>
+  <div class="scrollable" style="padding:28px 16px;flex:1;display:flex;flex-direction:column;align-items:center">
+    <div style="width:72px;height:72px;border-radius:50%;background:rgba(90,169,255,0.1);border:0.5px solid rgba(90,169,255,0.35);display:flex;align-items:center;justify-content:center;margin-bottom:18px"><i class="ti ti-discount-check-filled" style="font-size:38px;color:var(--verified)"></i></div>
+    <p style="font-family:var(--serif);font-size:24px;color:var(--text-on-dark);text-align:center;margin-bottom:10px">Verify your identity</p>
+    <p style="font-size:14px;color:var(--text-muted);text-align:center;line-height:1.55;margin-bottom:22px;max-width:340px">BASED is for real people who are who they say they are. A quick check of your photo ID and a selfie earns you a <span style="color:var(--verified);white-space:nowrap"><i class="ti ti-discount-check-filled"></i> Verified</span> badge, so your matches know you’re genuine.</p>
+    <div style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
+      <div style="display:flex;gap:11px;align-items:flex-start"><i class="ti ti-clock" style="font-size:18px;color:var(--gold);margin-top:1px"></i><p style="font-size:14px;color:var(--text-on-dark);line-height:1.45">Takes about two minutes</p></div>
+      <div style="display:flex;gap:11px;align-items:flex-start"><i class="ti ti-id" style="font-size:18px;color:var(--gold);margin-top:1px"></i><p style="font-size:14px;color:var(--text-on-dark);line-height:1.45">Have your passport, driving licence or national ID card ready</p></div>
+      <div style="display:flex;gap:11px;align-items:flex-start"><i class="ti ti-lock" style="font-size:18px;color:var(--gold);margin-top:1px"></i><p style="font-size:14px;color:var(--text-on-dark);line-height:1.45">Your ID is checked securely by our verification partner, Didit. BASED only keeps whether you passed, not your document.</p></div>
+    </div>
+    <p id="verify-msg" style="display:none;font-size:14px;line-height:1.5;text-align:center;margin-bottom:16px;max-width:360px"></p>
+    <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:400px;margin-top:auto" class="bottom-safe">
+      <button class="btn-primary" id="verify-start-btn" onclick="startVerification()">Verify now</button>
+      <button class="btn-ghost" id="verify-skip-btn" onclick="skipVerification()">Skip for now</button>
+      <button id="verify-logout-btn" onclick="confirmLogout()" style="display:none;background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px">Log out</button>
     </div>
   </div>
 </div>
@@ -407,6 +433,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
     </div>
 
     <div style="border-top:0.5px solid rgba(255,255,255,0.08);padding-top:20px;display:flex;flex-direction:column;gap:2px">
+      <div id="verify-row" style="display:flex;align-items:center;gap:12px;padding:4px 0 16px;border-bottom:0.5px solid rgba(255,255,255,0.07)"></div>
       <div class="toggle-row">
         <div style="flex:1;padding-right:16px">
           <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:4px">Hide my profile</p>
@@ -477,7 +504,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
     <datalist id="based-remembered-emails"></datalist>
     <div style="margin-bottom:22px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Your password" id="signin-password" autocomplete="current-password" onkeydown="if(event.key==='Enter')trySignIn()" /><button type="button" class="pw-toggle" tabindex="-1" onclick="togglePasswordVisibility('signin-password',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div>
     <p style="font-size:12px;color:var(--text-muted);margin-top:9px;cursor:pointer;text-align:right" onclick="openForgotPassword()">Forgotten password?</p></div>
-    <button class="btn-primary bottom-safe" onclick="trySignIn()">Sign in</button>
+    <button class="btn-primary btn-safe" onclick="trySignIn()">Sign in</button>
     <p style="font-size:12px;color:var(--red);text-align:center;margin-top:9px;display:none" id="signin-error"></p>
     <p style="font-size:13px;color:var(--text-muted);text-align:center;margin-top:18px">Don't have an account? <span style="color:var(--gold);cursor:pointer" onclick="goTo('screen-details')">Create one</span></p>
   </div>
@@ -513,7 +540,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
       <p style="font-family:var(--serif);font-size:22px;color:var(--text-on-dark);margin-bottom:5px">Reset your password</p>
       <p style="font-size:14px;color:var(--text-muted);margin-bottom:28px;line-height:1.5">Enter your email and we'll send you a link to reset your password.</p>
       <div style="margin-bottom:22px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="forgot-email" autocomplete="email" list="based-remembered-emails" onkeydown="if(event.key==='Enter')sendPasswordReset()" /></div>
-      <button class="btn-primary bottom-safe" onclick="sendPasswordReset()">Send password reset email</button>
+      <button class="btn-primary btn-safe" onclick="sendPasswordReset()">Send password reset email</button>
       <p style="font-size:12px;color:var(--red);text-align:center;margin-top:9px;display:none" id="forgot-error"></p>
     </div>
     <div id="forgot-sent-state" style="display:none;text-align:center;padding-top:20px">
@@ -535,7 +562,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
     <p style="font-size:14px;color:var(--text-muted);margin-bottom:28px;line-height:1.5">Enter your new password twice to confirm.</p>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">New password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Min. 6 characters" id="reset-password" autocomplete="new-password" onkeydown="if(event.key==='Enter')doResetPassword()" /><button type="button" class="pw-toggle" tabindex="-1" onclick="togglePasswordVisibility('reset-password',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div></div>
     <div style="margin-bottom:22px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Confirm new password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Re-enter your new password" id="reset-password-confirm" autocomplete="new-password" onkeydown="if(event.key==='Enter')doResetPassword()" /><button type="button" class="pw-toggle" tabindex="-1" onclick="togglePasswordVisibility('reset-password-confirm',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div></div>
-    <button class="btn-primary bottom-safe" onclick="doResetPassword()">Reset</button>
+    <button class="btn-primary btn-safe" onclick="doResetPassword()">Reset</button>
     <p style="font-size:12px;color:var(--red);text-align:center;margin-top:9px;display:none" id="reset-error"></p>
   </div>
 </div>
@@ -1077,7 +1104,7 @@ async function finishProfileCreation(userId,email){
   removeModal();
   rememberEmail(email);
   try{localStorage.removeItem('basedReferralCode');}catch(e){}
-  isPremium=false;profileHidden=false;
+  isPremium=false;profileHidden=false;myVerificationStatus='unverified';
   await loadMyInteractions();
   subscribeToInteractions();
   subscribeToAllMessages();
@@ -1242,6 +1269,7 @@ async function trySignIn(){
   removeModal();
   await loadBrowseProfiles();
   restoreFilterPrefs();
+  if(needsVerificationGate()){openVerifyScreen('gate');return;}
   goTo('screen-main');
   await switchTab('browse');
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
@@ -1274,6 +1302,7 @@ async function restoreSession(){
     myAnswers=p.answers||new Array(NUM_Q).fill(0);
     isPremium=p.is_premium||false;
     profileHidden=p.is_hidden||false;
+    myVerificationStatus=p.verification_status||'unverified';
     console.log('Profile restored:', p.name, 'sex:', p.sex, 'lat:', p.lat, 'lng:', p.lng);
   } else {
     console.warn('No profile found for user:', currentUser.id, pErr?.message);
@@ -1393,7 +1422,8 @@ async function loadBrowseProfiles(){
       distCurrent:p.dist_current_mi,
       distHomeKm:p.dist_home_km,
       distCurrentKm:p.dist_current_km,
-      religion:p.religion||null
+      religion:p.religion||null,
+      verified:!!p.is_verified
     }));
     browseProfiles=[...real,...demoForSex];
   }
@@ -1441,7 +1471,7 @@ function renderProfiles(minPct){
     const avatarContent=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" />`:`<span style="color:var(--text-on-dark)">${p.initials}</span>`;
     const aStr=JSON.stringify(p.answers).replace(/"/g,'&quot;');
     if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="goTo('screen-paywall')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:7px">Upgrade to view</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div></div>`;}
-    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${aStr}',${p.compat},${p.basedScore},'${p.initials}','${p.name}',${p.age},'','${p.photo_url||''}','${profileKey}','${p.religion||''}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px;padding-right:72px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.name}, ${p.age}${distanceSpan(p)}</div>${badge?`<div style="margin-bottom:6px">${badge}</div>`:'<div style="margin-bottom:6px"></div>'}<div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
+    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${aStr}',${p.compat},${p.basedScore},'${p.initials}','${p.name}',${p.age},'','${p.photo_url||''}','${profileKey}','${p.religion||''}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px;padding-right:72px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.name}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</div>${badge?`<div style="margin-bottom:6px">${badge}</div>`:'<div style="margin-bottom:6px"></div>'}<div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
   });
   if(!isPremium&&outOfFreeViews()){html+=`<div style="background:rgba(15,18,30,0.95);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;padding:22px;margin-top:6px;text-align:center"><i class="ti ti-crown" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:8px">You've seen your 5 free profiles</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">Unlock unlimited browsing to keep meeting people who share your values.</p><button class="btn-primary" onclick="goTo('screen-paywall')" style="font-size:15px;padding:14px">Unlock unlimited access</button></div>`;}
   container.innerHTML=html;
@@ -1526,7 +1556,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   const isRealProfile=/^[0-9a-f-]{36}$/.test(String(profileKey));
   if(isRealProfile&&!isMutual)actionRow+=`<div style="text-align:center;margin-top:18px"><button onclick="openReport('${profileKey}','${String(name).replace(/'/g,"\\'")}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${name}</button></div>`;
   const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden"><img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${name}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4);color:var(--text-on-dark)">${inits}</div>`;
-  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);const t=pp?distanceText(pp):'';return t?` <span style="font-family:var(--sans);font-size:14px;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';})()}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
+  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);return pp&&pp.verified?VERIFIED_TICK:'';})()}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);const t=pp?distanceText(pp):'';return t?` <span style="font-family:var(--sans);font-size:14px;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';})()}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
   goTo('screen-profile');
   document.getElementById('profile-detail-body').scrollTop=0;
 }
@@ -1996,6 +2026,177 @@ function showResults(){
   document.getElementById('score-arc').style.strokeDasharray=circ;
   goTo('screen-results');
   renderProfiles(0);
+}
+
+// ─── Identity verification (Didit) ───────────────────────────────────────────
+// The server decides the result (webhook + check); the SDK's own result is only
+// used to know when to ask the server.
+let myVerificationStatus='unverified'; // unverified | pending | in_review | approved | declined
+let requireVerification=false;         // app_config.require_verification
+let verifyContext='signup';            // signup | gate | settings
+const VERIFIED_TICK='<i class="ti ti-discount-check-filled" title="Verified" style="color:var(--verified);font-size:0.95em;margin-left:4px;vertical-align:-1px"></i>';
+const FN_BASE='https://okubbpsvaogqzdtajiqz.supabase.co/functions/v1/';
+
+async function loadAppConfig(){
+  try{
+    const {data}=await sb.from('app_config').select('key,value').eq('key','require_verification').maybeSingle();
+    requireVerification=!!(data&&data.value===true);
+  }catch(e){requireVerification=false;}
+}
+function needsVerificationGate(){return requireVerification&&!!currentUser&&myVerificationStatus!=='approved';}
+
+function goMain(){
+  goTo('screen-main');
+  switchTab('browse');
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  updateMatchNotifs();
+}
+function afterResults(){
+  if(myVerificationStatus==='approved'){goTo('screen-main');return;}
+  openVerifyScreen(requireVerification?'gate':'signup');
+}
+function skipVerification(){
+  if(verifyContext==='settings'){openEditProfile();return;}
+  if(needsVerificationGate())return;
+  goMain();
+}
+
+function setVerifyMsg(text,kind){
+  const el=document.getElementById('verify-msg');
+  if(!text){el.style.display='none';el.textContent='';return;}
+  el.style.display='block';
+  el.style.color=kind==='error'?'var(--red)':kind==='ok'?'var(--green)':'var(--text-muted)';
+  el.innerHTML=text;
+}
+function openVerifyScreen(context){
+  verifyContext=context||'signup';
+  const gate=verifyContext==='gate'||needsVerificationGate();
+  document.getElementById('verify-back-btn').style.visibility=verifyContext==='settings'?'visible':'hidden';
+  const skip=document.getElementById('verify-skip-btn');
+  skip.style.display=(verifyContext==='settings'||gate)?'none':'block';
+  skip.textContent='Skip for now';
+  document.getElementById('verify-logout-btn').style.display=gate&&verifyContext!=='settings'?'inline-block':'none';
+  const start=document.getElementById('verify-start-btn');
+  start.disabled=false;start.style.opacity='1';
+  setVerifyMsg('');
+  if(myVerificationStatus==='in_review'){
+    setVerifyMsg('Your verification is being reviewed. This usually takes a few minutes.');
+    start.textContent='Check again';start.onclick=()=>pollVerification(1);
+  }else{
+    start.textContent=myVerificationStatus==='declined'?'Try again':'Verify now';start.onclick=startVerification;
+    if(myVerificationStatus==='declined')setVerifyMsg('Your last attempt wasn’t approved. Please try again with a clear photo of a valid, in-date document.','error');
+    else if(gate&&verifyContext!=='settings')setVerifyMsg('To keep BASED safe, everyone now needs to verify their identity before continuing.');
+  }
+  goTo('screen-verify');
+}
+
+async function callDiditSession(action){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)return {ok:false,data:{error:'Please sign in again.'}};
+  try{
+    const r=await fetch(FN_BASE+'didit-session',{method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token},
+      body:JSON.stringify({action})});
+    const data=await r.json().catch(()=>({}));
+    return {ok:r.ok,data};
+  }catch(e){return {ok:false,data:{error:'Network problem. Please check your connection and try again.'}};}
+}
+
+let diditSdkPromise=null;
+function loadDiditSdk(){
+  if(window.DiditSDK&&window.DiditSDK.DiditSdk)return Promise.resolve(window.DiditSDK.DiditSdk);
+  if(diditSdkPromise)return diditSdkPromise;
+  diditSdkPromise=new Promise(resolve=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/@didit-protocol/sdk-web@0.4.0/dist/didit-sdk.umd.min.js';
+    s.onload=()=>resolve(window.DiditSDK&&window.DiditSDK.DiditSdk||null);
+    s.onerror=()=>{diditSdkPromise=null;resolve(null);};
+    document.head.appendChild(s);
+    setTimeout(()=>resolve(window.DiditSDK&&window.DiditSDK.DiditSdk||null),15000);
+  });
+  return diditSdkPromise;
+}
+
+async function startVerification(){
+  const btn=document.getElementById('verify-start-btn');
+  btn.disabled=true;btn.style.opacity='0.6';
+  setVerifyMsg('<i class="ti ti-loader" style="animation:spin 1s linear infinite;margin-right:6px"></i>Starting verification…');
+  const [{ok,data},sdk]=await Promise.all([callDiditSession('start'),loadDiditSdk()]);
+  btn.disabled=false;btn.style.opacity='1';
+  if(data&&data.status==='approved'){onVerified();return;}
+  if(!ok||!data.url){setVerifyMsg(data.error||'Couldn’t start verification. Please try again.','error');return;}
+  setVerifyMsg('');
+  if(!sdk){ // SDK couldn't load — fall back to Didit's own page, which returns here when done
+    try{sessionStorage.setItem('basedVerifyContext',verifyContext);}catch(e){}
+    window.location.href=data.url;return;
+  }
+  sdk.shared.onComplete=handleDiditResult;
+  try{
+    await sdk.shared.startVerification({url:data.url,configuration:{showExitConfirmation:true,closeModalOnComplete:true,zIndex:10000}});
+  }catch(e){
+    console.warn('Didit SDK failed, redirecting:',e);
+    try{sessionStorage.setItem('basedVerifyContext',verifyContext);}catch(_){}
+    window.location.href=data.url;
+  }
+}
+
+function handleDiditResult(result){
+  const type=result&&result.type;
+  if(type==='completed'){pollVerification(10);return;}
+  if(type==='cancelled'){
+    setVerifyMsg(needsVerificationGate()?'You’ll need to finish verifying to continue.':'No problem. You can verify any time from Settings.');
+    return;
+  }
+  const err=result&&result.error&&result.error.type;
+  if(err==='cameraAccessDenied')setVerifyMsg('We need your camera to take photos of your ID and a selfie. Please allow camera access for this site, then try again.','error');
+  else if(err==='sessionExpired')setVerifyMsg('That verification session expired. Please start again.','error');
+  else setVerifyMsg('Something went wrong during verification. Please try again.','error');
+}
+
+let verifyPollTimer=null;
+async function pollVerification(tries){
+  clearTimeout(verifyPollTimer);
+  const btn=document.getElementById('verify-start-btn');
+  setVerifyMsg('<i class="ti ti-loader" style="animation:spin 1s linear infinite;margin-right:6px"></i>Checking your result…');
+  btn.disabled=true;btn.style.opacity='0.6';
+  const {data}=await callDiditSession('check');
+  const st=data&&data.status;
+  if(st)myVerificationStatus=st;
+  if(st==='approved'){btn.disabled=false;btn.style.opacity='1';onVerified();return;}
+  if(st==='declined'){
+    btn.disabled=false;btn.style.opacity='1';
+    btn.textContent='Try again';btn.onclick=startVerification;
+    setVerifyMsg('We couldn’t verify your identity this time. Please try again with a clear photo of a valid, in-date document, in good light.','error');
+    return;
+  }
+  if(tries>1&&(st==='pending'||st==='in_review'||!st)){verifyPollTimer=setTimeout(()=>pollVerification(tries-1),3000);return;}
+  btn.disabled=false;btn.style.opacity='1';
+  if(st==='in_review'||st==='pending'){
+    btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
+    setVerifyMsg('Thanks, your details are being reviewed. This usually only takes a few minutes. Your <span style="color:var(--verified)"><i class="ti ti-discount-check-filled"></i> Verified</span> badge will appear once approved.');
+    if(!needsVerificationGate()&&verifyContext!=='settings'){const s=document.getElementById('verify-skip-btn');s.style.display='block';s.textContent='Continue';}
+    return;
+  }
+  // Back to unverified (abandoned / expired)
+  btn.textContent='Verify now';btn.onclick=startVerification;
+  setVerifyMsg('Verification wasn’t completed. Please try again.','error');
+}
+
+function onVerified(){
+  myVerificationStatus='approved';
+  showToast('You’re verified ✓');
+  if(verifyContext==='settings'){openEditProfile();return;}
+  goMain();
+}
+
+function renderVerifyRow(){
+  const row=document.getElementById('verify-row');
+  if(!row)return;
+  const st=myVerificationStatus;
+  const label={approved:'Verified',in_review:'Under review',declined:'Not approved',pending:'Not finished',unverified:'Not verified'}[st]||'Not verified';
+  const col=st==='approved'?'var(--verified)':st==='declined'?'var(--red)':'var(--text-muted)';
+  const btn=st==='approved'?'':`<button onclick="openVerifyScreen('settings')" style="background:rgba(90,169,255,0.1);border:0.5px solid rgba(90,169,255,0.4);border-radius:11px;padding:9px 15px;color:var(--verified);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">${st==='in_review'?'Check':st==='declined'?'Try again':'Verify now'}</button>`;
+  row.innerHTML=`<i class="ti ${st==='approved'?'ti-discount-check-filled':'ti-discount-check'}" style="font-size:24px;color:${col}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Identity verification</p><p style="font-size:13px;color:${col}">${label}</p></div>${btn}`;
 }
 
 function updateFilter(source){
@@ -2661,6 +2862,7 @@ function openEditProfile(){
   else{document.getElementById('edit-avatar-img').style.display='none';document.getElementById('edit-avatar-initials').style.display='block';document.getElementById('edit-reposition-btn').style.display='none';}
   document.getElementById('hide-toggle').classList.toggle('on',profileHidden);
   document.getElementById('hidden-banner').style.display=profileHidden?'block':'none';
+  renderVerifyRow();
   goTo('screen-edit-profile');
 }
 
@@ -2781,10 +2983,14 @@ document.head.appendChild(spinStyle);
   renderReligionFilter();
   document.getElementById('inp-country').innerHTML=countryOptionsHtml('GB');applyCountryUI('inp');
   loadOpenCountries();
+  const cfgReady=loadAppConfig();
+  const verifyReturn=new URLSearchParams(location.search).get('verification')==='done';
+  if(verifyReturn){try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}}
   browseProfiles=[];
   await loadDemoProfiles();
   renderProfiles(0);
   const restored=await restoreSession();
+  await cfgReady;
   if(restored){
     await loadBrowseProfiles();
     restoreFilterPrefs();
@@ -2794,7 +3000,9 @@ document.head.appendChild(spinStyle);
     document.getElementById('filter-dist-val').textContent=distLabel(dist);
     renderProfiles(minPct);
     updateMatchNotifs();
-    if(!hasPendingSignupOnLoad&&!authLinkError)goTo('screen-main'); // let the confirmation-completion flow navigate instead, if one's in progress; stay put on an auth-link error
+    if(verifyReturn&&!authLinkError){let ctx='signup';try{ctx=sessionStorage.getItem('basedVerifyContext')||'signup';sessionStorage.removeItem('basedVerifyContext');}catch(e){}openVerifyScreen(ctx);pollVerification(10);}
+    else if(!hasPendingSignupOnLoad&&!authLinkError&&needsVerificationGate())openVerifyScreen('gate');
+    else if(!hasPendingSignupOnLoad&&!authLinkError)goTo('screen-main'); // let the confirmation-completion flow navigate instead, if one's in progress; stay put on an auth-link error
   }
   if(authLinkError){
     try{await sb.auth.signOut();}catch(e){}
