@@ -140,6 +140,16 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 .modal-box{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.15);border-radius:20px;padding:28px 22px;margin:24px;text-align:center;width:100%;}
 .bottom-safe{padding-bottom:calc(var(--safe-bottom) + 12px);}
 .btn-safe{margin-bottom:calc(var(--safe-bottom) + 12px);}
+/* Didit verification pop-up: keep its close button clear of the iPhone status bar */
+.didit-modal-container{background:var(--navy)!important;}
+@media (max-width:540px){
+  .didit-modal-container{padding-top:calc(env(safe-area-inset-top) + 48px);box-sizing:border-box;}
+  .didit-verification-iframe{height:calc(100dvh - env(safe-area-inset-top) - 48px)!important;}
+}
+.didit-close-button{top:calc(env(safe-area-inset-top) + 8px)!important;right:12px!important;width:auto!important;height:34px!important;padding:0 14px!important;border-radius:17px!important;background:rgba(255,255,255,0.12)!important;border:0.5px solid rgba(255,255,255,0.25)!important;display:flex!important;align-items:center;gap:7px;opacity:1!important;}
+.didit-close-button svg{stroke:#fff!important;width:12px;height:12px;}
+.didit-close-button::after{content:'Cancel';color:#fff;font-size:14px;font-family:var(--sans);font-weight:500;}
+@media (min-width:541px){.didit-close-button{top:8px!important;}}
 </style>
 </head>
 <body>
@@ -320,6 +330,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 <div id="screen-main" class="screen">
   <div class="app-header">
     <div class="logo-mark"><span class="logo-icon"><i class="ti ti-search"></i></span><span class="logo-text">BASED</span><span class="logo-mic"><i class="ti ti-microphone"></i></span></div>
+    <button id="get-verified-btn" onclick="openVerifyScreen('header')" style="display:none;align-items:center;gap:5px;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:20px;padding:6px 12px;color:var(--verified);font-size:13px;font-weight:600;font-family:var(--sans);cursor:pointer;white-space:nowrap;margin-left:auto;margin-right:10px"><i class="ti ti-discount-check" style="font-size:16px"></i>Get verified</button>
     <button id="settings-btn" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:22px;padding:4px"><i class="ti ti-settings"></i></button>
   </div>
   <div class="tab-bar">
@@ -715,7 +726,7 @@ let messageChannel=null; // Supabase realtime channel
 let interactionsChannel=null; // Supabase realtime channel for live match/interest detection
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
-function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);if(id==='screen-main'&&typeof updateGetVerifiedBtn==='function')updateGetVerifiedBtn();}
 function showModal(html){removeModal();const bd=document.createElement('div');bd.className='modal-backdrop';bd.id='modal-bd';bd.innerHTML=`<div class="modal-box">${html}</div>`;document.getElementById('app-shell').appendChild(bd);}
 function removeModal(){const m=document.getElementById('modal-bd');if(m)m.remove();}
 function showToast(msg,isError=false,duration=2800){let t=document.getElementById('sb-toast');if(!t){t=document.createElement('div');t.id='sb-toast';t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:22px;font-size:13px;z-index:9999;transition:opacity 0.3s;font-family:-apple-system,sans-serif;max-width:300px;text-align:center';document.body.appendChild(t);}t.textContent=msg;t.style.background=isError?'rgba(235,87,87,0.95)':'rgba(111,207,151,0.95)';t.style.color='#fff';t.style.opacity='1';clearTimeout(t._hideTimer);t._hideTimer=setTimeout(()=>{t.style.opacity='0';},duration);}
@@ -2045,6 +2056,12 @@ async function loadAppConfig(){
     requireVerification=!!(data&&data.value===true);
   }catch(e){requireVerification=false;}
 }
+// Header pill on the main screen — only for people who haven't verified yet
+function updateGetVerifiedBtn(){
+  const b=document.getElementById('get-verified-btn');if(!b)return;
+  const show=!!currentUser&&!['approved','in_review'].includes(myVerificationStatus)&&myVerificationIssue!=='underage';
+  b.style.display=show?'inline-flex':'none';
+}
 function needsVerificationGate(){return requireVerification&&!!currentUser&&myVerificationStatus!=='approved';}
 
 function goMain(){
@@ -2059,6 +2076,7 @@ function afterResults(){
 }
 function skipVerification(){
   if(verifyContext==='settings'){openEditProfile();return;}
+  if(verifyContext==='header'){goMain();return;}
   if(needsVerificationGate())return;
   goMain();
 }
@@ -2095,12 +2113,14 @@ function showVerifyIssue(issue){
 function openVerifyScreen(context){
   verifyContext=context||'signup';
   const gate=verifyContext==='gate'||needsVerificationGate();
-  document.getElementById('verify-back-btn').style.visibility=verifyContext==='settings'?'visible':'hidden';
+  const backBtn=document.getElementById('verify-back-btn');
+  backBtn.style.visibility=(verifyContext==='settings'||verifyContext==='header')?'visible':'hidden';
+  backBtn.onclick=()=>{clearTimeout(verifyPollTimer);if(verifyContext==='header')goMain();else openEditProfile();};
   const skip=document.getElementById('verify-skip-btn');
-  skip.style.display=(verifyContext==='settings'||gate)?'none':'block';
+  skip.style.display=(verifyContext==='settings'||verifyContext==='header'||gate)?'none':'block';
   skip.textContent='Skip for now';skip.onclick=skipVerification;
   document.getElementById('verify-start-btn').style.display='block';
-  document.getElementById('verify-logout-btn').style.display=gate&&verifyContext!=='settings'?'inline-block':'none';
+  document.getElementById('verify-logout-btn').style.display=gate&&verifyContext!=='settings'&&verifyContext!=='header'?'inline-block':'none';
   const start=document.getElementById('verify-start-btn');
   start.disabled=false;start.style.opacity='1';
   setVerifyMsg('');
