@@ -330,7 +330,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 <div id="screen-main" class="screen">
   <div class="app-header">
     <div class="logo-mark"><span class="logo-icon"><i class="ti ti-search"></i></span><span class="logo-text">BASED</span><span class="logo-mic"><i class="ti ti-microphone"></i></span></div>
-    <button id="get-verified-btn" onclick="openVerifyScreen('header')" style="display:none;align-items:center;gap:5px;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:20px;padding:6px 12px;color:var(--verified);font-size:13px;font-weight:600;font-family:var(--sans);cursor:pointer;white-space:nowrap;margin-left:auto;margin-right:10px"><i class="ti ti-discount-check" style="font-size:16px"></i>Get verified</button>
+    <button id="get-verified-btn" onclick="openVerifyScreen('header')" style="display:none;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:10px;padding:6px 10px;color:var(--verified);font-size:14px;font-weight:600;font-family:var(--sans);line-height:20px;cursor:pointer;white-space:nowrap;margin-left:auto;margin-right:10px"><i class="ti ti-discount-check" style="font-size:16px"></i>Get verified</button>
     <button id="settings-btn" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:22px;padding:4px"><i class="ti ti-settings"></i></button>
   </div>
   <div class="tab-bar">
@@ -2061,6 +2061,11 @@ function updateGetVerifiedBtn(){
   const b=document.getElementById('get-verified-btn');if(!b)return;
   const show=!!currentUser&&!['approved','in_review'].includes(myVerificationStatus)&&myVerificationIssue!=='underage';
   b.style.display=show?'inline-flex':'none';
+  if(show){ // match the BASED logo box exactly
+    const logo=document.querySelector('#screen-main .logo-mark');
+    const fit=()=>{if(logo&&logo.offsetWidth){b.style.minWidth=logo.offsetWidth+'px';b.style.height=logo.offsetHeight+'px';}};
+    fit();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit); // re-fit once the icon font has loaded
+  }
 }
 function needsVerificationGate(){return requireVerification&&!!currentUser&&myVerificationStatus!=='approved';}
 
@@ -2243,7 +2248,7 @@ function renderVerifyRow(){
   const iss=st==='approved'?null:myVerificationIssue;
   const label=iss==='dob_mismatch'?'Date of birth doesn’t match your ID':iss==='underage'?'Not eligible (under 18)':({approved:'Verified',in_review:'Under review',declined:'Not approved',pending:'Not finished',unverified:'Not verified'}[st]||'Not verified');
   const col=st==='approved'?'var(--verified)':st==='declined'?'var(--red)':'var(--text-muted)';
-  const btn=(st==='approved'||iss==='underage')?'':`<button onclick="openVerifyScreen('settings')" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);border-radius:11px;padding:9px 15px;color:var(--verified);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">${(st==='in_review'||iss==='dob_mismatch')?'Check':st==='declined'?'Try again':'Verify now'}</button>`;
+  const btn=(st==='approved'||iss==='underage')?'':`<button onclick="openVerifyScreen('settings')" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);border-radius:11px;padding:9px 15px;color:var(--verified);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">${(st==='in_review'||iss==='dob_mismatch')?'Check':st==='declined'?'Try again':'Get verified'}</button>`;
   row.innerHTML=`<i class="ti ${st==='approved'?'ti-discount-check-filled':'ti-discount-check'}" style="font-size:24px;color:${col}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Identity verification</p><p style="font-size:13px;color:${col}">${label}</p></div>${btn}`;
 }
 
