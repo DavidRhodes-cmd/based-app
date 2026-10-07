@@ -306,6 +306,30 @@ select.form-input option{background:#1a1f2e;color:#fff;}
   </div>
 </div>
 
+<!-- AGE CHECK (selfie) -->
+<div id="screen-agecheck" class="screen">
+  <div class="app-header">
+    <div style="width:28px"></div>
+    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div style="width:28px"></div>
+  </div>
+  <div class="scrollable" style="padding:28px 16px;flex:1;display:flex;flex-direction:column;align-items:center">
+    <div style="width:72px;height:72px;border-radius:50%;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.35);display:flex;align-items:center;justify-content:center;margin-bottom:18px"><i class="ti ti-face-id" style="font-size:36px;color:var(--gold)"></i></div>
+    <p style="font-family:var(--serif);font-size:24px;color:var(--text-on-dark);text-align:center;margin-bottom:10px">Quick selfie check</p>
+    <p style="font-size:14px;color:var(--text-muted);text-align:center;line-height:1.55;margin-bottom:22px;max-width:340px">BASED is for real adults only. Before you can see profiles, take a quick selfie so we can check you’re a real person aged 18 or over.</p>
+    <div style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
+      <div style="display:flex;gap:11px;align-items:flex-start"><i class="ti ti-clock" style="font-size:18px;color:var(--gold);margin-top:1px"></i><p style="font-size:14px;color:var(--text-on-dark);line-height:1.45">Takes under a minute — no ID needed</p></div>
+      <div style="display:flex;gap:11px;align-items:flex-start"><i class="ti ti-sun" style="font-size:18px;color:var(--gold);margin-top:1px"></i><p style="font-size:14px;color:var(--text-on-dark);line-height:1.45">Find good light and look straight at the camera</p></div>
+      <div style="display:flex;gap:11px;align-items:flex-start"><i class="ti ti-lock" style="font-size:18px;color:var(--gold);margin-top:1px"></i><p style="font-size:14px;color:var(--text-on-dark);line-height:1.45">Checked securely by our partner, Didit. BASED only keeps whether you passed — not your selfie.</p></div>
+    </div>
+    <p id="agecheck-msg" style="display:none;font-size:14px;line-height:1.5;text-align:center;margin-bottom:16px;max-width:360px"></p>
+    <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:400px;margin-top:auto;align-items:center" class="bottom-safe">
+      <button class="btn-primary" id="agecheck-start-btn" onclick="startAgeCheck()">Start selfie check</button>
+      <button onclick="confirmLogout()" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px">Log out</button>
+    </div>
+  </div>
+</div>
+
 <!-- VERIFY IDENTITY -->
 <div id="screen-verify" class="screen">
   <div class="app-header">
@@ -1120,7 +1144,7 @@ async function finishProfileCreation(userId,email){
   removeModal();
   rememberEmail(email);
   try{localStorage.removeItem('basedReferralCode');}catch(e){}
-  isPremium=false;profileHidden=false;myVerificationStatus='unverified';myVerificationIssue=null;
+  isPremium=false;profileHidden=false;myVerificationStatus='unverified';myVerificationIssue=null;myAgeStatus='none';
   await loadPermissions();
   await loadMyInteractions();
   subscribeToInteractions();
@@ -1286,6 +1310,7 @@ async function trySignIn(){
   removeModal();
   await loadBrowseProfiles();
   restoreFilterPrefs();
+  if(needsAgeGate()){openAgeCheck();return;}
   if(needsVerificationGate()){openVerifyScreen('gate');return;}
   goTo('screen-main');
   await switchTab('browse');
@@ -1321,6 +1346,7 @@ async function restoreSession(){
     profileHidden=p.is_hidden||false;
     myVerificationStatus=p.verification_status||'unverified';
     myVerificationIssue=p.verification_issue||null;
+    myAgeStatus=p.age_check_status||'none';
     console.log('Profile restored:', p.name, 'sex:', p.sex, 'lat:', p.lat, 'lng:', p.lng);
   } else {
     console.warn('No profile found for user:', currentUser.id, pErr?.message);
@@ -2184,12 +2210,16 @@ let verifyContext='signup';            // signup | gate | settings
 const VERIFIED_TICK='<i class="ti ti-discount-check-filled" title="Verified" style="color:var(--verified);font-size:0.95em;margin-left:4px;vertical-align:-1px"></i>';
 const FN_BASE='https://okubbpsvaogqzdtajiqz.supabase.co/functions/v1/';
 
+let requireAgeCheck=false;            // app_config.require_age_check
+let myAgeStatus='none';               // none | pending | in_review | passed | failed
 async function loadAppConfig(){
   try{
-    const {data}=await sb.from('app_config').select('key,value').eq('key','require_verification').maybeSingle();
-    requireVerification=!!(data&&data.value===true);
-  }catch(e){requireVerification=false;}
+    const {data}=await sb.from('app_config').select('key,value').in('key',['require_verification','require_age_check']);
+    const v=k=>{const r=(data||[]).find(x=>x.key===k);return !!(r&&r.value===true);};
+    requireVerification=v('require_verification');requireAgeCheck=v('require_age_check');
+  }catch(e){requireVerification=false;requireAgeCheck=false;}
 }
+function needsAgeGate(){return requireAgeCheck&&!!currentUser&&myAgeStatus!=='passed'&&myVerificationStatus!=='approved';}
 // Header pill on the main screen — only for people who haven't verified yet
 function updateGetVerifiedBtn(){
   const b=document.getElementById('get-verified-btn');if(!b)return;
@@ -2211,6 +2241,8 @@ function goMain(){
   updateMatchNotifs();
 }
 function afterResults(){
+  if(needsAgeGate()){openAgeCheck();return;}
+  if(requireAgeCheck){goMain();return;} // ID verification is the optional step up, via "Get verified"
   if(myVerificationStatus==='approved'){goTo('screen-main');return;}
   openVerifyScreen(requireVerification?'gate':'signup');
 }
@@ -2276,13 +2308,13 @@ function openVerifyScreen(context){
   goTo('screen-verify');
 }
 
-async function callDiditSession(action){
+async function callDiditSession(action,kind){
   const {data:{session}}=await sb.auth.getSession();
   if(!session)return {ok:false,data:{error:'Please sign in again.'}};
   try{
     const r=await fetch(FN_BASE+'didit-session',{method:'POST',
       headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token},
-      body:JSON.stringify({action})});
+      body:JSON.stringify({action,kind:kind||'id'})});
     const data=await r.json().catch(()=>({}));
     return {ok:r.ok,data};
   }catch(e){return {ok:false,data:{error:'Network problem. Please check your connection and try again.'}};}
@@ -2369,8 +2401,80 @@ async function pollVerification(tries){
   setVerifyMsg('Verification wasn’t completed. Please try again.','error');
 }
 
+function setAgeMsg(text,kind){
+  const el=document.getElementById('agecheck-msg');
+  if(!text){el.style.display='none';el.textContent='';return;}
+  el.style.display='block';
+  el.style.color=kind==='error'?'var(--red)':kind==='ok'?'var(--green)':'var(--text-muted)';
+  el.innerHTML=text;
+}
+function openAgeCheck(){
+  const b=document.getElementById('agecheck-start-btn');
+  b.style.display='block';b.disabled=false;b.style.opacity='1';b.textContent='Start selfie check';b.onclick=startAgeCheck;
+  setAgeMsg('');
+  if(myVerificationIssue==='underage')showAgeOutcome({status:'failed',issue:'underage'});
+  else if(myAgeStatus==='in_review')showAgeOutcome({status:'in_review'});
+  goTo('screen-agecheck');
+}
+async function startAgeCheck(){
+  const btn=document.getElementById('agecheck-start-btn');
+  btn.disabled=true;btn.style.opacity='0.6';
+  setAgeMsg('<i class="ti ti-loader" style="animation:spin 1s linear infinite;margin-right:6px"></i>Starting…');
+  const [{ok,data},sdk]=await Promise.all([callDiditSession('start','age'),loadDiditSdk()]);
+  btn.disabled=false;btn.style.opacity='1';
+  if(data&&data.status==='passed'){onAgePassed();return;}
+  if(!ok||!data.url){setAgeMsg(data.error||'Couldn’t start the check. Please try again.','error');return;}
+  setAgeMsg('');
+  if(!sdk){try{sessionStorage.setItem('basedVerifyContext','age');}catch(e){}window.location.href=data.url;return;}
+  sdk.shared.onComplete=r=>{
+    const t=r&&r.type;
+    if(t==='completed'){pollAgeCheck(10);return;}
+    if(t==='cancelled'){setAgeMsg('You’ll need to complete the selfie check to use BASED.');return;}
+    const err=r&&r.error&&r.error.type;
+    setAgeMsg(err==='cameraAccessDenied'?'We need your camera for the selfie. Please allow camera access for this site, then try again.':'Something went wrong. Please try again.','error');
+  };
+  try{await sdk.shared.startVerification({url:data.url,configuration:{showExitConfirmation:true,closeModalOnComplete:true,zIndex:10000}});}
+  catch(e){try{sessionStorage.setItem('basedVerifyContext','age');}catch(_){}window.location.href=data.url;}
+}
+let agePollTimer=null;
+async function pollAgeCheck(tries){
+  clearTimeout(agePollTimer);
+  const btn=document.getElementById('agecheck-start-btn');
+  btn.disabled=true;btn.style.opacity='0.6';
+  setAgeMsg('<i class="ti ti-loader" style="animation:spin 1s linear infinite;margin-right:6px"></i>Checking…');
+  const {data}=await callDiditSession('check','age');
+  const st=data&&data.status;
+  if(st&&st!=='passed'&&tries>1&&(st==='pending'||st==='none')){agePollTimer=setTimeout(()=>pollAgeCheck(tries-1),3000);return;}
+  btn.disabled=false;btn.style.opacity='1';
+  showAgeOutcome(data||{});
+}
+function showAgeOutcome(d){
+  const st=d.status,btn=document.getElementById('agecheck-start-btn');
+  if(st)myAgeStatus=st;
+  if(st==='passed'){onAgePassed();return;}
+  if(d.issue==='underage'){
+    myVerificationIssue='underage';btn.style.display='none';
+    setAgeMsg('BASED is only for adults aged 18 and over, so we can’t let you in. If you think this is a mistake, please contact support@baseddatingonline.com.','error');
+    return;
+  }
+  if(st==='in_review'){
+    btn.textContent='Check again';btn.onclick=()=>pollAgeCheck(1);
+    setAgeMsg('Thanks — your check is being reviewed. This usually only takes a few minutes.');
+    return;
+  }
+  btn.textContent='Try again';btn.onclick=startAgeCheck;
+  setAgeMsg(st==='failed'?'We couldn’t confirm you’re 18 or over from that selfie. Please try again in good light, looking straight at the camera.':'The check wasn’t completed. Please try again.','error');
+}
+async function onAgePassed(){
+  myAgeStatus='passed';
+  showToast('You’re all set ✓');
+  await loadPermissions();
+  await loadBrowseProfiles();
+  goMain();
+}
+
 function onVerified(){
-  myVerificationStatus='approved';myVerificationIssue=null;
+  myVerificationStatus='approved';myVerificationIssue=null;myAgeStatus='passed';
   loadPermissions().then(()=>renderProfiles(parseInt(document.getElementById('filter-min').value)||0));
   showToast('You’re verified ✓');
   if(verifyContext==='settings'){openEditProfile();return;}
@@ -3266,7 +3370,8 @@ document.head.appendChild(spinStyle);
     document.getElementById('filter-dist-val').textContent=distLabel(dist);
     renderProfiles(minPct);
     updateMatchNotifs();
-    if(verifyReturn&&!authLinkError){let ctx='signup';try{ctx=sessionStorage.getItem('basedVerifyContext')||'signup';sessionStorage.removeItem('basedVerifyContext');}catch(e){}openVerifyScreen(ctx);pollVerification(10);}
+    if(verifyReturn&&!authLinkError){let ctx='signup';try{ctx=sessionStorage.getItem('basedVerifyContext')||'signup';sessionStorage.removeItem('basedVerifyContext');}catch(e){}if(ctx==='age'){openAgeCheck();pollAgeCheck(10);}else{openVerifyScreen(ctx);pollVerification(10);}}
+    else if(!hasPendingSignupOnLoad&&!authLinkError&&needsAgeGate())openAgeCheck();
     else if(!hasPendingSignupOnLoad&&!authLinkError&&needsVerificationGate())openVerifyScreen('gate');
     else if(!hasPendingSignupOnLoad&&!authLinkError)goTo('screen-main'); // let the confirmation-completion flow navigate instead, if one's in progress; stay put on an auth-link error
   }
