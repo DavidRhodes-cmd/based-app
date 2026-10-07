@@ -150,6 +150,8 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 .didit-close-button svg{stroke:#fff!important;width:12px;height:12px;}
 .didit-close-button::after{content:'Cancel';color:#fff;font-size:14px;font-family:var(--sans);font-weight:500;}
 @media (min-width:541px){.didit-close-button{top:8px!important;}}
+.feature-locked{position:relative;opacity:0.55;}
+.feature-locked::after{content:'\eae2';font-family:'tabler-icons';position:absolute;top:6px;right:8px;font-size:15px;color:var(--gold);opacity:1;pointer-events:none;}
 </style>
 </head>
 <body>
@@ -347,7 +349,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-min-val">0%</span>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
-        <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0;display:flex;align-items:center;gap:6px">Distance<button id="location-mode-btn" onclick="toggleLocationMode()" style="background:transparent;border:none;padding:2px;cursor:pointer;color:var(--gold);display:flex;align-items:center" aria-label="Filter by home postcode or current location"><i class="ti ti-home" id="location-mode-icon" style="font-size:16px"></i></button></span>
+        <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0;display:flex;align-items:center;gap:6px">Distance<button id="location-mode-btn" data-feature="travel_mode" onclick="toggleLocationMode()" style="background:transparent;border:none;padding:2px;cursor:pointer;color:var(--gold);display:flex;align-items:center" aria-label="Filter by home postcode or current location"><i class="ti ti-home" id="location-mode-icon" style="font-size:16px"></i></button></span>
         <input type="range" class="q-slider" style="flex:1" min="5" max="200" step="5" value="25" id="filter-dist" oninput="updateFilter()" />
         <span style="font-size:13px;color:var(--gold);min-width:54px;text-align:right" id="filter-dist-val">25 mi</span>
       </div>
@@ -454,8 +456,8 @@ select.form-input option{background:#1a1f2e;color:#fff;}
       </div>
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
         <button class="btn-ghost" onclick="openModifyAnswers()" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px;display:inline-block;transform:rotate(90deg)"></i>Modify my answers</button>
-        <p style="font-size:14px;color:var(--text-on-dark);margin:18px 0 10px">Show me the following religions</p>
-        <div id="religion-filter-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+        <div data-feature="religion_filter"><p style="font-size:14px;color:var(--text-on-dark);margin:18px 0 10px">Show me the following religions</p>
+        <div id="religion-filter-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div></div>
       </div>
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
         <button class="btn-ghost" onclick="inviteFriends()" style="font-size:14px;padding:11px 17px"><i class="ti ti-user-plus" style="margin-right:7px"></i>Invite friends</button>
@@ -670,8 +672,8 @@ async function loadDemoProfiles(){
 // ─── App state ────────────────────────────────────────────────────────────────
 const FREE_LIMIT=5;
 let freeViewsCarried=0; // free views used by a previously deleted account with the same email (set by the server)
-function freeViewsUsed(){return viewedProfiles.size+freeViewsCarried;}
-function outOfFreeViews(){return freeViewsUsed()>=FREE_LIMIT;}
+function freeViewsUsed(){const p=perm('profile_views');return p.used||0;}
+function outOfFreeViews(){const p=perm('profile_views');return p.limit!=null&&(p.used||0)>=p.limit;}
 let currentUser=null; // Supabase auth user
 // Checked synchronously at load, before any async work — lets the boot sequence know
 // not to auto-navigate to the main screen if a confirmation-link completion is about
@@ -1116,6 +1118,7 @@ async function finishProfileCreation(userId,email){
   rememberEmail(email);
   try{localStorage.removeItem('basedReferralCode');}catch(e){}
   isPremium=false;profileHidden=false;myVerificationStatus='unverified';myVerificationIssue=null;
+  await loadPermissions();
   await loadMyInteractions();
   subscribeToInteractions();
   subscribeToAllMessages();
@@ -1319,6 +1322,7 @@ async function restoreSession(){
   } else {
     console.warn('No profile found for user:', currentUser.id, pErr?.message);
   }
+  await loadPermissions();
   await loadMyInteractions();
   subscribeToInteractions();
   subscribeToAllMessages();
@@ -1363,10 +1367,13 @@ function subscribeToInteractions(){
     .subscribe();
 }
 async function recordProfileView(profileKey){
-  if(isPremium||!currentUser||viewedProfiles.has(profileKey))return; // premium has no limit to track; no point re-recording a repeat view
-  viewedProfiles.add(profileKey);
+  if(!currentUser||viewedProfiles.has(profileKey))return; // re-opening someone you've already viewed is always free
+  viewedProfiles.add(profileKey);bumpUsed('profile_views');
   const {error}=await sb.from('profile_views').insert({viewer_id:currentUser.id,viewed_profile_id:profileKey});
-  if(error)console.warn('Failed to record profile view:',error.message);
+  if(error){
+    console.warn('Failed to record profile view:',error.message);
+    if(/LIMIT_REACHED/.test(error.message)){viewedProfiles.delete(profileKey);loadPermissions();}
+  }
 }
 
 async function loadMyInteractions(){
@@ -1383,6 +1390,8 @@ async function loadMyInteractions(){
     if(r.action==='hide_forever'||r.action==='report')hiddenForever.add(r.to_user);
     if(r.action==='dismissed_incoming')dismissedIncoming.add(r.to_user);
   });
+  // How many people are interested in me (names hidden on tiers without "see who's interested")
+  try{const {data:cnt}=await sb.rpc('incoming_interest_count');incomingHiddenCount=Math.max(0,(cnt||0));}catch(e){incomingHiddenCount=0;}
   // What others have done to me (to detect mutual, and incoming interest)
   const {data:theirs}=await sb.from('interactions').select('from_user,action,created_at').eq('to_user',currentUser.id).eq('action','interested');
   if(theirs)theirs.forEach(r=>{
@@ -1393,6 +1402,8 @@ async function loadMyInteractions(){
     }
     else{incomingInterest.add(r.from_user);incomingInterestAt[r.from_user]=r.created_at;}
   });
+  if(canUse('see_interested'))incomingHiddenCount=0;
+  else incomingHiddenCount=Math.max(0,incomingHiddenCount-[...incomingInterest].filter(id=>!dismissedIncoming.has(id)&&!hiddenForever.has(id)).length);
   updateMatchNotifs();
 }
 
@@ -1460,7 +1471,7 @@ function renderProfiles(minPct){
       if(expressedInterest.has(pk)||mutualMatches.has(pk))return false;
       if(incomingInterest.has(pk)&&!dismissedIncoming.has(pk))return false;
       if(p.age!=null&&(p.age<minAge||p.age>maxAge))return false;
-      if(excludedReligions.has(p.religion||NONE_STATED))return false;
+      if(canUse('religion_filter')&&excludedReligions.has(p.religion||NONE_STATED))return false;
       // Distance filter — profiles with no known distance are never filtered out
       const dist=distanceFor(p);
       if(dist!=null&&maxDist<distMax()&&dist>maxDist)return false;
@@ -1470,11 +1481,12 @@ function renderProfiles(minPct){
   lastProfileList=list;
   if(!list.length){container.innerHTML='<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px 0">No profiles match your filters.</p>';return;}
   let html='';
-  if(!isPremium){const used=Math.min(FREE_LIMIT,freeViewsUsed());const dots=Array.from({length:FREE_LIMIT},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<FREE_LIMIT-used?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px"><span style="font-size:13px;color:var(--text-muted)">${Math.max(0,FREE_LIMIT-used)} free view${FREE_LIMIT-used===1?'':'s'} remaining</span><span>${dots}</span></div>`;}
-  else{html+=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:13px;background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:9px;padding:8px 12px"><i class="ti ti-crown" style="font-size:14px;color:var(--gold)"></i><span style="font-size:13px;color:var(--gold-light)">Unlimited access active</span></div>`;}
+  {const pv=perm('profile_views');
+   if(pv.limit!=null){const lim=pv.limit,used=Math.min(lim,pv.used||0),left=lim-used;const dots=Array.from({length:lim},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<left?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px"><span style="font-size:13px;color:var(--text-muted)">${pv.period==='day'?`${left} profile view${left===1?'':'s'} left today`:`${left} free view${left===1?'':'s'} remaining`}</span><span>${dots}</span></div>`;}
+   else if(isPremium){html+=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:13px;background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:9px;padding:8px 12px"><i class="ti ti-crown" style="font-size:14px;color:var(--gold)"></i><span style="font-size:13px;color:var(--gold-light)">${TIER_LABEL[(PERMS&&PERMS.tier)||'plus']} · unlimited profile views</span></div>`;}}
   list.forEach(p=>{
     const profileKey=p.id||p.name;
-    const isLocked=!isPremium&&!viewedProfiles.has(profileKey)&&outOfFreeViews();
+    const isLocked=!viewedProfiles.has(profileKey)&&outOfFreeViews();
     const isMutual=mutualMatches.has(profileKey);
     const theyLiked=false; // determined server-side now
     const hasInterest=expressedInterest.has(profileKey);
@@ -1482,15 +1494,15 @@ function renderProfiles(minPct){
     const badge=isMutual?`<span style="font-size:10px;color:var(--green);border:0.5px solid rgba(111,207,151,0.4);border-radius:5px;padding:2px 7px;margin-left:5px"><i class="ti ti-heart" style="font-size:10px"></i> Match</span>`:'';
     const avatarContent=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" />`:`<span style="color:var(--text-on-dark)">${p.initials}</span>`;
     const aStr=JSON.stringify(p.answers).replace(/"/g,'&quot;');
-    if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="goTo('screen-paywall')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:7px">Upgrade to view</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div></div>`;}
+    if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="showUpgradePrompt('profile_views','limit')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:7px">${perm('profile_views').period==='day'?'More views tomorrow, or upgrade':'Upgrade to view'}</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div></div>`;}
     else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${aStr}',${p.compat},${p.basedScore},'${p.initials}','${p.name}',${p.age},'','${p.photo_url||''}','${profileKey}','${p.religion||''}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px;padding-right:72px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.name}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</div>${badge?`<div style="margin-bottom:6px">${badge}</div>`:'<div style="margin-bottom:6px"></div>'}<div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
   });
-  if(!isPremium&&outOfFreeViews()){html+=`<div style="background:rgba(15,18,30,0.95);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;padding:22px;margin-top:6px;text-align:center"><i class="ti ti-crown" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:8px">You've seen your 5 free profiles</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">Unlock unlimited browsing to keep meeting people who share your values.</p><button class="btn-primary" onclick="goTo('screen-paywall')" style="font-size:15px;padding:14px">Unlock unlimited access</button></div>`;}
+  if(outOfFreeViews()){const pv=perm('profile_views');html+=`<div style="background:rgba(15,18,30,0.95);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;padding:22px;margin-top:6px;text-align:center"><i class="ti ti-crown" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:8px">${pv.period==='day'?`You’ve used today’s ${pv.limit} profile views`:`You’ve seen your ${pv.limit} free profiles`}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">${pv.period==='day'?'More tomorrow — or upgrade for unlimited browsing.':'Verify your ID for 5 a day, or upgrade for unlimited browsing.'}</p><button class="btn-primary" onclick="showUpgradePrompt('profile_views','limit')" style="font-size:15px;padding:14px">See options</button></div>`;}
   container.innerHTML=html;
 }
 
 function handleProfileTap(aStr,compat,basedScore,inits,name,age,location,photoUrl,profileKey,religion){
-  if(!isPremium&&!viewedProfiles.has(profileKey)&&outOfFreeViews()){goTo('screen-paywall');return;}
+  if(!viewedProfiles.has(profileKey)&&outOfFreeViews()){showUpgradePrompt('profile_views','limit');return;}
   let answers;try{answers=JSON.parse(aStr.replace(/&quot;/g,'"'));}catch(e){answers=new Array(NUM_Q).fill(0);}
   recordProfileView(profileKey);
   openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,'search',religion||null);
@@ -1586,8 +1598,8 @@ function advanceToNextProfile(profileKey){
   }
   if(next){
     const key=next.id||next.name;
-    const isLocked=!isPremium&&!viewedProfiles.has(key)&&outOfFreeViews();
-    if(isLocked){goTo('screen-paywall');return;}
+    const isLocked=!viewedProfiles.has(key)&&outOfFreeViews();
+    if(isLocked){showUpgradePrompt('profile_views','limit');return;}
     recordProfileView(key);
     openProfile(next.answers,next.compat,next.basedScore,next.initials,next.name,next.age,next.location,next.photo_url,key,'search',next.religion||null);
   }else{
@@ -1634,14 +1646,19 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
   }
   expressedInterest.add(profileKey);
   myInterestedAt[profileKey]=new Date().toISOString();
-  const saved=await recordInteraction(profileKey,'interested');
-  if(!saved){
+  let saveErr=null;
+  if(currentUser){const {error}=await sb.from('interactions').upsert({from_user:currentUser.id,to_user:profileKey,action:'interested'},{onConflict:'from_user,to_user'});saveErr=error;}
+  if(saveErr){
     expressedInterest.delete(profileKey);
     delete myInterestedAt[profileKey];
-    showToast("Couldn't save your interest — please try again.",true);
+    if(/LIMIT_REACHED|FEATURE_LOCKED/.test(saveErr.message)&&(await loadPermissions(),perm('express_interest').limit!=null)){showUpgradePrompt('express_interest','limit');}
+    else showToast("Couldn't save your interest — please try again.",true);
+    renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
     return;
   }
-  showToast('Interest sent',false,1000);
+  await loadPermissions(); // the server knows whether this counted (replies to someone already interested in you don't)
+  {const ei=perm('express_interest');const left=limitLeft('express_interest');
+   showToast(ei.limit!=null?`Interest sent · ${left} left ${periodText(ei.period)}`:'Interest sent',false,ei.limit!=null?1800:1000);}
   // Check if they liked us back (re-query)
   let isMutual=false;
   if(currentUser){
@@ -2051,6 +2068,109 @@ function showResults(){
   renderProfiles(0);
 }
 
+// ─── Tiers & permissions ─────────────────────────────────────────────────────
+// The server decides (my_permissions RPC, from the feature_permissions table):
+// per feature → access 'allowed' | 'locked' (padlock + upgrade prompt) | 'hidden',
+// plus any limit, how much of it is used, and which tier unlocks more.
+let PERMS=null; // {tier, country, features:{name:{access,limit,period,used,upgrade}}}
+let incomingHiddenCount=0;
+let TIER_RULES=null; // raw feature_permissions rows, for "BASED+ gives you …" wording // people interested in me whose names this tier can't see
+const TIER_LABEL={liveness:'Selfie verified',id:'ID verified',plus:'BASED+',gold:'BASED Gold'};
+const TIER_PRICE={plus:'£4.99',gold:'£9.99'};
+const FEATURE_INFO={
+  profile_views:{name:'More profile views',icon:'ti-eye',unit:'profile views'},
+  express_interest:{name:'More interests',icon:'ti-heart',unit:'interests'},
+  super_interest:{name:'Super interest',icon:'ti-confetti',unit:'super interests'},
+  religion_filter:{name:'Religion filter',icon:'ti-filter'},
+  see_interested:{name:'See who’s interested in you',icon:'ti-heart'},
+  verified_only_filter:{name:'Show verified members only',icon:'ti-discount-check'},
+  travel_mode:{name:'Travel mode',icon:'ti-current-location'},
+  dealbreakers:{name:'Dealbreaker filters',icon:'ti-adjustments'},
+  profile_insights:{name:'Profile insights',icon:'ti-chart-bar'},
+  read_receipts:{name:'Read receipts',icon:'ti-checks'},
+  saved_intro:{name:'Saved introduction',icon:'ti-message'},
+  priority_support:{name:'Priority support',icon:'ti-headset'}
+};
+async function loadPermissions(){
+  if(!currentUser){PERMS=null;return;}
+  try{
+    const {data,error}=await sb.rpc('my_permissions');
+    if(error)throw error;
+    PERMS=data||null;
+    if(PERMS&&!TIER_RULES){const {data:rows}=await sb.from('feature_permissions').select('country,feature,tier,access,limit_value,limit_period');TIER_RULES=rows||[];}
+  }catch(e){console.warn('Permissions unavailable, using defaults:',e.message||e);PERMS=null;}
+  if(PERMS)isPremium=PERMS.tier==='plus'||PERMS.tier==='gold';
+  applyPermissions();
+}
+// Before the tier tables exist (or if the call fails) behave as before: 5 free views, everything else open
+function perm(f){
+  if(PERMS&&PERMS.features&&PERMS.features[f])return PERMS.features[f];
+  if(f==='profile_views')return isPremium?{access:'allowed',limit:null}:{access:'allowed',limit:FREE_LIMIT,period:'total',used:viewedProfiles.size+freeViewsCarried};
+  return {access:'allowed',limit:null};
+}
+function canUse(f){return perm(f).access==='allowed';}
+function isHidden(f){return perm(f).access==='hidden';}
+function limitLeft(f){const p=perm(f);if(p.limit==null)return Infinity;return Math.max(0,p.limit-(p.used||0));}
+function bumpUsed(f){if(PERMS&&PERMS.features&&PERMS.features[f]&&PERMS.features[f].limit!=null)PERMS.features[f].used=(PERMS.features[f].used||0)+1;}
+function periodText(period){return period==='week'?'this week':period==='day'?'today':'';}
+function resetText(period){return period==='week'?'Your allowance resets on Monday.':period==='day'?'Your allowance resets at midnight.':'';}
+
+// Show / lock / hide every element tagged with data-feature="…"
+function applyPermissions(){
+  document.querySelectorAll('[data-feature]').forEach(el=>{
+    const f=el.dataset.feature,a=perm(f).access;
+    el.style.display=a==='hidden'?'none':'';
+    el.classList.toggle('feature-locked',a==='locked');
+  });
+}
+// Any tap on a locked feature opens its upgrade prompt instead
+document.addEventListener('click',e=>{
+  const el=e.target.closest('.feature-locked[data-feature]');
+  if(!el)return;
+  e.preventDefault();e.stopPropagation();
+  showUpgradePrompt(el.dataset.feature);
+},true);
+
+// reason: 'locked' (default) or 'limit' (allowance used up)
+function showUpgradePrompt(f,reason){
+  const p=perm(f),info=FEATURE_INFO[f]||{name:'This feature',icon:'ti-lock'};
+  const myTier=(PERMS&&PERMS.tier)||'liveness';
+  const target=p.upgrade||(myTier==='liveness'?'id':'plus');
+  const isLimit=(reason==='limit'||p.access==='allowed')&&p.limit!=null;
+  let title,body;
+  if(isLimit){
+    title=p.period==='total'?`You’ve used your ${p.limit} free ${info.unit||'uses'}`:`You’ve used your ${p.limit} ${info.unit||'uses'} ${periodText(p.period)}`;
+    body=(resetText(p.period)?resetText(p.period)+' ':'')+`<b>${TIER_LABEL[target]}</b> gives you ${describeAllowance(f,target)}.`;
+  }else{
+    title=`${info.name} is part of ${TIER_LABEL[target]}`;
+    body=target==='id'?'Verify your ID to unlock it — it only takes a couple of minutes.':`Upgrade to <b>${TIER_LABEL[target]}</b> to unlock it.`;
+  }
+  let actions='';
+  if(target==='id'){
+    actions=`<button class="btn-primary" style="font-size:15px" onclick="removeModal();openVerifyScreen('header')">Get verified</button>`;
+  }else{
+    const needsId=myTier==='liveness';
+    if(needsId)body+=' Paid plans include a quick ID check after payment.';
+    actions=`<button class="btn-primary" style="font-size:15px" onclick="removeModal();startUpgrade('${target}')">Upgrade to ${TIER_LABEL[target]} · ${TIER_PRICE[target]}/month</button>`;
+    if(target==='plus')actions+=`<button class="btn-ghost" style="font-size:15px" onclick="removeModal();startUpgrade('gold')">Or BASED Gold · ${TIER_PRICE.gold}/month</button>`;
+  }
+  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.35);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><i class="ti ${isLimit?info.icon:'ti-lock'}" style="font-size:24px;color:var(--gold)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center;line-height:1.3">${title}</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">${body}</p><div style="display:flex;flex-direction:column;gap:11px">${actions}<button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Not now</button></div>`);
+}
+function describeAllowance(f,tier){
+  // What the target tier gets, from the same table (falls back to "more")
+  const unit=(FEATURE_INFO[f]||{}).unit||'uses';
+  const c=(PERMS&&PERMS.country)||'*';
+  const rows=(TIER_RULES||[]).filter(r=>r.feature===f&&r.tier===tier&&(r.country===c||r.country==='*')).sort((a,b)=>(a.country==='*')-(b.country==='*'));
+  const t=rows[0];
+  if(t&&t.access==='allowed')return t.limit_value==null?`unlimited ${unit}`:`${t.limit_value} ${unit} ${t.limit_period==='week'?'a week':t.limit_period==='day'?'a day':''}`.trim();
+  return tier==='id'?`more ${unit}`:`unlimited ${unit}`;
+}
+// Payments arrive in the next stage; until then this explains what will happen
+function startUpgrade(tier){
+  const myTier=(PERMS&&PERMS.tier)||'liveness';
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">${TIER_LABEL[tier]} · ${TIER_PRICE[tier]}/month</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">Payments are coming very soon.${myTier==='liveness'?' After paying you’ll do a quick ID check, then everything unlocks.':''}</p><button class="btn-primary" style="font-size:15px" onclick="removeModal()">OK</button>`);
+}
+
 // ─── Identity verification (Didit) ───────────────────────────────────────────
 // The server decides the result (webhook + check); the SDK's own result is only
 // used to know when to ask the server.
@@ -2248,6 +2368,7 @@ async function pollVerification(tries){
 
 function onVerified(){
   myVerificationStatus='approved';myVerificationIssue=null;
+  loadPermissions().then(()=>renderProfiles(parseInt(document.getElementById('filter-min').value)||0));
   showToast('You’re verified ✓');
   if(verifyContext==='settings'){openEditProfile();return;}
   goMain();
@@ -2343,6 +2464,7 @@ function applyLocationModeUI(){
 }
 
 function toggleLocationMode(){
+  if(locationMode==='home'&&!canUse('travel_mode')){showUpgradePrompt('travel_mode');return;}
   if(locationMode==='home'){
     if(!navigator.geolocation){showToast("Your device doesn't support location access.",true);return;}
     const icon=document.getElementById('location-mode-icon');
@@ -2808,6 +2930,7 @@ function subscribeToMessages(partnerId){
 function updateMatchNotifs(){
   const badge=document.getElementById('matches-notif');
   const incomingIds=Array.from(incomingInterest).filter(id=>!hiddenForever.has(id)&&!dismissedIncoming.has(id));
+  if(!incomingIds.length&&incomingHiddenCount>0){badge.style.background='var(--gold)';badge.style.display='block';return;}
   if(!incomingIds.length){badge.style.display='none';return;}
   let oldestDays=0;
   incomingIds.forEach(id=>{
@@ -2821,12 +2944,13 @@ function updateMatchNotifs(){
 
 function renderMatchesTab(){
   const inList=document.getElementById('incoming-interest-list'),ee=document.getElementById('expressed-list');
+  const lockedCard=(!canUse('see_interested')&&incomingHiddenCount>0)?`<div onclick="showUpgradePrompt('see_interested')" style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.35);border-radius:15px;padding:16px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer"><div class="avatar" style="background:rgba(201,168,76,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--gold)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${incomingHiddenCount} ${incomingHiddenCount===1?'person is':'people are'} interested in you</div><div style="font-size:13px;color:var(--gold);margin-top:3px">Upgrade to BASED+ to see who</div></div><i class="ti ti-chevron-right" style="color:var(--text-muted)"></i></div>`:'';
   const visible=id=>browseProfiles.some(x=>(x.id||x.name)===id);
   const byNewest=at=>(a,b)=>new Date(at[b]||0)-new Date(at[a]||0)||String(a).localeCompare(String(b)); // fixed order, so rows never shuffle under your finger
   const incomingIds=Array.from(incomingInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&!dismissedIncoming.has(id)&&visible(id)).sort(byNewest(incomingInterestAt));
-  if(!incomingIds.length){inList.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No one has expressed interest in you yet.</p>';}
+  if(!incomingIds.length){inList.innerHTML=lockedCard||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No one has expressed interest in you yet.</p>';}
   else{
-    inList.innerHTML=incomingIds.map(pid=>{
+    inList.innerHTML=lockedCard+incomingIds.map(pid=>{
       const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
       if(!p)return '';
       const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;filter:blur(6px);transform:scale(1.1)" />`:`${p.initials}`;
