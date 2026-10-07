@@ -2972,6 +2972,7 @@ function openEditProfile(){
   editBefore={units:myUnits(),photo:myProfile.photo,photo_file:myProfile.photo_file||null};
   editSnapshot=editFormState();
   goTo('screen-edit-profile');
+  const sc=document.querySelector('#screen-edit-profile .scrollable');if(sc)sc.scrollTop=0; // always open at the top
 }
 // ─── Unsaved changes on My profile ────────────────────────────────────────────
 let editSnapshot=null,editBefore=null;
