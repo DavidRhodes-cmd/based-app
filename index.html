@@ -1603,9 +1603,20 @@ async function doDismissIncoming(profileKey){
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0); // they're back in Search
 }
 
+function confirmWithdrawInterest(profileKey){
+  const p=browseProfiles.find(x=>(x.id||x.name)===profileKey);
+  const nm=p?p.name:'this person';
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Withdraw interest in ${nm}?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">They’ll go back into your Search list.</p><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1;font-size:15px" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1;font-size:15px" onclick="removeModal();doWithdrawInterest('${profileKey}')">Withdraw</button></div>`);
+}
 async function doWithdrawInterest(profileKey){
-  const {error}=await sb.from('interactions').update({action:'withdrawn'}).eq('from_user',currentUser.id).eq('to_user',profileKey).eq('action','interested');
-  if(error){console.warn('Withdraw interest failed:',error.message);showToast('Something went wrong — please try again.',true);return;}
+  // .select() returns the rows actually changed, so a withdrawal that didn't stick can't look like it worked
+  const {data:changed,error}=await sb.from('interactions').update({action:'withdrawn'}).eq('from_user',currentUser.id).eq('to_user',profileKey).eq('action','interested').select('to_user');
+  if(error||!changed||!changed.length){
+    console.warn('Withdraw interest failed:',error?error.message:'no matching row');
+    showToast('Couldn’t withdraw just now — please try again.',true);
+    await loadMyInteractions();renderMatchesTab();
+    return;
+  }
   expressedInterest.delete(profileKey);
   delete myInterestedAt[profileKey];
   showToast('Interest withdrawn');
@@ -2463,6 +2474,27 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
   },{passive:true});
 })();
 
+// ─── Swipe on My profile (Settings) to go back ───────────────────────────────
+// Same as the back arrow: asks to save or discard unsaved changes, then returns
+// to the main screen on whichever tab you were on. Either swipe direction works.
+(function initSettingsSwipeBack(){
+  const container=document.getElementById('screen-edit-profile');
+  let startX=0,startY=0,tracking=false;
+  container.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1)return;
+    if(e.target.closest('input,select,textarea'))return; // don't hijack text selection in fields
+    startX=e.touches[0].clientX;startY=e.touches[0].clientY;tracking=true;
+  },{passive:true});
+  container.addEventListener('touchend',e=>{
+    if(!tracking)return;
+    tracking=false;
+    if(document.getElementById('modal-bd'))return; // a prompt is already showing
+    const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
+    if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.5)return; // a clear, mostly-horizontal swipe only
+    leaveEditProfile();
+  },{passive:true});
+})();
+
 function openEnlargedPhoto(){
   if(!activeChatPhotoUrl)return; // no photo (e.g. initials-only avatar) — nothing to enlarge
   const overlay=document.createElement('div');
@@ -2790,7 +2822,8 @@ function updateMatchNotifs(){
 function renderMatchesTab(){
   const inList=document.getElementById('incoming-interest-list'),ee=document.getElementById('expressed-list');
   const visible=id=>browseProfiles.some(x=>(x.id||x.name)===id);
-  const incomingIds=Array.from(incomingInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&!dismissedIncoming.has(id)&&visible(id));
+  const byNewest=at=>(a,b)=>new Date(at[b]||0)-new Date(at[a]||0)||String(a).localeCompare(String(b)); // fixed order, so rows never shuffle under your finger
+  const incomingIds=Array.from(incomingInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&!dismissedIncoming.has(id)&&visible(id)).sort(byNewest(incomingInterestAt));
   if(!incomingIds.length){inList.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No one has expressed interest in you yet.</p>';}
   else{
     inList.innerHTML=incomingIds.map(pid=>{
@@ -2804,7 +2837,7 @@ function renderMatchesTab(){
       return `<div style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--gold);margin-top:3px"><i class="ti ti-heart" style="font-size:13px"></i> Interested in you</div></div><button onclick="event.stopPropagation();doDismissIncoming('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Remove from list"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
     }).join('');
   }
-  const expIds=Array.from(expressedInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&visible(id));
+  const expIds=Array.from(expressedInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&visible(id)).sort(byNewest(myInterestedAt));
   if(!expIds.length){ee.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">You haven\'t expressed interest in anyone yet.</p>';}
   else{
     ee.innerHTML=expIds.map(pid=>{
@@ -2815,7 +2848,7 @@ function renderMatchesTab(){
       const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
       const statusLabel=daysSince>=3?'3+ days ago':daysSince>=2?'2-3 days ago':'Less than 2 days ago';
       const dot=`<span title="${statusLabel}" style="width:18px;height:18px;border-radius:9px;background:${statusColor};display:inline-block;flex-shrink:0"></span>`;
-      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">Waiting for them to respond…</div></div><button onclick="event.stopPropagation();doWithdrawInterest('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Withdraw interest"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
+      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">Waiting for them to respond…</div></div><button onclick="event.stopPropagation();confirmWithdrawInterest('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Withdraw interest"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
     }).join('');
   }
 }
@@ -2956,7 +2989,7 @@ function editFormState(){
 function editHasChanges(){return editSnapshot!==null&&editFormState()!==editSnapshot;}
 function leaveEditProfile(){
   if(!editHasChanges()){discardEditChanges();return;}
-  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Save your changes?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">You’ve made changes to your profile that haven’t been saved.</p><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" onclick="removeModal();saveProfile()">Save changes</button><button class="btn-ghost" onclick="removeModal();discardEditChanges()">Discard changes</button><button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;padding:6px">Keep editing</button></div>`);
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Save your changes?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">You’ve made changes to your profile that haven’t been saved.</p><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();saveProfile()">Save changes</button><button class="btn-ghost" style="font-size:15px" onclick="removeModal();discardEditChanges()">Discard changes</button><button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Keep editing</button></div>`);
 }
 function discardEditChanges(){
   pendingReligions=null;renderReligionFilter();
