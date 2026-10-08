@@ -99,6 +99,8 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .act-btn.hide-profile{border-color:rgba(235,87,87,0.3);color:var(--red);background:rgba(235,87,87,0.06);}
 .act-btn:active{opacity:0.75;}
 .msg-bubble{border-radius:16px;padding:11px 15px;font-size:14px;line-height:1.5;max-width:82%;}
+.read-mark{align-self:flex-end;font-size:11px;color:var(--text-muted);margin:-2px 4px 2px 0;display:flex;align-items:center;gap:4px;}
+.read-mark i{color:var(--gold);font-size:14px;}
 .msg-bubble.mine{background:rgba(201,168,76,0.18);color:var(--text-on-dark);align-self:flex-end;border-bottom-right-radius:4px;}
 .msg-bubble.theirs{background:rgba(255,255,255,0.07);color:var(--text-on-dark);align-self:flex-start;border-bottom-left-radius:4px;}
 .notif-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;margin-left:2px;}
@@ -538,6 +540,13 @@ select.form-input option{background:#1a1f2e;color:#fff;}
           <p style="font-size:13px;color:var(--text-muted);line-height:1.4">Pause while you're seeing someone. You won't appear in searches.</p>
         </div>
         <div class="toggle-track" id="hide-toggle" onclick="toggleHideProfile()"><div class="toggle-thumb"></div></div>
+      </div>
+      <div class="toggle-row" data-feature="read_receipts">
+        <div style="flex:1;padding-right:16px">
+          <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:4px">Read receipts</p>
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.4">See when your matches have read your messages. If you turn this off, they can’t see when you’ve read theirs either.</p>
+        </div>
+        <div class="toggle-track" id="receipts-toggle" onclick="toggleReadReceipts()"><div class="toggle-thumb"></div></div>
       </div>
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
         <button class="btn-ghost" onclick="openModifyAnswers()" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px;display:inline-block;transform:rotate(90deg)"></i>Modify my answers</button>
@@ -1561,6 +1570,7 @@ async function restoreSession(){
     loadDealbreakers(p);
     mySearchFilters=(p.search_filters&&typeof p.search_filters==='object')?p.search_filters:{};
     profileHidden=p.is_hidden||false;
+    readReceipts=p.read_receipts!==false;
     myVerificationStatus=p.verification_status||'unverified';
     myVerificationIssue=p.verification_issue||null;
     myAgeStatus=p.age_check_status||'none';
@@ -2979,7 +2989,7 @@ async function refreshPermissions(force){
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   if(typeof renderMatchesTab==='function')renderMatchesTab();
   if(typeof updateFilterCounts==='function')updateFilterCounts();
-  renderPlanRow();
+  renderPlanRow();renderReceiptsToggle();
   if(before&&after&&before!==after&&(after==='plus'||after==='gold'))showToast(`You’re now on ${TIER_LABEL[after]}`,false,2200);
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshPermissions();});
@@ -3606,8 +3616,10 @@ async function openChatNow(partnerId,inits,name,photoUrl){
   const msgEl=document.getElementById('chat-messages');
   msgEl.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:13px"><i class="ti ti-loader" style="font-size:22px;color:var(--gold);animation:spin 1s linear infinite;display:block;margin:0 auto 8px"></i>Loading messages…</div>';
   goTo('screen-chat');
+  partnerReadAt=null;chatMsgsCache=[];
   await renderChatMessages();
   subscribeToMessages(partnerId);
+  startReadPolling();
   updateMatchNotifs();
 }
 
@@ -3626,9 +3638,20 @@ async function renderChatMessages(){
     el.innerHTML=`<div style="text-align:center;padding:32px 18px"><div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:14px;padding:18px"><i class="ti ti-heart" style="font-size:24px;color:var(--gold);margin-bottom:10px;display:block"></i><p style="font-size:14px;color:var(--gold-light);margin-bottom:5px">It's mutual!</p><p style="font-size:13px;color:var(--text-muted)">Say hello to ${activeChatName} —<br>you share the values that matter.</p></div></div>`;
     return;
   }
-  el.innerHTML=msgs.map(m=>{const mine=m.sender_id===currentUser.id;return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div class="msg-bubble ${mine?'mine':'theirs'}">${m.content}</div></div>`;}).join('');
+  chatMsgsCache=msgs;
+  await refreshPartnerRead();
+  drawChatMessages(true);
+}
+function drawChatMessages(scroll){
+  const el=document.getElementById('chat-messages');
+  const msgs=chatMsgsCache||[];if(!msgs.length)return;
+  const nearBottom=el.scrollHeight-el.scrollTop-el.clientHeight<80;
+  // "Read" goes under the last of my messages the other person has seen
+  let readIdx=-1;
+  if(partnerReadAt){const t=new Date(partnerReadAt).getTime();msgs.forEach((m,i)=>{if(m.sender_id===currentUser.id&&new Date(m.created_at).getTime()<=t)readIdx=i;});}
+  el.innerHTML=msgs.map((m,i)=>{const mine=m.sender_id===currentUser.id;return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div class="msg-bubble ${mine?'mine':'theirs'}">${m.content}</div></div>${i===readIdx?`<div style="display:flex;justify-content:flex-end">${readMarkHtml(partnerReadAt)}</div>`:''}`;}).join('');
   void el.offsetHeight; // make Safari lay out the new messages before scrolling
-  scrollChatToBottom();
+  if(scroll||nearBottom)scrollChatToBottom();
 }
 function scrollChatToBottom(){
   const el=document.getElementById('chat-messages');
@@ -3853,7 +3876,7 @@ function openEditProfile(){
   renderEditPhotos();
   document.getElementById('hide-toggle').classList.toggle('on',profileHidden);
   document.getElementById('hidden-banner').style.display=profileHidden?'block':'none';
-  renderVerifyRow();renderPlanRow();
+  renderVerifyRow();renderPlanRow();renderReceiptsToggle();
   pendingReligions=null;pendingDealbreakers=null;updateFilterCounts();
   editBefore={units:myUnits(),photo:myProfile.photo,photo_file:myProfile.photo_file||null};
   editSnapshot=editFormState();
@@ -3948,6 +3971,42 @@ async function saveProfile(){
   goTo('screen-main');
 }
 
+// ─── Read receipts (BASED Gold) ──────────────────────────────────────────────
+// On: see when matches have read your messages. Off: you don't see theirs and they
+// don't see yours (the server enforces both sides in partner_read_at).
+let readReceipts=true,chatMsgsCache=[],partnerReadAt=null,readPollTimer=null;
+function renderReceiptsToggle(){const t=document.getElementById('receipts-toggle');if(t)t.classList.toggle('on',readReceipts&&canUse('read_receipts'));}
+async function toggleReadReceipts(){
+  if(!canUse('read_receipts')){showUpgradePrompt('read_receipts');return;}
+  readReceipts=!readReceipts;renderReceiptsToggle();
+  if(currentUser){
+    const {error}=await sb.from('profiles').update({read_receipts:readReceipts}).eq('id',currentUser.id);
+    if(error){readReceipts=!readReceipts;renderReceiptsToggle();showToast('Couldn’t change read receipts — please try again.',true);return;}
+  }
+  showToast(readReceipts?'Read receipts on':'Read receipts off',false,1500);
+}
+async function refreshPartnerRead(){
+  if(!currentUser||!activeChatPartnerId)return;
+  const pid=activeChatPartnerId;
+  let at=null;
+  if(readReceipts&&canUse('read_receipts')){
+    try{const {data,error}=await sb.rpc('partner_read_at',{p_match_id:getMatchId(currentUser.id,pid)});if(!error)at=data||null;}catch(e){}
+  }
+  if(pid!==activeChatPartnerId)return;
+  if(at!==partnerReadAt){partnerReadAt=at;drawChatMessages(false);}
+}
+function startReadPolling(){
+  clearInterval(readPollTimer);
+  readPollTimer=setInterval(()=>{
+    if(!document.getElementById('screen-chat').classList.contains('active')){clearInterval(readPollTimer);return;}
+    if(document.visibilityState==='visible')refreshPartnerRead();
+  },8000);
+}
+function readMarkHtml(at){
+  const d=new Date(at),today=new Date().toDateString()===d.toDateString();
+  const when=today?d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString([], {weekday:'short',day:'numeric',month:'short'});
+  return `<div class="read-mark"><i class="ti ti-checks"></i>Read ${when}</div>`;
+}
 async function toggleHideProfile(){
   profileHidden=!profileHidden;
   document.getElementById('hide-toggle').classList.toggle('on',profileHidden);
