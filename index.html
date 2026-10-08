@@ -173,6 +173,16 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 .mini-toggle.locked .toggle-track{opacity:0.45;}
 .mini-toggle.locked i{color:var(--gold);}
 .mini-toggle.busy .toggle-track{opacity:0.6;}
+.filter-btn{flex:1 1 0;min-width:0;font-size:14px;padding:11px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.filter-count{font-size:11px;color:var(--text-muted);}
+.db-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.db-chip{font-size:12px;color:var(--gold-light);background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:20px;padding:5px 10px;}
+.db-row{width:100%;display:flex;align-items:center;gap:11px;text-align:left;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.12);border-radius:11px;padding:11px 12px;margin-bottom:7px;cursor:pointer;font-family:var(--sans);font-size:13px;color:var(--text-on-dark);line-height:1.35;}
+.db-row.on{background:rgba(201,168,76,0.1);border-color:var(--gold);}
+.db-row .db-box{width:22px;height:22px;border-radius:6px;border:1.5px solid rgba(255,255,255,0.35);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--navy);}
+.db-row.on .db-box{background:var(--gold);border-color:var(--gold);}
+.db-row:disabled{opacity:0.45;cursor:default;}
+.db-row .db-sub{display:block;font-size:11px;color:var(--text-muted);margin-top:2px;}
 .bottom-safe{padding-bottom:calc(var(--safe-bottom) + 12px);}
 .btn-safe{margin-bottom:calc(var(--safe-bottom) + 12px);}
 /* Didit verification pop-up: keep its close button clear of the iPhone status bar */
@@ -530,8 +540,10 @@ select.form-input option{background:#1a1f2e;color:#fff;}
       </div>
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
         <button class="btn-ghost" onclick="openModifyAnswers()" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px;display:inline-block;transform:rotate(90deg)"></i>Modify my answers</button>
-        <div data-feature="religion_filter"><p style="font-size:14px;color:var(--text-on-dark);margin:18px 0 10px">Show me the following religions</p>
-        <div id="religion-filter-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn-ghost filter-btn" data-feature="dealbreakers" onclick="openDealbreakerScreen()"><span>Dealbreaker filters</span><span class="filter-count" id="dealbreaker-count"></span></button>
+          <button class="btn-ghost filter-btn" data-feature="religion_filter" onclick="openReligionScreen()"><span>Religion filters</span><span class="filter-count" id="religion-count"></span></button>
+        </div>
       </div>
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
         <button class="btn-ghost" onclick="inviteFriends()" style="font-size:14px;padding:11px 17px"><i class="ti ti-user-plus" style="margin-right:7px"></i>Invite friends</button>
@@ -555,6 +567,35 @@ select.form-input option{background:#1a1f2e;color:#fff;}
   </div>
   <div class="scrollable" style="padding:20px 16px" id="modify-answers-list"></div>
 </div>
+<!-- DEALBREAKER FILTERS -->
+<div id="screen-dealbreakers" class="screen">
+  <div class="app-header">
+    <button onclick="cancelDealbreakerScreen()" style="background:transparent;border:none;font-size:14px;color:var(--text-muted);cursor:pointer;font-family:var(--sans)">Cancel</button>
+    <span style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark)">Dealbreaker filters</span>
+    <button onclick="saveDealbreakerScreen()" style="background:transparent;border:none;font-size:14px;color:var(--gold);cursor:pointer;font-family:var(--sans);font-weight:600">Save</button>
+  </div>
+  <div class="scrollable" style="padding:20px 16px">
+    <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:6px">Only show profiles aligned on…</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Tick the questions where someone must be on the same side as you. Anyone who differs from you on a ticked question won’t appear in Search.</p>
+    <div id="dealbreaker-list"></div>
+    <button class="btn-ghost bottom-safe" onclick="clearDealbreakers()" style="font-size:14px;margin-top:8px"><i class="ti ti-filter-off" style="margin-right:7px"></i>Clear filters</button>
+  </div>
+</div>
+
+<!-- RELIGION FILTERS -->
+<div id="screen-religion-filter" class="screen">
+  <div class="app-header">
+    <button onclick="cancelReligionScreen()" style="background:transparent;border:none;font-size:14px;color:var(--text-muted);cursor:pointer;font-family:var(--sans)">Cancel</button>
+    <span style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark)">Religion filters</span>
+    <button onclick="saveReligionScreen()" style="background:transparent;border:none;font-size:14px;color:var(--gold);cursor:pointer;font-family:var(--sans);font-weight:600">Save</button>
+  </div>
+  <div class="scrollable" style="padding:20px 16px">
+    <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:6px">Show me the following religions</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Tap a religion to hide or show people of that faith in Search.</p>
+    <div id="religion-filter-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+  </div>
+</div>
+
 <!-- UPGRADE (opens when a locked feature or a used-up allowance is tapped) -->
 <div id="screen-upgrade" class="screen">
   <div class="app-header">
@@ -1313,7 +1354,7 @@ async function finishProfileCreation(userId,email){
   myPhotos=savedPhotos;myProfile.extra_photos=[];
   rememberEmail(email);
   try{localStorage.removeItem('basedReferralCode');}catch(e){}
-  excludedReligions=new Set();pendingReligions=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
+  excludedReligions=new Set();pendingReligions=null;dealbreakers=new Set();pendingDealbreakers=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
   isPremium=false;profileHidden=false;myVerificationStatus='unverified';myVerificationIssue=null;myAgeStatus='none';
   await loadPermissions();
   await loadMyInteractions();
@@ -1516,6 +1557,7 @@ async function restoreSession(){
     myAnswers=p.answers||new Array(NUM_Q).fill(0);
     isPremium=p.is_premium||false;
     loadReligionFilter(p);
+    loadDealbreakers(p);
     mySearchFilters=(p.search_filters&&typeof p.search_filters==='object')?p.search_filters:{};
     profileHidden=p.is_hidden||false;
     myVerificationStatus=p.verification_status||'unverified';
@@ -1684,6 +1726,7 @@ function renderProfiles(minPct){
       if(p.age!=null&&(p.age<minAge||p.age>maxAge))return false;
       if(canUse('religion_filter')&&excludedReligions.has(p.religion||NONE_STATED))return false;
       if(verifiedOnly&&canUse('verified_only_filter')&&!p.verified)return false;
+      if(!passesDealbreakers(p))return false;
       // Distance filter — profiles with no known distance are never filtered out
       const dist=distanceFor(p);
       if(dist!=null&&maxDist<distMax()&&dist>maxDist)return false;
@@ -2982,8 +3025,19 @@ function renderReligionFilter(){
   const set=pendingReligions||excludedReligions;
   grid.innerHTML=[...RELIGIONS,NONE_STATED].map(r=>`<button type="button" class="religion-box ${set.has(r)?'filter-off':'selected'}" onclick="toggleReligionFilter('${r}')">${r}</button>`).join('');
 }
-// Changes are held here until "Save" on My profile; the back arrow offers to save or discard them
+// Changes are held here until "Save" on the Religion filters screen
 let pendingReligions=null;
+function openReligionScreen(){
+  pendingReligions=new Set(excludedReligions);renderReligionFilter();
+  goTo('screen-religion-filter');
+}
+function cancelReligionScreen(){pendingReligions=null;renderReligionFilter();goTo('screen-edit-profile');}
+function saveReligionScreen(){
+  commitReligionFilter();updateFilterCounts();
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  showToast('Religion filters saved',false,1600);
+  goTo('screen-edit-profile');
+}
 function toggleReligionFilter(r){
   if(!pendingReligions)pendingReligions=new Set(excludedReligions);
   if(pendingReligions.has(r))pendingReligions.delete(r);else pendingReligions.add(r);
@@ -3008,7 +3062,64 @@ function loadReligionFilter(p){
     excludedReligions=new Set(local);
     sb.from('profiles').update({excluded_religions:[...excludedReligions].sort()}).eq('id',currentUser.id).then(({error})=>{if(!error){try{localStorage.removeItem('basedReligionFilter');}catch(e){}}});
   }else{try{localStorage.removeItem('basedReligionFilter');}catch(e){}}
-  renderReligionFilter();
+  renderReligionFilter();updateFilterCounts();
+}
+// ─── Dealbreaker filters (BASED Gold) ─────────────────────────────────────────
+// Questions where someone must be on the same side as you to appear in Search.
+// "Aligned" here means they don't Differ from you (same side of the question,
+// the Aligned/Close labels on a profile). Saved on the account from its own
+// screen (Settings → Dealbreaker filters).
+let dealbreakers=new Set(),pendingDealbreakers=null;
+function sameSide(mine,theirs){mine=mine||0;theirs=theirs||0;return (mine===0&&theirs===0)||(mine>0&&theirs>0)||(mine<0&&theirs<0);}
+function passesDealbreakers(p){
+  if(!dealbreakers.size||!canUse('dealbreakers'))return true;
+  for(const i of dealbreakers){if(!sameSide(myAnswers[i],(p.answers||[])[i]))return false;}
+  return true;
+}
+function renderDealbreakers(){
+  const el=document.getElementById('dealbreaker-list');if(!el)return;
+  const set=pendingDealbreakers||dealbreakers;
+  el.innerHTML=QUESTIONS.map((q,i)=>{
+    const neutral=(myAnswers[i]||0)===0,on=set.has(i)&&!neutral;
+    return `<button type="button" class="db-row${on?' on':''}" ${neutral?'disabled':''} onclick="toggleDealbreaker(${i})" aria-pressed="${on}"><span class="db-box">${on?'<i class="ti ti-check"></i>':''}</span><span>${q.text.replace(/\.$/,'')}${neutral?'<span class="db-sub">You answered 0 here, so it can’t be a dealbreaker</span>':''}</span></button>`;
+  }).join('');
+}
+function toggleDealbreaker(i){
+  if((myAnswers[i]||0)===0)return;
+  if(!pendingDealbreakers)pendingDealbreakers=new Set(dealbreakers);
+  if(pendingDealbreakers.has(i))pendingDealbreakers.delete(i);else pendingDealbreakers.add(i);
+  renderDealbreakers();
+}
+function openDealbreakerScreen(){
+  pendingDealbreakers=new Set(dealbreakers);renderDealbreakers();
+  goTo('screen-dealbreakers');
+  const sc=document.querySelector('#screen-dealbreakers .scrollable');if(sc)sc.scrollTop=0;
+}
+function cancelDealbreakerScreen(){pendingDealbreakers=null;goTo('screen-edit-profile');}
+function saveDealbreakerScreen(){
+  commitDealbreakers();updateFilterCounts();
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  showToast('Dealbreaker filters saved',false,1600);
+  goTo('screen-edit-profile');
+}
+function updateFilterCounts(){
+  const d=document.getElementById('dealbreaker-count'),r=document.getElementById('religion-count');
+  if(d)d.textContent=dealbreakers.size?`${dealbreakers.size} set`:'None set';
+  if(r){const total=RELIGIONS.length+1,shown=total-[...excludedReligions].filter(x=>x===NONE_STATED||RELIGIONS.includes(x)).length;r.textContent=shown===total?'All shown':`${shown} of ${total} shown`;}
+}
+function clearDealbreakers(){pendingDealbreakers=new Set();renderDealbreakers();}
+function loadDealbreakers(p){
+  dealbreakers=new Set((Array.isArray(p&&p.dealbreakers)?p.dealbreakers:[]).filter(i=>Number.isInteger(i)&&i>=0&&i<NUM_Q));
+  pendingDealbreakers=null;renderDealbreakers();updateFilterCounts();
+}
+function commitDealbreakers(){
+  if(!pendingDealbreakers)return;
+  const before=dealbreakers;
+  dealbreakers=new Set([...pendingDealbreakers].filter(i=>(myAnswers[i]||0)!==0));pendingDealbreakers=null;
+  renderDealbreakers();
+  if(currentUser)sb.from('profiles').update({dealbreakers:[...dealbreakers].sort((a,b)=>a-b)}).eq('id',currentUser.id).then(({error})=>{
+    if(error){console.warn('Saving dealbreakers failed:',error.message);dealbreakers=before;renderDealbreakers();updateFilterCounts();renderProfiles(parseInt(document.getElementById('filter-min').value)||0);showToast('Couldn’t save your dealbreakers — please try again.',true);}
+  });
 }
 // Far-right position on the Distance slider means "200+ mi" / "300+ km" — no distance limit
 function distLabel(d){const u=myUnits()==='km'?' km':' mi';return d>=distMax()?distMax()+'+'+u:d+u;}
@@ -3137,8 +3248,8 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
   },{passive:true});
 })();
 
-// ─── Swipe right on the upgrade / compare-plans screens to go back ───────────
-['screen-upgrade','screen-plans'].forEach(id=>{
+// ─── Swipe right on the upgrade / compare-plans / filter screens to go back ──
+['screen-upgrade','screen-plans','screen-dealbreakers','screen-religion-filter'].forEach(id=>{
   const container=document.getElementById(id);
   let startX=0,startY=0,tracking=false;
   container.addEventListener('touchstart',e=>{
@@ -3151,7 +3262,10 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
     if(document.getElementById('modal-bd'))return;
     const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
     if(dx<60||Math.abs(dx)<Math.abs(dy)*1.5)return; // right swipes only, and a clear, mostly-horizontal one
-    if(id==='screen-plans')closePlans();else closeUpgrade();
+    if(id==='screen-plans')closePlans();
+    else if(id==='screen-dealbreakers')cancelDealbreakerScreen();
+    else if(id==='screen-religion-filter')cancelReligionScreen();
+    else closeUpgrade();
   },{passive:true});
 });
 
@@ -3681,7 +3795,7 @@ function openEditProfile(){
   document.getElementById('hide-toggle').classList.toggle('on',profileHidden);
   document.getElementById('hidden-banner').style.display=profileHidden?'block':'none';
   renderVerifyRow();
-  pendingReligions=new Set(excludedReligions);renderReligionFilter();
+  pendingReligions=null;pendingDealbreakers=null;updateFilterCounts();
   editBefore={units:myUnits(),photo:myProfile.photo,photo_file:myProfile.photo_file||null};
   editSnapshot=editFormState();
   goTo('screen-edit-profile');
@@ -3696,7 +3810,6 @@ function editFormState(){
     country:document.getElementById('edit-country').value,
     location:document.getElementById('edit-location').value.trim(),
     units:myUnits(),
-    religions:[...(pendingReligions||excludedReligions)].sort(),
     photos:(editPhotos||[]).map(x=>x.path||('new:'+x.url.length+':'+x.url.slice(-24)))
   });
 }
@@ -3706,7 +3819,6 @@ function leaveEditProfile(){
   showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Save your changes?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">You’ve made changes to your profile that haven’t been saved.</p><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();saveProfile()">Save changes</button><button class="btn-ghost" style="font-size:15px" onclick="removeModal();discardEditChanges()">Discard changes</button><button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Keep editing</button></div>`);
 }
 function discardEditChanges(){
-  pendingReligions=null;renderReligionFilter();
   if(editBefore){
     if(myUnits()!==editBefore.units)setUnits(editBefore.units,true);
     myProfile.photo=editBefore.photo;myProfile.photo_file=editBefore.photo_file;
@@ -3732,7 +3844,7 @@ async function saveProfile(){
   if(currentUser){
     // Photos: upload any new ones first; the list on the profile is only changed once everything is up
     let photoUpdate={},photoPlan=null;
-    if(editPhotos){
+    if(editPhotos&&(editPhotos.length||myPhotos.length)){
       if(!editPhotos.length){showToast('You need to keep at least one photo.',true);return;}
       const changed=editPhotos.some(x=>x.file)||JSON.stringify(editPhotos.map(x=>x.path))!==JSON.stringify(myPhotos.map(x=>x.path));
       if(changed){
@@ -3772,7 +3884,6 @@ async function saveProfile(){
     renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
     showToast('Profile saved');
   }
-  commitReligionFilter();
   editSnapshot=null;editBefore=null;
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   goTo('screen-main');
@@ -3835,7 +3946,7 @@ async function executeDelete(){
     await sb.auth.signOut();
   }
   const wasPremium=isPremium;
-  excludedReligions=new Set();pendingReligions=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
+  excludedReligions=new Set();pendingReligions=null;dealbreakers=new Set();pendingDealbreakers=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
   isPremium=false;currentUser=null;
   myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null,extra_photos:[]};myPhotos=[];editPhotos=null;
   try{renderSignupExtras();}catch(e){}
