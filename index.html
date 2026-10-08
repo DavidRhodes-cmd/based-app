@@ -1149,6 +1149,7 @@ async function finishProfileCreation(userId,email){
   await loadMyInteractions();
   subscribeToInteractions();
   subscribeToAllMessages();
+  subscribeToMyVerification();
   await loadBrowseProfiles();
   showResults();
   return true;
@@ -1355,6 +1356,7 @@ async function restoreSession(){
   await loadMyInteractions();
   subscribeToInteractions();
   subscribeToAllMessages();
+  subscribeToMyVerification();
   setTimeout(()=>{refreshUnreadCounts();},0); // after profiles load; doesn't hold up sign-in
   return true;
 }
@@ -2223,8 +2225,12 @@ function needsAgeGate(){return requireAgeCheck&&!!currentUser&&myAgeStatus!=='pa
 // Header pill on the main screen — only for people who haven't verified yet
 function updateGetVerifiedBtn(){
   const b=document.getElementById('get-verified-btn');if(!b)return;
-  const show=!!currentUser&&!['approved','in_review'].includes(myVerificationStatus)&&myVerificationIssue!=='underage';
+  const show=!!currentUser&&myVerificationStatus!=='approved'&&myVerificationIssue!=='underage';
   b.style.display=show?'inline-flex':'none';
+  // While an ID check is with a reviewer the pill says so (and opens the status screen) instead of vanishing
+  const reviewing=myVerificationStatus==='in_review';
+  b.innerHTML=reviewing?'<i class="ti ti-clock" style="font-size:16px"></i>Under review':'<i class="ti ti-discount-check" style="font-size:16px"></i>Get verified';
+  b.style.opacity=reviewing?'0.85':'1';
   const tick=document.getElementById('header-verified-tick');if(tick)tick.style.display=(currentUser&&myVerificationStatus==='approved')?'inline-block':'none';
   if(show){ // match the BASED logo box exactly
     const logo=document.querySelector('#screen-main .logo-mark');
@@ -2298,7 +2304,7 @@ function openVerifyScreen(context){
   setVerifyMsg('');
   if(myVerificationIssue&&myVerificationStatus!=='approved'&&showVerifyIssue(myVerificationIssue)){goTo('screen-verify');return;}
   if(myVerificationStatus==='in_review'){
-    setVerifyMsg('Your verification is being reviewed. This usually takes a few minutes.');
+    setVerifyMsg('Your verification is being reviewed, usually within a few minutes. We’ll email you as soon as it’s done, and this page will update by itself.');
     start.textContent='Check again';start.onclick=()=>pollVerification(1);
   }else{
     start.textContent=myVerificationStatus==='declined'?'Try again':'Verify now';start.onclick=startVerification;
@@ -2392,7 +2398,7 @@ async function pollVerification(tries){
   btn.disabled=false;btn.style.opacity='1';
   if(st==='in_review'||st==='pending'){
     btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
-    setVerifyMsg('Thanks, your details are being reviewed. This usually only takes a few minutes. Your <span style="color:var(--verified)"><i class="ti ti-discount-check-filled"></i> Verified</span> badge will appear once approved.');
+    setVerifyMsg('Thanks, your details are being reviewed. This usually only takes a few minutes, and we’ll email you when it’s done. Your <span style="color:var(--verified)"><i class="ti ti-discount-check-filled"></i> Verified</span> badge will appear once approved.');
     if(!needsVerificationGate()&&verifyContext!=='settings'){const s=document.getElementById('verify-skip-btn');s.style.display='block';s.textContent='Continue';}
     return;
   }
@@ -2459,7 +2465,7 @@ function showAgeOutcome(d){
   }
   if(st==='in_review'){
     btn.textContent='Check again';btn.onclick=()=>pollAgeCheck(1);
-    setAgeMsg('Thanks — your check is being reviewed. This usually only takes a few minutes.');
+    setAgeMsg('Thanks — your check is being reviewed by a person. This usually only takes a few minutes. You can close BASED: we’ll email you as soon as it’s done, and if you stay here this page will update by itself.');
     return;
   }
   btn.textContent='Try again';btn.onclick=startAgeCheck;
@@ -2479,6 +2485,42 @@ function onVerified(){
   showToast('You’re verified ✓');
   if(verifyContext==='settings'){openEditProfile();return;}
   goMain();
+}
+
+// Live updates for my own verification status (webhook → profiles row → Realtime),
+// so nobody waiting on a manual review has to keep tapping "Check again".
+let myProfileChannel=null;
+function subscribeToMyVerification(){
+  if(myProfileChannel)sb.removeChannel(myProfileChannel);
+  if(!currentUser)return;
+  myProfileChannel=sb.channel('me:'+currentUser.id)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'profiles',filter:`id=eq.${currentUser.id}`},
+      ({new:p})=>{if(p)onMyVerificationChanged(p);})
+    .subscribe();
+}
+function onMyVerificationChanged(p){
+  const prevId=myVerificationStatus,prevAge=myAgeStatus;
+  const id=p.verification_status||'unverified',age=p.age_check_status||'none',issue=p.verification_issue||null;
+  if(id===prevId&&age===prevAge&&issue===myVerificationIssue)return;
+  const onScreen=s=>{const el=document.getElementById(s);return !!el&&el.classList.contains('active');};
+  // Selfie/age check finished
+  if(age!==prevAge&&['passed','failed','in_review'].includes(age)){
+    if(onScreen('screen-agecheck')){clearTimeout(agePollTimer);const b=document.getElementById('agecheck-start-btn');b.disabled=false;b.style.opacity='1';showAgeOutcome({status:age,issue:issue==='underage'?'underage':null});}
+    else myAgeStatus=age;
+  }
+  // ID check finished
+  if(id!==prevId||issue!==myVerificationIssue){
+    myVerificationStatus=id;myVerificationIssue=issue;
+    if(onScreen('screen-verify')){
+      clearTimeout(verifyPollTimer);
+      if(id==='approved')onVerified();
+      else if(id==='declined'||id==='in_review'||issue)pollVerification(1); // reuse the existing messages for each state
+    }else if(prevId==='in_review'){
+      if(id==='approved'){showToast('You’re verified ✓');loadPermissions().then(()=>renderProfiles(parseInt(document.getElementById('filter-min').value)||0));}
+      else if(id==='declined')showToast(issue==='dob_mismatch'?'Your ID check needs a quick fix: see Settings':'Your ID check wasn’t approved: you can try again in Settings');
+    }
+    updateGetVerifiedBtn();renderVerifyRow();
+  }
 }
 
 function renderVerifyRow(){
@@ -3299,6 +3341,7 @@ async function executeLogout(){
   try{
     if(messageChannel)sb.removeChannel(messageChannel);
     if(interactionsChannel)sb.removeChannel(interactionsChannel);
+    if(myProfileChannel){sb.removeChannel(myProfileChannel);myProfileChannel=null;}
     await sb.auth.signOut();
   }catch(e){console.warn('Sign-out error:',e);}
   // Full fresh start, so nothing from this account (conversations, interest
@@ -3329,6 +3372,7 @@ async function executeDelete(){
     }
     if(messageChannel)sb.removeChannel(messageChannel);
     if(interactionsChannel)sb.removeChannel(interactionsChannel);
+    if(myProfileChannel){sb.removeChannel(myProfileChannel);myProfileChannel=null;}
     await sb.auth.signOut();
   }
   const wasPremium=isPremium;
