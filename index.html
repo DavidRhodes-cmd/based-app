@@ -138,6 +138,16 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 .chat-menu button i{font-size:18px;color:var(--text-muted);}
 .chat-menu button.danger,.chat-menu button.danger i{color:var(--red);}
 .modal-box{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.15);border-radius:20px;padding:28px 22px;margin:24px;text-align:center;width:100%;}
+.up-card{text-align:left;cursor:pointer;padding:13px 13px 12px;border-radius:14px;border:1px solid rgba(138,143,168,0.3);background:var(--navy-mid);color:var(--text-on-dark);font-family:var(--sans);display:flex;flex-direction:column;gap:5px;min-width:0;}
+.up-card.on{border:1.5px solid var(--gold);background:rgba(201,168,76,0.08);}
+.up-row{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:10px;}
+.up-row.hl{background:rgba(201,168,76,0.12);}
+.up-tag{font-size:10px;letter-spacing:1px;font-weight:700;color:var(--navy);background:var(--gold);padding:3px 7px;border-radius:20px;flex-shrink:0;}
+.plans-grid{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,56px);}
+.plans-grid>div{border-bottom:0.5px solid rgba(138,143,168,0.15);}
+.plans-cell{display:flex;align-items:center;justify-content:center;text-align:center;padding:6px 2px;font-size:11px;line-height:1.25;}
+.plans-cell.you{background:rgba(138,143,168,0.09);}
+.plans-cell.gold{background:rgba(201,168,76,0.07);}
 .bottom-safe{padding-bottom:calc(var(--safe-bottom) + 12px);}
 .btn-safe{margin-bottom:calc(var(--safe-bottom) + 12px);}
 /* Didit verification pop-up: keep its close button clear of the iPhone status bar */
@@ -508,27 +518,27 @@ select.form-input option{background:#1a1f2e;color:#fff;}
   </div>
   <div class="scrollable" style="padding:20px 16px" id="modify-answers-list"></div>
 </div>
-<div id="screen-paywall" class="screen">
+<!-- UPGRADE (opens when a locked feature or a used-up allowance is tapped) -->
+<div id="screen-upgrade" class="screen">
   <div class="app-header">
-    <button class="btn-back" onclick="goTo('screen-main')"><i class="ti ti-arrow-left"></i></button>
+    <button class="btn-back" onclick="closeUpgrade()" aria-label="Close"><i class="ti ti-x"></i></button>
     <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
     <div style="width:28px"></div>
   </div>
-  <div class="scrollable" style="padding:24px 16px">
-    <div style="text-align:center;margin-bottom:28px">
-      <div style="width:64px;height:64px;border-radius:50%;background:rgba(201,168,76,0.12);border:0.5px solid rgba(201,168,76,0.35);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-crown" style="font-size:28px;color:var(--gold)"></i></div>
-      <p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);line-height:1.3;margin-bottom:9px">You've seen your 5 free profiles</p>
-      <p style="font-size:14px;color:var(--text-muted);line-height:1.6;max-width:280px;margin:0 auto">Unlock unlimited browsing to keep meeting people who share your values.</p>
-    </div>
-    <div style="background:rgba(201,168,76,0.06);border:0.5px solid rgba(201,168,76,0.25);border-radius:17px;padding:24px;margin-bottom:22px;text-align:center">
-      <div style="font-family:var(--serif);font-size:40px;color:var(--gold);font-weight:700;line-height:1;margin-bottom:6px">£8.99<span style="font-size:16px;color:var(--text-muted);font-family:var(--sans);font-weight:400"> / month</span></div>
-      <p style="font-size:14px;color:var(--text-muted);margin-bottom:20px">Cancel anytime — no commitment.</p>
-      <button class="btn-primary" onclick="activatePremium()" style="font-size:16px;padding:15px">Unlock unlimited access</button>
-    </div>
-    <button class="btn-ghost bottom-safe" onclick="goTo('screen-main')">Maybe later</button>
-  </div>
+  <div class="scrollable" id="upgrade-body" style="padding:10px 20px 18px"></div>
+  <div class="bottom-safe" id="upgrade-footer" style="padding:14px 20px 0;border-top:0.5px solid rgba(201,168,76,0.25);display:flex;flex-direction:column;gap:6px"></div>
 </div>
 
+<!-- COMPARE PLANS -->
+<div id="screen-plans" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="closePlans()" aria-label="Back"><i class="ti ti-arrow-left"></i></button>
+    <span style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark)">Compare plans</span>
+    <div style="width:28px"></div>
+  </div>
+  <div class="scrollable" id="plans-body" style="padding:14px 14px 18px"></div>
+  <div class="bottom-safe" id="plans-footer" style="padding:14px 20px 0;border-top:0.5px solid rgba(201,168,76,0.25);display:flex;gap:10px"></div>
+</div>
 
 <!-- SIGN IN -->
 <div id="screen-signin" class="screen">
@@ -2119,8 +2129,9 @@ const FEATURE_INFO={
   dealbreakers:{name:'Dealbreaker filters',icon:'ti-adjustments'},
   profile_insights:{name:'Profile insights',icon:'ti-chart-bar'},
   read_receipts:{name:'Read receipts',icon:'ti-checks'},
-  saved_intro:{name:'Saved introduction',icon:'ti-message'},
-  priority_support:{name:'Priority support',icon:'ti-headset'}
+  saved_intro:{name:'Pre-saved introduction',icon:'ti-message'},
+  priority_support:{name:'Priority support',icon:'ti-headset'},
+  ad_free:{name:'Ad-free',icon:'ti-ad-off'}
 };
 async function loadPermissions(){
   if(!currentUser){PERMS=null;return;}
@@ -2162,43 +2173,170 @@ document.addEventListener('click',e=>{
   showUpgradePrompt(el.dataset.feature);
 },true);
 
-// reason: 'locked' (default) or 'limit' (allowance used up)
-function showUpgradePrompt(f,reason){
-  const p=perm(f),info=FEATURE_INFO[f]||{name:'This feature',icon:'ti-lock'};
-  const myTier=(PERMS&&PERMS.tier)||'liveness';
-  const target=p.upgrade||(myTier==='liveness'?'id':'plus');
-  const isLimit=(reason==='limit'||p.access==='allowed')&&p.limit!=null;
-  let title,body;
-  if(isLimit){
-    title=p.period==='total'?`You’ve used your ${p.limit} free ${info.unit||'uses'}`:`You’ve used your ${p.limit} ${info.unit||'uses'} ${periodText(p.period)}`;
-    body=(resetText(p.period)?resetText(p.period)+' ':'')+`<b>${TIER_LABEL[target]}</b> gives you ${describeAllowance(f,target)}.`;
-  }else{
-    title=`${info.name} is part of ${TIER_LABEL[target]}`;
-    body=target==='id'?'Verify your ID to unlock it — it only takes a couple of minutes.':`Upgrade to <b>${TIER_LABEL[target]}</b> to unlock it.`;
-  }
-  let actions='';
-  if(target==='id'){
-    actions=`<button class="btn-primary" style="font-size:15px" onclick="removeModal();openVerifyScreen('header')">Get verified</button>`;
-  }else{
-    const needsId=myTier==='liveness';
-    if(needsId)body+=' Paid plans include a quick ID check after payment.';
-    actions=`<button class="btn-primary" style="font-size:15px" onclick="removeModal();startUpgrade('${target}')">Upgrade to ${TIER_LABEL[target]} · ${TIER_PRICE[target]}/month</button>`;
-    if(target==='plus')actions+=`<button class="btn-ghost" style="font-size:15px" onclick="removeModal();startUpgrade('gold')">Or BASED Gold · ${TIER_PRICE.gold}/month</button>`;
-  }
-  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.35);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><i class="ti ${isLimit?info.icon:'ti-lock'}" style="font-size:24px;color:var(--gold)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center;line-height:1.3">${title}</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">${body}</p><div style="display:flex;flex-direction:column;gap:11px">${actions}<button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Not now</button></div>`);
-}
-function describeAllowance(f,tier){
-  // What the target tier gets, from the same table (falls back to "more")
-  const unit=(FEATURE_INFO[f]||{}).unit||'uses';
+// ─── Upgrade screen & Compare plans ──────────────────────────────────────────
+// Everything shown here is worked out from the feature_permissions table, so the
+// screens stay right if a limit or a tier changes in the database.
+const TIER_ORDER=['liveness','id','plus','gold'];
+const TIER_SHORT={liveness:'Selfie',id:'ID',plus:'BASED+',gold:'Gold'};
+const OPTION_LABEL={id:'ID verified',plus:'BASED+',gold:'BASED Gold'};
+const OPTION_TAGLINE={id:'Quick photo ID check',plus:'Unlimited views and interests',gold:'Everything in BASED+, and more'};
+const PLAN_FEATURES=['profile_views','express_interest','super_interest','see_interested','religion_filter','verified_only_filter','travel_mode','priority_support','ad_free','dealbreakers','profile_insights','read_receipts','saved_intro'];
+const COMPARE_LABEL={profile_views:'Profile views',express_interest:'Express interest',super_interest:'Super interest',see_interested:'See who’s interested in you',religion_filter:'Religion filter',verified_only_filter:'Show verified members only',travel_mode:'Travel mode',priority_support:'Priority support',ad_free:'Ad-free',dealbreakers:'Dealbreaker filters',profile_insights:'Profile insights',read_receipts:'Read receipts',saved_intro:'Pre-saved introduction'};
+const FEATURE_ONE={profile_views:'profile view',express_interest:'interest',super_interest:'super interest'};
+const FEATURE_PITCH={
+  travel_mode:['Meet people wherever you are','Travel mode lets you search and appear at your current location.'],
+  religion_filter:['Choose which faiths you see','Filter Search by religion, so you see the people you’re looking for.'],
+  see_interested:['See who’s interested in you','Find out exactly who has expressed interest in you, and decide whether to reply.'],
+  verified_only_filter:['Only see verified members','Show only people who have verified their photo ID.'],
+  dealbreakers:['Set your dealbreakers','Filter out anyone whose answers you can’t live with.'],
+  profile_insights:['See how your profile is doing','Find out how your profile is performing in Search.'],
+  read_receipts:['Know when they’ve read it','See when your messages have been read.'],
+  saved_intro:['Say hello in one tap','Save an introduction to send whenever you like.'],
+  priority_support:['Get help first','Your support requests go to the front of the queue.'],
+  super_interest:['Stand out with a super interest','A super interest tells someone you’re especially keen.'],
+  express_interest:['Express interest in more people','Let more people know you’d like to get to know them.'],
+  profile_views:['See more profiles','Keep browsing people who share your values.'],
+  ad_free:['Go ad-free','Browse BASED without adverts.']
+};
+let upgradeState=null; // {f, reason, selected, options, returnTo}
+
+function ruleFor(f,tier){
   const c=(PERMS&&PERMS.country)||'*';
   const rows=(TIER_RULES||[]).filter(r=>r.feature===f&&r.tier===tier&&(r.country===c||r.country==='*')).sort((a,b)=>(a.country==='*')-(b.country==='*'));
-  const t=rows[0];
-  if(t&&t.access==='allowed')return t.limit_value==null?`unlimited ${unit}`:`${t.limit_value} ${unit} ${t.limit_period==='week'?'a week':t.limit_period==='day'?'a day':''}`.trim();
-  return tier==='id'?`more ${unit}`:`unlimited ${unit}`;
+  return rows[0]||null;
+}
+// What a tier gets for a feature: {lock} | {check} | {text}
+function tierValue(f,tier){
+  const r=ruleFor(f,tier);
+  if(!r)return {lock:true};
+  if(f==='see_interested'&&r.access!=='allowed')return {text:'Count only'};
+  if(r.access!=='allowed')return {lock:true};
+  const counted=!!(FEATURE_INFO[f]||{}).unit;
+  if(r.limit_value==null)return counted?{text:'Unlimited'}:{check:true};
+  const n=r.limit_value;
+  return {text:r.limit_period==='total'?(n===1?'1 only':`${n} in total`):r.limit_period==='day'?`${n} a day`:`${n} a week`,n,period:r.limit_period};
+}
+// Is `to` genuinely better than `from` for this feature?
+function tierBetter(f,from,to){
+  const a=tierValue(f,from),b=tierValue(f,to);
+  if(b.lock||b.text==='Count only')return false;
+  if(b.check)return !a.check;
+  return a.lock||a.text!==b.text&&(b.text==='Unlimited'||a.text==='Count only'||rank(b)>rank(a));
+  function rank(v){if(v.text==='Unlimited')return 1e9;if(v.lock||!v.n)return 0;return v.n*(v.period==='day'?7:v.period==='week'?1:0.01);}
+}
+function gainLine(f,tier){
+  const v=tierValue(f,tier),unit=(FEATURE_INFO[f]||{}).unit;
+  if(!unit||v.check)return COMPARE_LABEL[f];
+  if(v.text==='Unlimited')return `Unlimited ${unit}`;
+  const word=v.n===1?FEATURE_ONE[f]:unit;
+  return v.period==='total'?`${v.n} ${word} in total`:`${v.n} ${word} ${v.period==='day'?'a day':'a week'}`;
+}
+function myTierNow(){return (PERMS&&PERMS.tier)||'liveness';}
+
+// reason: 'locked' (default) or 'limit' (allowance used up)
+async function showUpgradePrompt(f,reason){
+  removeModal();
+  if(!TIER_RULES){try{const {data:rows}=await sb.from('feature_permissions').select('country,feature,tier,access,limit_value,limit_period');TIER_RULES=rows||[];}catch(e){TIER_RULES=[];}}
+  const p=perm(f),my=myTierNow();
+  const isLimit=(reason==='limit'||p.access==='allowed')&&p.limit!=null;
+  const above=TIER_ORDER.slice(TIER_ORDER.indexOf(my)+1).filter(t=>t!=='liveness');
+  let options=above.filter(t=>tierBetter(f,my,t));
+  if(!options.length)options=above.length?above:['plus','gold'];
+  const target=p.upgrade&&options.includes(p.upgrade)?p.upgrade:options[0];
+  const active=document.querySelector('.screen.active');
+  const returnTo=upgradeState&&active&&(active.id==='screen-upgrade'||active.id==='screen-plans')?upgradeState.returnTo:(active?active.id:'screen-main');
+  upgradeState={f,isLimit,selected:target,options,returnTo};
+  renderUpgrade();
+  goTo('screen-upgrade');
+  document.getElementById('upgrade-body').scrollTop=0;
+}
+function closeUpgrade(){const back=(upgradeState&&upgradeState.returnTo)||'screen-main';upgradeState=null;goTo(back==='screen-upgrade'||back==='screen-plans'?'screen-main':back);}
+function pickUpgradeOption(t){if(!upgradeState)return;upgradeState.selected=t;renderUpgrade();}
+
+function renderUpgrade(){
+  const s=upgradeState;if(!s)return;
+  const f=s.f,p=perm(f),info=FEATURE_INFO[f]||{name:'This feature',icon:'ti-lock'},my=myTierNow();
+  const label=COMPARE_LABEL[f]||info.name;
+  const names=s.options.map(t=>OPTION_LABEL[t]);
+  const joined=names.length>1?names.slice(0,-1).join(', ')+' and '+names[names.length-1]:names[0];
+  let title,body;
+  if(s.isLimit){
+    const unit=info.unit||'uses';
+    title=p.period==='total'?`You’ve used your ${p.limit} free ${unit}`:p.period==='day'?`You’ve used today’s ${p.limit} ${unit}`:`You’ve used this week’s ${p.limit} ${unit}`;
+    const paid=s.options.filter(t=>t!=='id').map(t=>OPTION_LABEL[t]).join(' or ');
+    if(s.options.includes('id'))body=(resetText(p.period)?resetText(p.period)+' ':'')+`Verify your ID for ${tierValue(f,'id').text.toLowerCase()} — it’s free — or upgrade for more.`;
+    else body=(resetText(p.period)?resetText(p.period)+' Or carry on now':'Carry on now')+` with ${paid}.`;
+  }else{
+    const pitch=FEATURE_PITCH[f]||[info.name,''];
+    title=pitch[0];
+    body=(pitch[1]?pitch[1]+' ':'')+(s.options.length===1&&s.options[0]==='id'?'It’s free once you’ve verified your ID.':`It’s included with ${joined}.`);
+  }
+  const sel=s.selected;
+  const cards=s.options.map(t=>{
+    const price=t==='id'?'Free':`${TIER_PRICE[t]}<span style="font-size:13px;font-weight:400;color:var(--text-muted)"> /month</span>`;
+    return `<button class="up-card${t===sel?' on':''}" aria-pressed="${t===sel}" onclick="pickUpgradeOption('${t}')"><span style="font-family:var(--serif);font-size:${s.options.length>2?15:18}px;color:${t==='gold'?'var(--gold-light)':'var(--text-on-dark)'}">${OPTION_LABEL[t]}</span><span style="font-size:${s.options.length>2?18:22}px;font-weight:600">${price}</span>${s.options.length>2?'':`<span style="font-size:12px;color:var(--text-muted)">${OPTION_TAGLINE[t]}</span>`}</button>`;
+  }).join('');
+  let gains=PLAN_FEATURES.filter(x=>tierBetter(x,my,sel));
+  if(gains.includes(f))gains=[f].concat(gains.filter(x=>x!==f));
+  const rows=gains.map(x=>{
+    const goldOnly=sel==='gold'&&tierValue(x,'plus').lock&&!tierValue(x,'gold').lock;
+    const sub=x==='travel_mode'?'<span style="display:block;font-size:12px;color:var(--text-muted);margin-top:2px">Search and appear at your current location</span>':'';
+    return `<div class="up-row${x===f?' hl':''}"><i class="ti ti-check" style="font-size:18px;color:var(--gold);flex-shrink:0"></i><span style="flex:1;font-size:15px;color:var(--text-on-dark)">${gainLine(x,sel)}${sub}</span>${goldOnly?'<span class="up-tag">GOLD</span>':''}</div>`;
+  }).join('');
+  const heading=sel==='id'?'What you get when you verify your ID':`What you get with ${OPTION_LABEL[sel]}`;
+  document.getElementById('upgrade-body').innerHTML=`
+    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;margin-bottom:22px">
+      <div style="width:60px;height:60px;border-radius:50%;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);display:flex;align-items:center;justify-content:center"><i class="ti ${info.icon}" style="font-size:26px;color:var(--gold)"></i></div>
+      <p style="margin-top:4px;font-size:11px;letter-spacing:2px;color:var(--gold);font-weight:600">${label.toUpperCase()}</p>
+      <p style="font-family:var(--serif);font-size:24px;line-height:1.25;color:var(--text-on-dark)">${title}</p>
+      <p style="font-size:14px;line-height:1.55;color:var(--text-muted);max-width:340px">${body}</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(${s.options.length},minmax(0,1fr));gap:10px;margin-bottom:22px">${cards}</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:6px">${heading}</p>
+    <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:18px">${rows}</div>
+    <div style="text-align:center"><button onclick="openPlans()" style="background:transparent;border:none;color:var(--gold);font-size:14px;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:8px 12px">Compare all plans</button></div>`;
+  let cta,note;
+  if(sel==='id'){
+    cta=`<button class="btn-primary" onclick="upgradeState=null;openVerifyScreen('header')">Get verified · Free</button>`;
+    note='Takes about two minutes. BASED only keeps whether you passed, not your document.';
+  }else{
+    cta=`<button class="btn-primary" onclick="startUpgrade('${sel}')">Get ${OPTION_LABEL[sel]} · ${TIER_PRICE[sel]}/month</button>`;
+    note='Monthly subscription. Cancel anytime in Settings.'+(my==='liveness'?'<br>You’ll do a quick ID check after paying.':'');
+  }
+  document.getElementById('upgrade-footer').innerHTML=`${cta}<p style="font-size:12px;line-height:1.5;color:var(--text-muted);text-align:center">${note}</p><button onclick="closeUpgrade()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Not now</button>`;
+}
+
+async function openPlans(){
+  if(!TIER_RULES){try{const {data:rows}=await sb.from('feature_permissions').select('country,feature,tier,access,limit_value,limit_period');TIER_RULES=rows||[];}catch(e){TIER_RULES=[];}}
+  const active=document.querySelector('.screen.active');
+  if(!upgradeState)upgradeState={returnTo:active?active.id:'screen-main',plansOnly:true};
+  const my=myTierNow();
+  const colClass=t=>t===my?' you':t==='gold'?' gold':'';
+  const lockI='<i class="ti ti-lock" style="font-size:15px;color:#5d627a" aria-label="Not included"></i>';
+  const checkI='<i class="ti ti-check" style="font-size:18px;color:var(--gold)" aria-label="Included"></i>';
+  let html=`<div class="plans-grid"><div style="border-bottom:0.5px solid rgba(201,168,76,0.3)"></div>${TIER_ORDER.map(t=>`<div class="plans-cell${colClass(t)}" style="flex-direction:column;justify-content:flex-end;gap:3px;padding:8px 0 6px;border-radius:10px 10px 0 0;border-bottom:0.5px solid rgba(201,168,76,0.3)">${t===my?'<span style="font-size:9px;letter-spacing:1px;font-weight:700;color:var(--navy);background:var(--text-muted);padding:2px 6px;border-radius:10px">YOU</span>':''}<span style="font-size:12px;font-weight:600;color:${t==='plus'||t==='gold'?'var(--gold-light)':'var(--text-on-dark)'}">${TIER_SHORT[t]}</span><span style="color:var(--text-muted)">${TIER_PRICE[t]||'Free'}</span></div>`).join('')}`;
+  PLAN_FEATURES.forEach(f=>{
+    html+=`<div style="padding:11px 8px 11px 0;font-size:13px;line-height:1.35;color:var(--text-on-dark);display:flex;align-items:center">${COMPARE_LABEL[f]}</div>`;
+    TIER_ORDER.forEach((t,i)=>{
+      const v=tierValue(f,t);
+      html+=`<div class="plans-cell${colClass(t)}" style="color:${i>=2?'var(--gold-light)':'var(--text-on-dark)'}">${v.lock?lockI:v.check?checkI:v.text}</div>`;
+    });
+  });
+  html+=`</div><p style="margin-top:14px;font-size:12px;line-height:1.5;color:var(--text-muted)">Selfie = selfie and age check. ID = photo ID verified. Paid plans need a verified ID${my==='liveness'?'; you’ll do a quick ID check after paying':''}.</p>`;
+  document.getElementById('plans-body').innerHTML=html;
+  const buys=['plus','gold'].filter(t=>TIER_ORDER.indexOf(t)>TIER_ORDER.indexOf(my));
+  document.getElementById('plans-footer').style.display=buys.length?'flex':'none';
+  document.getElementById('plans-footer').innerHTML=buys.map(t=>`<button class="${t==='gold'?'btn-primary':'btn-ghost'}" style="font-size:15px;font-weight:600;${t==='plus'?'color:var(--gold);border-color:var(--gold);':''}" onclick="startUpgrade('${t}')">Get ${OPTION_LABEL[t]}</button>`).join('');
+  goTo('screen-plans');
+  document.getElementById('plans-body').scrollTop=0;
+}
+function closePlans(){
+  if(upgradeState&&!upgradeState.plansOnly){goTo('screen-upgrade');return;}
+  const back=(upgradeState&&upgradeState.returnTo)||'screen-main';upgradeState=null;goTo(back);
 }
 // Payments arrive in the next stage; until then this explains what will happen
 function startUpgrade(tier){
-  const myTier=(PERMS&&PERMS.tier)||'liveness';
+  const myTier=myTierNow();
   showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">${TIER_LABEL[tier]} · ${TIER_PRICE[tier]}/month</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">Payments are coming very soon.${myTier==='liveness'?' After paying you’ll do a quick ID check, then everything unlocks.':''}</p><button class="btn-primary" style="font-size:15px" onclick="removeModal()">OK</button>`);
 }
 
@@ -2704,13 +2842,9 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
   },{passive:true});
 })();
 
-// ─── Swipe right on the paywall screen to go back ─────────────────────────────
-// The paywall is only ever reached from Search (locked cards, the free-views
-// banner, tapping a locked profile), so its back button already correctly
-// returns to screen-main with Search still active — this just makes that
-// same action reachable by swipe, same pattern as the profile screen.
-(function initPaywallSwipeBack(){
-  const container=document.getElementById('screen-paywall');
+// ─── Swipe right on the upgrade / compare-plans screens to go back ───────────
+['screen-upgrade','screen-plans'].forEach(id=>{
+  const container=document.getElementById(id);
   let startX=0,startY=0,tracking=false;
   container.addEventListener('touchstart',e=>{
     if(e.touches.length!==1)return;
@@ -2719,12 +2853,12 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
   container.addEventListener('touchend',e=>{
     if(!tracking)return;
     tracking=false;
-    const endX=e.changedTouches[0].clientX,endY=e.changedTouches[0].clientY;
-    const dx=endX-startX,dy=endY-startY;
+    if(document.getElementById('modal-bd'))return;
+    const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
     if(dx<60||Math.abs(dx)<Math.abs(dy)*1.5)return; // right swipes only, and a clear, mostly-horizontal one
-    goTo('screen-main');
+    if(id==='screen-plans')closePlans();else closeUpgrade();
   },{passive:true});
-})();
+});
 
 // ─── Swipe right on the chat screen to go back to It's mutual ────────────────
 (function initChatSwipeBack(){
@@ -3330,7 +3464,7 @@ function activatePremium(){isPremium=true;goTo('screen-main');renderProfiles(par
 
 // ─── Delete account ───────────────────────────────────────────────────────────
 function confirmDelete(){
-  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(235,87,87,0.1);border:0.5px solid rgba(235,87,87,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-trash" style="font-size:24px;color:var(--red)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;line-height:1.3">Delete your profile?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Do you want to delete your profile and all your data held on the BASED app?${isPremium?' Your £8.99/month subscription will be cancelled immediately.':''}</p><div style="display:flex;flex-direction:column;gap:11px"><button onclick="executeDelete()" style="background:var(--red);color:white;border:none;border-radius:13px;padding:14px 20px;font-size:15px;font-weight:600;cursor:pointer;width:100%;font-family:var(--sans)">Yes, delete everything</button><button onclick="removeModal()" style="background:transparent;color:var(--text-muted);border:0.5px solid rgba(255,255,255,0.15);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;width:100%;font-family:var(--sans)">Cancel</button></div>`);
+  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(235,87,87,0.1);border:0.5px solid rgba(235,87,87,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-trash" style="font-size:24px;color:var(--red)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;line-height:1.3">Delete your profile?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Do you want to delete your profile and all your data held on the BASED app?${isPremium?` Your ${TIER_LABEL[(PERMS&&PERMS.tier)||'plus']} subscription will be cancelled immediately.`:''}</p><div style="display:flex;flex-direction:column;gap:11px"><button onclick="executeDelete()" style="background:var(--red);color:white;border:none;border-radius:13px;padding:14px 20px;font-size:15px;font-weight:600;cursor:pointer;width:100%;font-family:var(--sans)">Yes, delete everything</button><button onclick="removeModal()" style="background:transparent;color:var(--text-muted);border:0.5px solid rgba(255,255,255,0.15);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;width:100%;font-family:var(--sans)">Cancel</button></div>`);
 }
 
 function confirmLogout(){
