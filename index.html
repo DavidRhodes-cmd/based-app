@@ -2953,9 +2953,30 @@ function subscribeToMyVerification(){
   if(!currentUser)return;
   myProfileChannel=sb.channel('me:'+currentUser.id)
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'profiles',filter:`id=eq.${currentUser.id}`},
-      ({new:p})=>{if(p)onMyVerificationChanged(p);})
+      ({new:p})=>{if(p){onMyVerificationChanged(p);onMyPlanMaybeChanged(p);}})
     .subscribe();
 }
+// Plan changes (upgrade, downgrade, expiry) are picked up live from the account,
+// and also whenever you switch tabs or come back to the app.
+let lastPlanKey=null,permRefreshAt=0;
+function onMyPlanMaybeChanged(p){
+  const key=(p.subscription_tier||'none')+'|'+(p.subscription_expires_at||'');
+  if(key!==lastPlanKey)refreshPermissions(true);
+  lastPlanKey=key;
+}
+async function refreshPermissions(force){
+  if(!currentUser)return;
+  if(!force&&Date.now()-permRefreshAt<5000)return; // no need to ask more than every few seconds
+  permRefreshAt=Date.now();
+  const before=PERMS&&PERMS.tier;
+  await loadPermissions();
+  const after=PERMS&&PERMS.tier;
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  if(typeof renderMatchesTab==='function')renderMatchesTab();
+  if(typeof updateFilterCounts==='function')updateFilterCounts();
+  if(before&&after&&before!==after&&(after==='plus'||after==='gold'))showToast(`You’re now on ${TIER_LABEL[after]}`,false,2200);
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshPermissions();});
 function onMyVerificationChanged(p){
   const prevId=myVerificationStatus,prevAge=myAgeStatus;
   const id=p.verification_status||'unverified',age=p.age_check_status||'none',issue=p.verification_issue||null;
@@ -3211,7 +3232,7 @@ function toggleLocationMode(){
 }
 
 // ─── Messaging ────────────────────────────────────────────────────────────────
-async function switchTab(tab){['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?'block':'none';});if(tab==='matches'){await loadMyInteractions();await loadBrowseProfiles();renderMatchesTab();celebrateNewSupers();}if(tab==='messages'){await loadMyInteractions();await loadBrowseProfiles();renderConversationsTab();}}
+async function switchTab(tab){['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?'block':'none';});refreshPermissions();if(tab==='matches'){await loadMyInteractions();await loadBrowseProfiles();renderMatchesTab();celebrateNewSupers();}if(tab==='messages'){await loadMyInteractions();await loadBrowseProfiles();renderConversationsTab();}}
 
 // ─── Swipe left/right between Search, Interest, and It's mutual ───────────────
 (function initTabSwipe(){
