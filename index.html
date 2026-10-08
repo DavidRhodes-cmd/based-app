@@ -1522,9 +1522,9 @@ function renderProfiles(minPct){
   lastProfileList=list;
   if(!list.length){container.innerHTML='<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px 0">No profiles match your filters.</p>';return;}
   let html='';
-  {const pv=perm('profile_views');
-   if(pv.limit!=null){const lim=pv.limit,used=Math.min(lim,pv.used||0),left=lim-used;const dots=Array.from({length:lim},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<left?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');html+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px"><span style="font-size:13px;color:var(--text-muted)">${pv.period==='day'?`${left} profile view${left===1?'':'s'} left today`:`${left} free view${left===1?'':'s'} remaining`}</span><span>${dots}</span></div>`;}
-   else if(isPremium){html+=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:13px;background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:9px;padding:8px 12px"><i class="ti ti-crown" style="font-size:14px;color:var(--gold)"></i><span style="font-size:13px;color:var(--gold-light)">${TIER_LABEL[(PERMS&&PERMS.tier)||'plus']} · unlimited profile views</span></div>`;}}
+  {const rows=allowanceRows();
+   if(rows)html+=rows;
+   else if(isPremium){html+=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:13px;background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:9px;padding:8px 12px"><i class="ti ti-crown" style="font-size:14px;color:var(--gold)"></i><span style="font-size:13px;color:var(--gold-light)">${TIER_LABEL[(PERMS&&PERMS.tier)||'plus']} · no limits</span></div>`;}}
   list.forEach(p=>{
     const profileKey=p.id||p.name;
     const isLocked=!viewedProfiles.has(profileKey)&&outOfFreeViews();
@@ -2156,6 +2156,22 @@ function limitLeft(f){const p=perm(f);if(p.limit==null)return Infinity;return Ma
 function bumpUsed(f){if(PERMS&&PERMS.features&&PERMS.features[f]&&PERMS.features[f].limit!=null)PERMS.features[f].used=(PERMS.features[f].used||0)+1;}
 function periodText(period){return period==='week'?'this week':period==='day'?'today':'';}
 function resetText(period){return period==='week'?'Your allowance resets on Monday.':period==='day'?'Your allowance resets at midnight.':'';}
+
+// Allowance lines at the top of Search: one per limited feature, eight dot
+// slots each so the dots line up (gold = still available, grey = used).
+// Features with no limit on your tier don't get a line.
+function allowanceRows(){
+  const lines=[['profile_views','Free views remaining'],['express_interest','Free interests remaining'],['super_interest','Free super interests remaining']];
+  let html='';
+  lines.forEach(([f,label])=>{
+    const p=perm(f);
+    if(p.access!=='allowed'||p.limit==null)return;
+    const lim=p.limit,left=Math.max(0,lim-Math.min(lim,p.used||0));
+    const dots=Array.from({length:8},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i>=lim?'transparent':i<left?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');
+    html+=`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px" aria-label="${label}: ${left} of ${lim}"><span style="font-size:13px;color:var(--text-muted)">${label}</span><span style="white-space:nowrap">${dots}</span></div>`;
+  });
+  return html?`<div style="margin-bottom:13px">${html}</div>`:'';
+}
 
 // Show / lock / hide every element tagged with data-feature="…"
 function applyPermissions(){
