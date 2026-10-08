@@ -1162,6 +1162,7 @@ async function finishProfileCreation(userId,email){
   removeModal();
   rememberEmail(email);
   try{localStorage.removeItem('basedReferralCode');}catch(e){}
+  excludedReligions=new Set();pendingReligions=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
   isPremium=false;profileHidden=false;myVerificationStatus='unverified';myVerificationIssue=null;myAgeStatus='none';
   await loadPermissions();
   await loadMyInteractions();
@@ -1362,6 +1363,8 @@ async function restoreSession(){
     if(ownPath)ensureBlurCopy(currentUser.id,myProfile.photo);
     myAnswers=p.answers||new Array(NUM_Q).fill(0);
     isPremium=p.is_premium||false;
+    loadReligionFilter(p);
+    mySearchFilters=(p.search_filters&&typeof p.search_filters==='object')?p.search_filters:{};
     profileHidden=p.is_hidden||false;
     myVerificationStatus=p.verification_status||'unverified';
     myVerificationIssue=p.verification_issue||null;
@@ -2223,8 +2226,8 @@ function bumpUsed(f){if(PERMS&&PERMS.features&&PERMS.features[f]&&PERMS.features
 function periodText(period){return period==='week'?'this week':period==='day'?'today':'';}
 function resetText(period){return period==='week'?'Your allowance resets on Monday.':period==='day'?'Your allowance resets at midnight.':'';}
 
-// Allowance lines at the top of Search: one per limited feature, eight dot
-// slots each so the dots line up (gold = still available, grey = used).
+// Allowance lines at the top of Search: one per limited feature, always eight
+// dots — gold from the left for each one still available, the rest grey.
 // Features with no limit on your tier don't get a line.
 function allowanceRows(){
   const lines=[['profile_views','Free views remaining'],['express_interest','Free interests remaining'],['super_interest','Free super interests remaining']];
@@ -2233,7 +2236,7 @@ function allowanceRows(){
     const p=perm(f);
     if(p.access!=='allowed'||p.limit==null)return;
     const lim=p.limit,left=Math.max(0,lim-Math.min(lim,p.used||0));
-    const dots=Array.from({length:8},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i>=lim?'transparent':i<left?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');
+    const dots=Array.from({length:8},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<left?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');
     html+=`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px" aria-label="${label}: ${left} of ${lim}"><span style="font-size:13px;color:var(--text-muted)">${label}</span><span style="white-space:nowrap">${dots}</span></div>`;
   });
   return html?`<div style="margin-bottom:13px">${html}</div>`:'';
@@ -2771,15 +2774,16 @@ function updateFilter(source){
   document.getElementById('filter-dist-val').textContent=distLabel(d);
   document.getElementById('filter-age-min-val').textContent=aMin;
   document.getElementById('filter-age-max-val').textContent=aMax;
-  try{localStorage.setItem('basedFilterPrefs',JSON.stringify({min:v,dist:d,units:myUnits(),ageMin:aMin,ageMax:aMax}));}catch(e){}
+  mySearchFilters={min:v,dist:d,units:myUnits(),ageMin:aMin,ageMax:aMax};
+  clearTimeout(filterSaveTimer);filterSaveTimer=setTimeout(()=>saveFilterPrefs(mySearchFilters),700);
   renderProfiles(v);
 }
 // ─── Religion filter (Settings → "Show me the following religions") ─────────
 // Stores the religions the user has switched OFF, so any religion added to
-// RELIGIONS later is shown by default. Device-local, like the other filters.
+// RELIGIONS later is shown by default. Saved on the account.
 const NONE_STATED='None stated'; // filter-only option for profiles with no religion recorded
 let excludedReligions=new Set();
-try{excludedReligions=new Set(JSON.parse(localStorage.getItem('basedReligionFilter')||'[]'));}catch(e){}
+// Saved on the account (profiles.excluded_religions), so it follows you between devices
 function renderReligionFilter(){
   const grid=document.getElementById('religion-filter-grid');
   if(!grid)return;
@@ -2795,29 +2799,54 @@ function toggleReligionFilter(r){
 }
 function commitReligionFilter(){
   if(!pendingReligions)return;
+  const before=excludedReligions;
   excludedReligions=new Set(pendingReligions);pendingReligions=null;
-  try{localStorage.setItem('basedReligionFilter',JSON.stringify([...excludedReligions]));}catch(e){}
+  renderReligionFilter();
+  if(currentUser)sb.from('profiles').update({excluded_religions:[...excludedReligions].sort()}).eq('id',currentUser.id).then(({error})=>{
+    if(error){console.warn('Saving religion filter failed:',error.message);excludedReligions=before;renderReligionFilter();renderProfiles(parseInt(document.getElementById('filter-min').value)||0);showToast('Couldn’t save your religion filter — please try again.',true);}
+  });
+}
+// Load the filter from the account. A filter saved on this device by an older
+// version of the app is moved onto the account once, then removed from the device.
+function loadReligionFilter(p){
+  excludedReligions=new Set(Array.isArray(p&&p.excluded_religions)?p.excluded_religions:[]);
+  pendingReligions=null;
+  let local=[];try{local=JSON.parse(localStorage.getItem('basedReligionFilter')||'[]');}catch(e){}
+  if(!excludedReligions.size&&Array.isArray(local)&&local.length&&currentUser){
+    excludedReligions=new Set(local);
+    sb.from('profiles').update({excluded_religions:[...excludedReligions].sort()}).eq('id',currentUser.id).then(({error})=>{if(!error){try{localStorage.removeItem('basedReligionFilter');}catch(e){}}});
+  }else{try{localStorage.removeItem('basedReligionFilter');}catch(e){}}
   renderReligionFilter();
 }
 // Far-right position on the Distance slider means "200+ mi" / "300+ km" — no distance limit
 function distLabel(d){const u=myUnits()==='km'?' km':' mi';return d>=distMax()?distMax()+'+'+u:d+u;}
+// Search filters (minimum compatibility, distance, age range) are saved on the
+// account (profiles.search_filters), so they follow you between devices and the
+// next person to sign in on a shared phone starts from the defaults.
+let mySearchFilters={};
+let filterSaveTimer=null;
+const FILTER_DEFAULTS={min:0,dist:25,ageMin:18,ageMax:100};
 function restoreFilterPrefs(){
-  // Remembers your Search filter settings across logout/login on this device —
-  // a plain device-local preference, not something that needs to sync across
-  // your other devices, so localStorage rather than the database.
-  try{
-    const saved=JSON.parse(localStorage.getItem('basedFilterPrefs'));
-    if(!saved)return;
-    if(saved.min!=null)document.getElementById('filter-min').value=saved.min;
-    document.getElementById('filter-dist').max=distMax();
-    if(saved.dist!=null&&(saved.units||'mi')===myUnits())document.getElementById('filter-dist').value=saved.dist;
-    if(saved.ageMin!=null)document.getElementById('filter-age-min').value=saved.ageMin;
-    if(saved.ageMax!=null)document.getElementById('filter-age-max').value=saved.ageMax;
-    document.getElementById('filter-min-val').textContent=(saved.min??0)+'%';
-    document.getElementById('filter-dist-val').textContent=distLabel(parseInt(document.getElementById('filter-dist').value));
-    document.getElementById('filter-age-min-val').textContent=saved.ageMin??18;
-    document.getElementById('filter-age-max-val').textContent=saved.ageMax??100;
-  }catch(e){}
+  let saved=mySearchFilters&&Object.keys(mySearchFilters).length?mySearchFilters:null;
+  // One-off move of filters saved on this device by an older version of the app
+  let local=null;try{local=JSON.parse(localStorage.getItem('basedFilterPrefs'));}catch(e){}
+  if(!saved&&local&&currentUser){saved=local;mySearchFilters=local;saveFilterPrefs(local);}
+  try{localStorage.removeItem('basedFilterPrefs');}catch(e){}
+  const f={...FILTER_DEFAULTS,...(saved||{})};
+  document.getElementById('filter-dist').max=distMax();
+  const distOk=saved&&saved.dist!=null&&(saved.units||'mi')===myUnits();
+  document.getElementById('filter-min').value=f.min;
+  document.getElementById('filter-dist').value=distOk?saved.dist:FILTER_DEFAULTS.dist;
+  document.getElementById('filter-age-min').value=f.ageMin;
+  document.getElementById('filter-age-max').value=f.ageMax;
+  document.getElementById('filter-min-val').textContent=f.min+'%';
+  document.getElementById('filter-dist-val').textContent=distLabel(parseInt(document.getElementById('filter-dist').value));
+  document.getElementById('filter-age-min-val').textContent=f.ageMin;
+  document.getElementById('filter-age-max-val').textContent=f.ageMax;
+}
+function saveFilterPrefs(prefs){
+  if(!currentUser)return;
+  sb.from('profiles').update({search_filters:prefs}).eq('id',currentUser.id).then(({error})=>{if(error)console.warn('Saving search filters failed:',error.message);});
 }
 
 function applyLocationModeUI(){
@@ -3601,6 +3630,7 @@ async function executeDelete(){
     await sb.auth.signOut();
   }
   const wasPremium=isPremium;
+  excludedReligions=new Set();pendingReligions=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
   isPremium=false;currentUser=null;
   myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null};
   myAnswers=new Array(NUM_Q).fill(0);
