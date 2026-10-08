@@ -148,6 +148,13 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 .plans-cell{display:flex;align-items:center;justify-content:center;text-align:center;padding:6px 2px;font-size:11px;line-height:1.25;}
 .plans-cell.you{background:rgba(138,143,168,0.09);}
 .plans-cell.gold{background:rgba(201,168,76,0.07);}
+.super-btn{width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:9px;border-radius:14px;padding:13px 14px;font-size:14px;font-weight:600;font-family:var(--sans);cursor:pointer;border:1px solid var(--gold);background:linear-gradient(135deg,rgba(201,168,76,0.22),rgba(201,168,76,0.08));color:var(--gold-light);}
+.super-btn i{font-size:20px;}
+.super-btn.spent{border-color:rgba(201,168,76,0.35);background:rgba(201,168,76,0.05);color:var(--text-muted);}
+.super-btn:disabled{opacity:0.6;}
+.act-btn.super{opacity:0.75;color:var(--gold-light);border-color:rgba(201,168,76,0.5);}
+.super-note{background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.5);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px;}
+.super-card{border:1px solid var(--gold)!important;background:linear-gradient(135deg,rgba(201,168,76,0.14),var(--navy-mid) 60%)!important;}
 .bottom-safe{padding-bottom:calc(var(--safe-bottom) + 12px);}
 .btn-safe{margin-bottom:calc(var(--safe-bottom) + 12px);}
 /* Didit verification pop-up: keep its close button clear of the iPhone status bar */
@@ -756,6 +763,7 @@ let viewedProfiles=new Set(),expressedInterest=new Set(),mutualMatches=new Set()
 let matchCreatedAt={}; // profileKey -> ISO timestamp of when the match formed
 let incomingInterestAt={}; // profileKey -> ISO timestamp of when they expressed interest in me
 let myInterestedAt={}; // profileKey -> ISO timestamp of when I expressed interest in them
+let mySuper=new Set(),theirSuper=new Set(); // super interests I've sent / received
 let hiddenForever=new Set(),passedProfiles=new Set(),dismissedIncoming=new Set();
 let conversations={},activeChatName='',activeChatPartnerId=null,activeChatPhotoUrl=null;
 let locationMode='home',liveLocationCoords=null; // 'home' = saved postcode, 'current' = live device GPS
@@ -1390,8 +1398,14 @@ function subscribeToInteractions(){
             onTap:()=>{goTo('screen-main');switchTab('messages');}});
         }else if(newInterest&&pp(newInterest)){
           const p=pp(newInterest);
-          showLiveBanner({title:`${p.name} is interested in you`,sub:'Tap to see their profile',photo:p.photo_url,initials:p.initials,
-            onTap:()=>{goTo('screen-main');switchTab('matches');}});
+          if(theirSuper.has(newInterest)){
+            showLiveBanner({title:`${p.name} sent you a super interest!`,sub:'They’re especially keen. Tap to see their profile',icon:'ti-confetti',
+              onTap:()=>{goTo('screen-main');switchTab('matches');}});
+            markSuperSeen(newInterest);launchConfetti();
+          }else{
+            showLiveBanner({title:`${p.name} is interested in you`,sub:'Tap to see their profile',photo:p.photo_url,initials:p.initials,
+              onTap:()=>{goTo('screen-main');switchTab('matches');}});
+          }
         }
         renderMatchesTab();
         renderConversationsTab();
@@ -1419,23 +1433,24 @@ async function recordProfileView(profileKey){
 
 async function loadMyInteractions(){
   if(!currentUser)return;
-  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();
+  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();mySuper=new Set();theirSuper=new Set();
   viewedProfiles=new Set();
   try{const {data:me}=await sb.from('profiles').select('free_views_carried').eq('id',currentUser.id).maybeSingle();freeViewsCarried=(me&&me.free_views_carried)||0;}catch(e){}
   const {data:views}=await sb.from('profile_views').select('viewed_profile_id').eq('viewer_id',currentUser.id);
   if(views)views.forEach(r=>viewedProfiles.add(r.viewed_profile_id));
   // What I've done to others
-  const {data:mine}=await sb.from('interactions').select('to_user,action,created_at').eq('from_user',currentUser.id);
+  const {data:mine}=await sb.from('interactions').select('to_user,action,created_at,is_super').eq('from_user',currentUser.id);
   if(mine)mine.forEach(r=>{
-    if(r.action==='interested'){expressedInterest.add(r.to_user);myInterestedAt[r.to_user]=r.created_at;}
+    if(r.action==='interested'){expressedInterest.add(r.to_user);myInterestedAt[r.to_user]=r.created_at;if(r.is_super)mySuper.add(r.to_user);}
     if(r.action==='hide_forever'||r.action==='report')hiddenForever.add(r.to_user);
     if(r.action==='dismissed_incoming')dismissedIncoming.add(r.to_user);
   });
   // How many people are interested in me (names hidden on tiers without "see who's interested")
   try{const {data:cnt}=await sb.rpc('incoming_interest_count');incomingHiddenCount=Math.max(0,(cnt||0));}catch(e){incomingHiddenCount=0;}
   // What others have done to me (to detect mutual, and incoming interest)
-  const {data:theirs}=await sb.from('interactions').select('from_user,action,created_at').eq('to_user',currentUser.id).eq('action','interested');
+  const {data:theirs}=await sb.from('interactions').select('from_user,action,created_at,is_super').eq('to_user',currentUser.id).eq('action','interested');
   if(theirs)theirs.forEach(r=>{
+    if(r.is_super)theirSuper.add(r.from_user);
     if(expressedInterest.has(r.from_user)){
       mutualMatches.add(r.from_user);
       const mine_t=new Date(myInterestedAt[r.from_user]).getTime(),their_t=new Date(r.created_at).getTime();
@@ -1606,6 +1621,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     </div>`;
   }).join('');
   let topBanner='';
+  if(!isMutual&&theirSuper.has(profileKey))topBanner=`<div class="super-note"><i class="ti ti-confetti" style="font-size:22px;color:var(--gold)"></i><div><p style="font-size:15px;color:var(--gold-light);font-weight:600">${name} sent you a super interest</p><p style="font-size:13px;color:var(--text-muted)">They’re especially keen to get to know you.<br>Express interest back to start talking.</p></div></div>`;
   if(isMutual)topBanner=`<div style="background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.35);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px"><i class="ti ti-heart" style="font-size:22px;color:var(--green)"></i><div><p style="font-size:15px;color:var(--green);font-weight:600">It's mutual!</p><p style="font-size:13px;color:var(--text-muted)">You both expressed interest.<br>You can now message each other.</p></div></div>`;
   const aEncoded=JSON.stringify(answers).replace(/"/g,'&quot;');
   let actionRow='';
@@ -1616,7 +1632,16 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     const intClick=hasInterest?'':` onclick="doExpressInterest('${profileKey}','${inits}','${aEncoded}',${compat},${basedScore},'${age}','${location}','${photoUrl||''}','${name}','${theirReligion||''}')"`;
     const intInner=hasInterest?'<i class="ti ti-check" style="margin-right:6px"></i>Interest sent':'<svg id="interest-heart-icon" width="15" height="15" viewBox="0 0 24 24" style="vertical-align:-3px;margin-right:6px" fill="none"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="none" stroke="currentColor" stroke-width="2"/></svg>Interested';
     const moveOnBtn=context==='incoming'?'':`<button class="act-btn" onclick="doMoveOn('${profileKey}')"><i class="ti ti-arrow-right"></i>Move on</button>`;
-    actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}"${intClick}>${intInner}</button>${moveOnBtn}<button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
+    const sentSuper=mySuper.has(profileKey);
+    const intInner2=sentSuper?'<i class="ti ti-confetti" style="margin-right:6px"></i>Super interest sent':intInner;
+    actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}${sentSuper?' super':''}"${intClick}>${intInner2}</button>${moveOnBtn}<button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
+    // Super interest: not needed if they're already interested in you (a normal interest makes it mutual)
+    if(!sentSuper&&!incomingInterest.has(profileKey)&&!isHidden('super_interest')){
+      const sp=perm('super_interest'),left=limitLeft('super_interest');
+      const leftTxt=sp.access!=='allowed'?'':sp.limit==null?'':` · ${left} left${sp.period==='total'?'':' '+periodText(sp.period)}`;
+      const superArgs=`'${profileKey}','${inits}','${aEncoded}',${compat},${basedScore},'${age}','${location}','${photoUrl||''}','${name}','${theirReligion||''}',true`;
+      actionRow+=`<button class="super-btn${sp.access!=='allowed'||left<=0?' spent':''}" id="super-btn" onclick="doExpressInterest(${superArgs})"><i class="ti ti-confetti"></i><span>${hasInterest?'Make it a super interest':'Send a super interest'}<span style="opacity:0.75;font-weight:400">${leftTxt}</span></span></button>`;
+    }
   }
   const isRealProfile=/^[0-9a-f-]{36}$/.test(String(profileKey));
   if(isRealProfile&&!isMutual)actionRow+=`<div style="text-align:center;margin-top:18px"><button onclick="openReport('${profileKey}','${String(name).replace(/'/g,"\\'")}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${name}</button></div>`;
@@ -1677,28 +1702,69 @@ async function doWithdrawInterest(profileKey){
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
 }
 
-async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age,location,photoUrl,name,religion){
+// ─── Super interest celebration ──────────────────────────────────────────────
+// A short burst of confetti from a point (a button) or from the top of the screen.
+function launchConfetti(fromEl){
+  try{if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;}catch(e){}
+  const shell=document.getElementById('app-shell')||document.body;
+  const box=shell.getBoundingClientRect();
+  let ox=box.width/2,oy=box.height*0.18;
+  if(fromEl){const r=fromEl.getBoundingClientRect();ox=r.left-box.left+r.width/2;oy=r.top-box.top+r.height/2;}
+  const layer=document.createElement('div');
+  layer.style.cssText='position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:9500';
+  shell.appendChild(layer);
+  const colours=['#c9a84c','#e8c97a','#f4efe2','#6fcf97','#d98a5f'];
+  for(let i=0;i<46;i++){
+    const d=document.createElement('span'),w=5+Math.random()*5,h=w*(Math.random()<0.5?0.45:1);
+    d.style.cssText=`position:absolute;left:${ox}px;top:${oy}px;width:${w}px;height:${h}px;background:${colours[i%colours.length]};border-radius:${Math.random()<0.3?'50%':'1px'}`;
+    layer.appendChild(d);
+    const ang=-Math.PI/2+(Math.random()-0.5)*Math.PI*1.1,speed=140+Math.random()*190;
+    const dx=Math.cos(ang)*speed,dy=Math.sin(ang)*speed;
+    d.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:`translate(${dx}px,${dy}px) rotate(${Math.random()*360}deg)`,opacity:1,offset:0.45},{transform:`translate(${dx*1.25}px,${dy+260+Math.random()*120}px) rotate(${Math.random()*720}deg)`,opacity:0}],{duration:1300+Math.random()*500,easing:'cubic-bezier(.2,.7,.4,1)',fill:'forwards'});
+  }
+  setTimeout(()=>layer.remove(),2100);
+}
+// Celebrate each super interest you receive once (live, or the next time you open the Interest tab)
+function seenSupers(){try{return new Set(JSON.parse(localStorage.getItem('based_seen_supers_'+(currentUser&&currentUser.id))||'[]'));}catch(e){return new Set();}}
+function markSuperSeen(id){try{const s=seenSupers();s.add(id);localStorage.setItem('based_seen_supers_'+(currentUser&&currentUser.id),JSON.stringify([...s]));}catch(e){}}
+
+async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age,location,photoUrl,name,religion,isSuper){
+  isSuper=!!isSuper;
+  const feat=isSuper?'super_interest':'express_interest';
+  // Out of super interests (or not allowed)? Go straight to the options rather than trying
+  if(isSuper&&(!canUse('super_interest')||limitLeft('super_interest')<=0)){showUpgradePrompt('super_interest',canUse('super_interest')?'limit':undefined);return;}
+  const wasInterested=expressedInterest.has(profileKey);
   const heartIcon=document.getElementById('interest-heart-icon');
-  if(heartIcon){
+  if(isSuper){const b=document.getElementById('super-btn');if(b)b.disabled=true;}
+  else if(heartIcon){
     const path=heartIcon.querySelector('path');
     heartIcon.classList.add('heart-pop');
     path.setAttribute('fill','currentColor');
     setTimeout(()=>{path.setAttribute('fill','none');heartIcon.classList.remove('heart-pop');},500);
   }
+  const prevAt=myInterestedAt[profileKey];
   expressedInterest.add(profileKey);
-  myInterestedAt[profileKey]=new Date().toISOString();
+  if(!wasInterested)myInterestedAt[profileKey]=new Date().toISOString();
+  if(isSuper)mySuper.add(profileKey);
   let saveErr=null;
-  if(currentUser){const {error}=await sb.from('interactions').upsert({from_user:currentUser.id,to_user:profileKey,action:'interested'},{onConflict:'from_user,to_user'});saveErr=error;}
+  if(currentUser){const {error}=await sb.from('interactions').upsert({from_user:currentUser.id,to_user:profileKey,action:'interested',is_super:isSuper},{onConflict:'from_user,to_user'});saveErr=error;}
   if(saveErr){
-    expressedInterest.delete(profileKey);
-    delete myInterestedAt[profileKey];
-    if(/LIMIT_REACHED|FEATURE_LOCKED/.test(saveErr.message)&&(await loadPermissions(),perm('express_interest').limit!=null)){showUpgradePrompt('express_interest','limit');}
-    else showToast("Couldn't save your interest — please try again.",true);
+    if(isSuper)mySuper.delete(profileKey);
+    if(!wasInterested){expressedInterest.delete(profileKey);delete myInterestedAt[profileKey];}else myInterestedAt[profileKey]=prevAt;
+    const b=document.getElementById('super-btn');if(b)b.disabled=false;
+    if(/LIMIT_REACHED|FEATURE_LOCKED/.test(saveErr.message)){await loadPermissions();showUpgradePrompt(feat,perm(feat).limit!=null?'limit':undefined);}
+    else showToast(isSuper?"Couldn't send your super interest — please try again.":"Couldn't save your interest — please try again.",true);
     renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
     return;
   }
   await loadPermissions(); // the server knows whether this counted (replies to someone already interested in you don't)
-  {const ei=perm('express_interest');const left=limitLeft('express_interest');
+  if(isSuper){
+    launchConfetti(document.getElementById('super-btn'));
+    const sp=perm('super_interest'),left=limitLeft('super_interest');
+    showToast(sp.limit!=null?`Super interest sent · ${left} left${sp.period==='total'?'':' '+periodText(sp.period)}`:'Super interest sent',false,2000);
+    await new Promise(r=>setTimeout(r,1100)); // let the moment land before moving on
+  }else{
+   const ei=perm('express_interest');const left=limitLeft('express_interest');
    showToast(ei.limit!=null?`Interest sent · ${left} left ${periodText(ei.period)}`:'Interest sent',false,ei.limit!=null?1800:1000);}
   // Check if they liked us back (re-query)
   let isMutual=false;
@@ -2277,7 +2343,7 @@ function renderUpgrade(){
   const joined=names.length>1?names.slice(0,-1).join(', ')+' and '+names[names.length-1]:names[0];
   let title,body;
   if(s.isLimit){
-    const unit=info.unit||'uses';
+    const unit=p.limit===1&&FEATURE_ONE[f]?FEATURE_ONE[f]:(info.unit||'uses');
     title=p.period==='total'?`You’ve used your ${p.limit} free ${unit}`:p.period==='day'?`You’ve used today’s ${p.limit} ${unit}`:`You’ve used this week’s ${p.limit} ${unit}`;
     const paid=s.options.filter(t=>t!=='id').map(t=>OPTION_LABEL[t]).join(' or ');
     if(s.options.includes('id'))body=(resetText(p.period)?resetText(p.period)+' ':'')+`Verify your ID for ${tierValue(f,'id').text.toLowerCase()} — it’s free — or upgrade for more.`;
@@ -2295,7 +2361,7 @@ function renderUpgrade(){
   let gains=PLAN_FEATURES.filter(x=>tierBetter(x,my,sel));
   if(gains.includes(f))gains=[f].concat(gains.filter(x=>x!==f));
   const rows=gains.map(x=>{
-    const goldOnly=sel==='gold'&&tierValue(x,'plus').lock&&!tierValue(x,'gold').lock;
+    const goldOnly=sel==='gold'&&tierBetter(x,'plus','gold'); // anything Gold gives that BASED+ doesn't (including more of something)
     const sub=x==='travel_mode'?'<span style="display:block;font-size:12px;color:var(--text-muted);margin-top:2px">Search and appear at your current location</span>':'';
     return `<div class="up-row${x===f?' hl':''}"><i class="ti ti-check" style="font-size:18px;color:var(--gold);flex-shrink:0"></i><span style="flex:1;font-size:15px;color:var(--text-on-dark)">${gainLine(x,sel)}${sub}</span>${goldOnly?'<span class="up-tag">GOLD</span>':''}</div>`;
   }).join('');
@@ -2809,7 +2875,7 @@ function toggleLocationMode(){
 }
 
 // ─── Messaging ────────────────────────────────────────────────────────────────
-async function switchTab(tab){['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?'block':'none';});if(tab==='matches'){await loadMyInteractions();await loadBrowseProfiles();renderMatchesTab();}if(tab==='messages'){await loadMyInteractions();await loadBrowseProfiles();renderConversationsTab();}}
+async function switchTab(tab){['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?'block':'none';});if(tab==='matches'){await loadMyInteractions();await loadBrowseProfiles();renderMatchesTab();celebrateNewSupers();}if(tab==='messages'){await loadMyInteractions();await loadBrowseProfiles();renderConversationsTab();}}
 
 // ─── Swipe left/right between Search, Interest, and It's mutual ───────────────
 (function initTabSwipe(){
@@ -3246,7 +3312,7 @@ function renderMatchesTab(){
   const lockedCard=(!canUse('see_interested')&&incomingHiddenCount>0)?`<div onclick="showUpgradePrompt('see_interested')" style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.35);border-radius:15px;padding:16px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer"><div class="avatar" style="background:rgba(201,168,76,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--gold)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${incomingHiddenCount} ${incomingHiddenCount===1?'person is':'people are'} interested in you</div><div style="font-size:13px;color:var(--gold);margin-top:3px">Upgrade to BASED+ to see who</div></div><i class="ti ti-chevron-right" style="color:var(--text-muted)"></i></div>`:'';
   const visible=id=>browseProfiles.some(x=>(x.id||x.name)===id);
   const byNewest=at=>(a,b)=>new Date(at[b]||0)-new Date(at[a]||0)||String(a).localeCompare(String(b)); // fixed order, so rows never shuffle under your finger
-  const incomingIds=Array.from(incomingInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&!dismissedIncoming.has(id)&&visible(id)).sort(byNewest(incomingInterestAt));
+  const incomingIds=Array.from(incomingInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&!dismissedIncoming.has(id)&&visible(id)).sort((a,b)=>(theirSuper.has(b)-theirSuper.has(a))||byNewest(incomingInterestAt)(a,b)); // super interests first
   if(!incomingIds.length){inList.innerHTML=lockedCard||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No one has expressed interest in you yet.</p>';}
   else{
     inList.innerHTML=lockedCard+incomingIds.map(pid=>{
@@ -3257,7 +3323,8 @@ function renderMatchesTab(){
       const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
       const statusLabel=daysSince>=3?'3+ days ago':daysSince>=2?'2-3 days ago':'Less than 2 days ago';
       const dot=`<span title="${statusLabel}" style="width:18px;height:18px;border-radius:9px;background:${statusColor};display:inline-block;flex-shrink:0"></span>`;
-      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--gold);margin-top:3px"><i class="ti ti-heart" style="font-size:13px"></i> Interested in you</div></div><button onclick="event.stopPropagation();doDismissIncoming('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Remove from list"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
+      const sup=theirSuper.has(pid);
+      return `<div class="${sup?'super-card':''}" style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--gold${sup?'-light':''});margin-top:3px;${sup?'font-weight:600':''}">${sup?'<i class="ti ti-confetti" style="font-size:14px"></i> Sent you a super interest':'<i class="ti ti-heart" style="font-size:13px"></i> Interested in you'}</div></div><button onclick="event.stopPropagation();doDismissIncoming('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Remove from list"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
     }).join('');
   }
   const expIds=Array.from(expressedInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&visible(id)).sort(byNewest(myInterestedAt));
@@ -3271,11 +3338,19 @@ function renderMatchesTab(){
       const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
       const statusLabel=daysSince>=3?'3+ days ago':daysSince>=2?'2-3 days ago':'Less than 2 days ago';
       const dot=`<span title="${statusLabel}" style="width:18px;height:18px;border-radius:9px;background:${statusColor};display:inline-block;flex-shrink:0"></span>`;
-      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">Waiting for them to respond…</div></div><button onclick="event.stopPropagation();confirmWithdrawInterest('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Withdraw interest"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
+      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">${mySuper.has(pid)?'<i class="ti ti-confetti" style="font-size:13px;color:var(--gold)"></i> Super interest sent · waiting…':'Waiting for them to respond…'}</div></div><button onclick="event.stopPropagation();confirmWithdrawInterest('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Withdraw interest"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
     }).join('');
   }
 }
 
+// The first time you see a super interest someone sent you, celebrate it
+function celebrateNewSupers(){
+  const seen=seenSupers();
+  const fresh=[...theirSuper].filter(id=>incomingInterest.has(id)&&!mutualMatches.has(id)&&!dismissedIncoming.has(id)&&!hiddenForever.has(id)&&!seen.has(id)&&browseProfiles.some(x=>x.id===id));
+  if(!fresh.length)return;
+  fresh.forEach(markSuperSeen);
+  setTimeout(()=>launchConfetti(),250);
+}
 function openIncomingProfile(pid){
   const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
   if(!p)return;
@@ -3529,7 +3604,7 @@ async function executeDelete(){
   isPremium=false;currentUser=null;
   myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null};
   myAnswers=new Array(NUM_Q).fill(0);
-  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();profileHidden=false;
+  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();mySuper=new Set();theirSuper=new Set();profileHidden=false;
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
   ['inp-name','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('sex-male').classList.remove('selected');document.getElementById('sex-female').classList.remove('selected');
