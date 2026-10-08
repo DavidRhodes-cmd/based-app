@@ -164,6 +164,15 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 .photo-strip{display:flex;gap:8px;overflow-x:auto;margin:-8px 0 20px;padding-bottom:2px;}
 .photo-strip button{flex:0 0 64px;width:64px;height:64px;border-radius:12px;overflow:hidden;border:0.5px solid rgba(201,168,76,0.4);padding:0;cursor:pointer;background:none;}
 .photo-strip img{width:100%;height:100%;object-fit:cover;display:block;}
+.mini-toggle{display:flex;align-items:center;gap:8px;background:transparent;border:none;padding:0;cursor:pointer;font-family:var(--sans);font-size:12px;color:var(--text-muted);}
+.mini-toggle.on{color:var(--text-on-dark);}
+.mini-toggle .toggle-track{width:34px;height:20px;border-radius:10px;display:inline-block;}
+.mini-toggle .toggle-thumb{width:16px;height:16px;top:2px;left:2px;}
+.mini-toggle.on .toggle-track{background:var(--gold);}
+.mini-toggle.on .toggle-thumb{left:16px;}
+.mini-toggle.locked .toggle-track{opacity:0.45;}
+.mini-toggle.locked i{color:var(--gold);}
+.mini-toggle.busy .toggle-track{opacity:0.6;}
 .bottom-safe{padding-bottom:calc(var(--safe-bottom) + 12px);}
 .btn-safe{margin-bottom:calc(var(--safe-bottom) + 12px);}
 /* Didit verification pop-up: keep its close button clear of the iPhone status bar */
@@ -407,7 +416,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-min-val">0%</span>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
-        <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0;display:flex;align-items:center;gap:6px">Distance<button id="location-mode-btn" data-feature="travel_mode" data-lock="plain" onclick="toggleLocationMode()" style="background:transparent;border:none;padding:2px;cursor:pointer;color:var(--gold);display:flex;align-items:center" aria-label="Filter by home postcode or current location"><i class="ti ti-home" id="location-mode-icon" style="font-size:16px"></i></button></span>
+        <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0">Distance</span>
         <input type="range" class="q-slider" style="flex:1" min="5" max="200" step="5" value="25" id="filter-dist" oninput="updateFilter()" />
         <span style="font-size:13px;color:var(--gold);min-width:54px;text-align:right" id="filter-dist-val">25 mi</span>
       </div>
@@ -423,6 +432,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
         <span style="font-size:13px;color:var(--gold);min-width:36px;text-align:right" id="filter-age-max-val">100</span>
       </div>
     </div>
+    <div id="search-status"></div>
     <div id="profile-cards"></div>
   </div>
   <div id="tab-matches-content" class="scrollable" style="padding:16px;display:none">
@@ -1673,6 +1683,7 @@ function renderProfiles(minPct){
       if(incomingInterest.has(pk)&&!dismissedIncoming.has(pk))return false;
       if(p.age!=null&&(p.age<minAge||p.age>maxAge))return false;
       if(canUse('religion_filter')&&excludedReligions.has(p.religion||NONE_STATED))return false;
+      if(verifiedOnly&&canUse('verified_only_filter')&&!p.verified)return false;
       // Distance filter — profiles with no known distance are never filtered out
       const dist=distanceFor(p);
       if(dist!=null&&maxDist<distMax()&&dist>maxDist)return false;
@@ -1680,11 +1691,9 @@ function renderProfiles(minPct){
     })
     .sort((a,b)=>b.compat-a.compat);
   lastProfileList=list;
+  renderSearchStatus();
   if(!list.length){container.innerHTML='<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px 0">No profiles match your filters.</p>';return;}
   let html='';
-  {const rows=allowanceRows();
-   if(rows)html+=rows;
-   else if(isPremium){html+=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:13px;background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:9px;padding:8px 12px"><i class="ti ti-crown" style="font-size:14px;color:var(--gold)"></i><span style="font-size:13px;color:var(--gold-light)">${TIER_LABEL[(PERMS&&PERMS.tier)||'plus']} · no limits</span></div>`;}}
   list.forEach(p=>{
     const profileKey=p.id||p.name;
     const isLocked=!viewedProfiles.has(profileKey)&&outOfFreeViews();
@@ -2391,20 +2400,38 @@ function bumpUsed(f){if(PERMS&&PERMS.features&&PERMS.features[f]&&PERMS.features
 function periodText(period){return period==='week'?'this week':period==='day'?'today':'';}
 function resetText(period){return period==='week'?'Your allowance resets on Monday.':period==='day'?'Your allowance resets at midnight.':'';}
 
-// Allowance lines at the top of Search: one per limited feature, always eight
-// dots — gold from the left for each one still available, the rest grey.
-// Features with no limit on your tier don't get a line.
+// The strip above the Search results: what you have left (left) and two quick
+// switches (right). Lines only appear for features with a limit on your tier.
+let verifiedOnly=false;
 function allowanceRows(){
-  const lines=[['profile_views','Free views remaining'],['express_interest','Free interests remaining'],['super_interest','Free super interests remaining']];
+  const lines=[['profile_views','Free views'],['express_interest','Free interests'],['super_interest','Free super interests']];
   let html='';
   lines.forEach(([f,label])=>{
     const p=perm(f);
     if(p.access!=='allowed'||p.limit==null)return;
     const lim=p.limit,left=Math.max(0,lim-Math.min(lim,p.used||0));
-    const dots=Array.from({length:8},(_,i)=>`<span style="width:8px;height:8px;border-radius:50%;background:${i<left?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin:0 2px"></span>`).join('');
-    html+=`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px" aria-label="${label}: ${left} of ${lim}"><span style="font-size:13px;color:var(--text-muted)">${label}</span><span style="white-space:nowrap">${dots}</span></div>`;
+    const dots=Array.from({length:8},(_,i)=>`<span style="width:7px;height:7px;border-radius:50%;background:${i<left?'var(--gold)':'rgba(255,255,255,0.15)'};display:inline-block;margin-right:3px"></span>`).join('');
+    html+=`<span style="font-size:12px;color:var(--text-muted);white-space:nowrap">${label}</span><span style="white-space:nowrap;display:flex;align-items:center" aria-label="${label}: ${left} of ${lim} left">${dots}</span>`;
   });
-  return html?`<div style="margin-bottom:13px">${html}</div>`:'';
+  return html?`<div style="display:grid;grid-template-columns:auto auto;column-gap:10px;row-gap:7px;align-items:center;justify-content:start">${html}</div>`:'';
+}
+function miniToggle(id,label,on,locked,onclick){
+  return `<button type="button" id="${id}" class="mini-toggle${on?' on':''}${locked?' locked':''}" onclick="${onclick}" aria-pressed="${on}"><span>${label}</span>${locked?'<i class="ti ti-lock" style="font-size:12px"></i>':''}<span class="toggle-track"><span class="toggle-thumb"></span></span></button>`;
+}
+function renderSearchStatus(){
+  const el=document.getElementById('search-status');if(!el)return;
+  const rows=allowanceRows();
+  const travelLocked=!canUse('travel_mode')&&!isHidden('travel_mode'),verLocked=!canUse('verified_only_filter')&&!isHidden('verified_only_filter');
+  const toggles=(isHidden('travel_mode')?'':miniToggle('travel-toggle','Travel mode',locationMode==='current',travelLocked,'toggleLocationMode()'))
+               +(isHidden('verified_only_filter')?'':miniToggle('verified-toggle','Verified only',verifiedOnly&&!verLocked,verLocked,'toggleVerifiedOnly()'));
+  el.innerHTML=(rows||toggles)?`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px">${rows||'<span></span>'}<div style="display:flex;flex-direction:column;gap:7px;align-items:flex-end">${toggles}</div></div>`:'';
+}
+function toggleVerifiedOnly(){
+  if(!canUse('verified_only_filter')){showUpgradePrompt('verified_only_filter');return;}
+  verifiedOnly=!verifiedOnly;
+  mySearchFilters={...mySearchFilters,verifiedOnly};
+  clearTimeout(filterSaveTimer);filterSaveTimer=setTimeout(()=>saveFilterPrefs(mySearchFilters),400);
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
 }
 
 // Show / lock / hide every element tagged with data-feature="…"
@@ -2939,7 +2966,7 @@ function updateFilter(source){
   document.getElementById('filter-dist-val').textContent=distLabel(d);
   document.getElementById('filter-age-min-val').textContent=aMin;
   document.getElementById('filter-age-max-val').textContent=aMax;
-  mySearchFilters={min:v,dist:d,units:myUnits(),ageMin:aMin,ageMax:aMax};
+  mySearchFilters={min:v,dist:d,units:myUnits(),ageMin:aMin,ageMax:aMax,verifiedOnly};
   clearTimeout(filterSaveTimer);filterSaveTimer=setTimeout(()=>saveFilterPrefs(mySearchFilters),700);
   renderProfiles(v);
 }
@@ -3008,6 +3035,7 @@ function restoreFilterPrefs(){
   document.getElementById('filter-dist-val').textContent=distLabel(parseInt(document.getElementById('filter-dist').value));
   document.getElementById('filter-age-min-val').textContent=f.ageMin;
   document.getElementById('filter-age-max-val').textContent=f.ageMax;
+  verifiedOnly=!!(saved&&saved.verifiedOnly);
 }
 function saveFilterPrefs(prefs){
   if(!currentUser)return;
@@ -3015,23 +3043,14 @@ function saveFilterPrefs(prefs){
 }
 
 function applyLocationModeUI(){
-  const icon=document.getElementById('location-mode-icon');
-  const label=document.getElementById('location-mode-label');
-  if(locationMode==='current'){
-    icon.className='ti ti-current-location';
-    label.style.display='none';
-  }else{
-    icon.className='ti ti-home';
-    label.style.display='none';
-  }
+  renderSearchStatus(); // the Travel mode switch shows whether you're searching from where you are now
 }
 
 function toggleLocationMode(){
   if(locationMode==='home'&&!canUse('travel_mode')){showUpgradePrompt('travel_mode');return;}
   if(locationMode==='home'){
     if(!navigator.geolocation){showToast("Your device doesn't support location access.",true);return;}
-    const icon=document.getElementById('location-mode-icon');
-    icon.className='ti ti-loader-2'; // brief loading state while waiting for a GPS fix
+    const t=document.getElementById('travel-toggle');if(t)t.classList.add('on','busy'); // flips straight away while waiting for a GPS fix
     navigator.geolocation.getCurrentPosition(
       async pos=>{
         liveLocationCoords={lat:pos.coords.latitude,lng:pos.coords.longitude};
