@@ -155,6 +155,15 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 .act-btn.super{opacity:0.75;color:var(--gold-light);border-color:rgba(201,168,76,0.5);}
 .super-note{background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.5);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px;}
 .super-card{border:1px solid var(--gold)!important;background:linear-gradient(135deg,rgba(201,168,76,0.14),var(--navy-mid) 60%)!important;}
+.photo-grid{display:grid;gap:8px;}
+.photo-tile{position:relative;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);padding:0;cursor:pointer;}
+.photo-tile img{width:100%;height:100%;object-fit:cover;display:block;}
+.photo-tile-add{border:1px dashed rgba(201,168,76,0.5);background:rgba(201,168,76,0.05);color:var(--gold);font-size:22px;display:flex;align-items:center;justify-content:center;font-family:var(--sans);}
+.photo-tile-x{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;border:none;background:rgba(10,13,22,0.8);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+.photo-tile-main{position:absolute;left:0;right:0;bottom:0;background:rgba(10,13,22,0.75);color:var(--gold-light);font-size:10px;font-weight:600;letter-spacing:0.5px;text-align:center;padding:3px 0;font-family:var(--sans);}
+.photo-strip{display:flex;gap:8px;overflow-x:auto;margin:-8px 0 20px;padding-bottom:2px;}
+.photo-strip button{flex:0 0 64px;width:64px;height:64px;border-radius:12px;overflow:hidden;border:0.5px solid rgba(201,168,76,0.4);padding:0;cursor:pointer;background:none;}
+.photo-strip img{width:100%;height:100%;object-fit:cover;display:block;}
 .bottom-safe{padding-bottom:calc(var(--safe-bottom) + 12px);}
 .btn-safe{margin-bottom:calc(var(--safe-bottom) + 12px);}
 /* Didit verification pop-up: keep its close button clear of the iPhone status bar */
@@ -227,10 +236,15 @@ select.form-input option{background:#1a1f2e;color:#fff;}
           <i class="ti ti-camera" style="font-size:28px;color:var(--text-muted)"></i>
         </div>
         <img id="upload-preview" style="display:none" class="photo-preview" alt="Your profile photo" />
-        <button type="button" id="reposition-btn" style="display:none;position:absolute;bottom:2px;right:2px;background:rgba(10,13,22,0.85);border:0.5px solid rgba(255,255,255,0.25);border-radius:50%;width:34px;height:34px;padding:0;color:var(--text-on-dark);cursor:pointer;font-family:var(--sans);align-items:center;justify-content:center" onclick="event.stopPropagation();openRepositionPhoto()" aria-label="Reposition photo"><i class="ti ti-arrows-move" style="font-size:15px"></i></button>
+        <button type="button" id="reposition-btn" style="display:none;position:absolute;bottom:2px;right:2px;background:rgba(10,13,22,0.85);border:0.5px solid rgba(255,255,255,0.25);border-radius:50%;width:34px;height:34px;padding:0;color:var(--text-on-dark);cursor:pointer;font-family:var(--sans);align-items:center;justify-content:center" onclick="event.stopPropagation();openRepositionPhoto('screen-details','main')" aria-label="Reposition photo"><i class="ti ti-arrows-move" style="font-size:15px"></i></button>
       </div>
       <p style="font-size:12px;color:var(--text-muted);margin-top:11px;text-align:center">Tap to upload a photo — required to create your profile.</p>
       <p style="font-size:12px;color:var(--text-muted);margin-top:5px;text-align:center">Your photo is blurred until you match with someone.</p>
+      <div style="margin-top:18px">
+        <p style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:9px">Add up to 4 more photos (optional). Only your matches see them.</p>
+        <div id="extra-photos-grid" class="photo-grid" style="grid-template-columns:repeat(4,minmax(0,1fr))"></div>
+        <input type="file" id="extra-photo-input" accept="image/*" style="display:none" onchange="handleExtraPhoto(this,'signup')" />
+      </div>
     </div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" placeholder="Your first name" id="inp-name" autocomplete="given-name" tabindex="1" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="inp-dob" tabindex="2" oninput="formatDobInput(this)" /></div>
@@ -471,9 +485,15 @@ select.form-input option{background:#1a1f2e;color:#fff;}
       <div class="avatar-lg" id="edit-avatar-wrap"><span id="edit-avatar-initials">?</span><img id="edit-avatar-img" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%" alt="" /></div>
       <div style="display:flex;gap:8px;justify-content:center">
         <button onclick="document.getElementById('edit-photo-input').click()" style="background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.2);border-radius:11px;padding:11px 17px;color:var(--text-on-dark);font-size:14px;cursor:pointer;font-family:var(--sans)"><i class="ti ti-camera" style="margin-right:7px"></i>Change photo</button>
-        <button id="edit-reposition-btn" style="display:none;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.2);border-radius:11px;padding:11px 17px;color:var(--text-on-dark);font-size:14px;cursor:pointer;font-family:var(--sans)" onclick="openRepositionPhoto('screen-edit-profile')"><i class="ti ti-arrows-move" style="margin-right:7px"></i>Reposition</button>
+        <button id="edit-reposition-btn" style="display:none;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.2);border-radius:11px;padding:11px 17px;color:var(--text-on-dark);font-size:14px;cursor:pointer;font-family:var(--sans)" onclick="editRepositionMain()"><i class="ti ti-arrows-move" style="margin-right:7px"></i>Reposition</button>
       </div>
       <input type="file" id="edit-photo-input" accept="image/*" style="display:none" onchange="handleEditPhoto(this)" />
+    </div>
+    <div style="margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase">Your photos</label><span id="edit-photos-count" style="font-size:12px;color:var(--text-muted)"></span></div>
+      <div id="edit-photos-grid" class="photo-grid" style="grid-template-columns:repeat(5,minmax(0,1fr))"></div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:9px;line-height:1.5">Your main photo is shown blurred until you match. Your matches can see all your photos. Tap a photo to make it your main one.</p>
+      <input type="file" id="edit-extra-photo-input" accept="image/*" style="display:none" onchange="handleExtraPhoto(this,'edit')" />
     </div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" id="edit-name" /></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="edit-dob" oninput="formatDobInput(this)" /><p id="edit-dob-note" style="display:none;font-size:11px;color:var(--text-muted);margin-top:7px"><i class="ti ti-lock" style="margin-right:4px"></i>Confirmed by your ID, so it can’t be changed.</p></div>
@@ -666,6 +686,7 @@ sb.auth.onAuthStateChange(async(event,session)=>{
       myProfile.country=pending.country||'GB';myProfile.units=pending.units||defaultUnitsFor(myProfile.country);
       if(pending.lat!=null&&pending.lng!=null){myProfile.lat=pending.lat;myProfile.lng=pending.lng;}
       myProfile.photo_file=pending.photo?dataURLtoFile(pending.photo,'profile.jpg'):null;
+      myProfile.extra_photos=(Array.isArray(pending.extra_photos)?pending.extra_photos:[]).filter(u=>typeof u==='string'&&u.startsWith('data:image/')).slice(0,MAX_PHOTOS-1).map((u,k)=>({url:u,file:dataURLtoFile(u,`photo${k+2}.jpg`)}));
       myAnswers=pending.answers||myAnswers;
       showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Finishing your profile…</p></div>');
       await finishProfileCreation(session.user.id,session.user.email);
@@ -756,7 +777,7 @@ try{
   }
 }catch(e){}
 let pendingEmail='',pendingPassword=''; // stored when user moves from details to questions
-let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null};
+let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null,extra_photos:[]};
 let myAnswers=new Array(NUM_Q).fill(0);
 let isPremium=false,profileHidden=false;
 let viewedProfiles=new Set(),expressedInterest=new Set(),mutualMatches=new Set(),incomingInterest=new Set();
@@ -1038,6 +1059,119 @@ async function ensureBlurCopy(userId,signedUrl){
   }catch(e){console.warn('ensureBlurCopy:',e);}
 }
 
+// ─── Multiple photos (up to five; the first is the main photo) ─────────────────
+// All photos sit in the owner's private folder, so only they and their mutual
+// matches can open them. Only the main photo has a blurred public copy.
+const MAX_PHOTOS=5;
+let myPhotos=[];     // saved photos: [{path,url}] — url is a short-lived signed link
+let editPhotos=null; // working copy while Settings is open: [{path,url,file,raw}]
+function newPhotoPath(uid){return `${uid}/photo-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}.jpg`;}
+function publicUrlFor(path){return sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;}
+async function uploadPhotoFile(uid,file){
+  const path=newPhotoPath(uid);
+  const {error}=await sb.storage.from('avatars').upload(path,file,{contentType:'image/jpeg'});
+  if(error)throw error;
+  return path;
+}
+async function blurFromUrl(uid,url){try{const blob=await (await fetch(url)).blob();await uploadBlurCopy(uid,blob);}catch(e){console.warn('Blur from photo failed:',e);}}
+async function loadMyPhotos(p){
+  const paths=(Array.isArray(p.photo_paths)&&p.photo_paths.length)?p.photo_paths:[photoPathFromUrl(p.photo_url)].filter(Boolean);
+  const signed=await signedPhotoUrls(paths);
+  myPhotos=paths.map(path=>({path,url:signed[path]||null})).filter(x=>x.url);
+}
+// A mutual match's photos (the server only hands the list to their matches)
+const matchPhotoCache={};
+async function matchPhotos(pid){
+  const c=matchPhotoCache[pid];
+  if(c&&Date.now()-c.t<50*60*1000)return c.urls; // signed links last an hour
+  let paths=[];
+  try{const {data,error}=await sb.rpc('match_photo_paths',{p_other:pid});if(!error&&Array.isArray(data))paths=data;}catch(e){}
+  const signed=await signedPhotoUrls(paths);
+  const urls=paths.map(x=>signed[x]).filter(Boolean);
+  matchPhotoCache[pid]={t:Date.now(),urls};
+  return urls;
+}
+// Full-screen photo viewer: swipe or use the arrows to move between photos
+function openPhotoGallery(urls,start){
+  if(!urls||!urls.length)return;
+  let i=Math.max(0,Math.min(urls.length-1,start||0));
+  closePhotoGallery();
+  const o=document.createElement('div');
+  o.id='photo-gallery';
+  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.94);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:16px';
+  const multi=urls.length>1;
+  o.innerHTML=`<button onclick="closePhotoGallery()" aria-label="Close" style="position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;background:rgba(255,255,255,0.15);border:none;width:40px;height:40px;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="ti ti-x"></i></button>
+    <div style="position:relative;width:min(88vw,74vh);height:min(88vw,74vh)">
+      <img id="gallery-img" alt="Photo" style="width:100%;height:100%;object-fit:cover;border-radius:16px;display:block;user-select:none;-webkit-user-drag:none" />
+      ${multi?`<button id="gallery-prev" aria-label="Previous photo" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);border:none;width:44px;height:44px;border-radius:50%;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="ti ti-chevron-left"></i></button><button id="gallery-next" aria-label="Next photo" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.45);border:none;width:44px;height:44px;border-radius:50%;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="ti ti-chevron-right"></i></button>`:''}
+    </div>
+    ${multi?'<div id="gallery-dots" style="display:flex;gap:7px"></div>':''}`;
+  document.body.appendChild(o);
+  const show=()=>{
+    document.getElementById('gallery-img').src=urls[i];
+    const d=document.getElementById('gallery-dots');
+    if(d)d.innerHTML=urls.map((_,k)=>`<span style="width:8px;height:8px;border-radius:50%;background:${k===i?'var(--gold)':'rgba(255,255,255,0.3)'}"></span>`).join('');
+  };
+  const go=n=>{i=(n+urls.length)%urls.length;show();};
+  if(multi){
+    document.getElementById('gallery-prev').onclick=e=>{e.stopPropagation();go(i-1);};
+    document.getElementById('gallery-next').onclick=e=>{e.stopPropagation();go(i+1);};
+    let sx=0,sy=0;
+    o.addEventListener('touchstart',e=>{if(e.touches.length===1){sx=e.touches[0].clientX;sy=e.touches[0].clientY;}},{passive:true});
+    o.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5)go(i+(dx<0?1:-1));},{passive:true});
+  }
+  o.addEventListener('click',e=>{if(e.target===o)closePhotoGallery();});
+  show();
+}
+function closePhotoGallery(){const g=document.getElementById('photo-gallery');if(g)g.remove();}
+async function openMatchGallery(pid,start,fallbackUrl){
+  const urls=await matchPhotos(pid);
+  openPhotoGallery(urls.length?urls:(fallbackUrl?[fallbackUrl]:[]),start||0);
+}
+// Photo tiles (Create profile extras and the Settings grid)
+function photoTileHtml(url,{main,onTap,onRemove,label}){
+  return `<div class="photo-tile"${onTap?` role="button" tabindex="0" onclick="${onTap}"`:''}><img src="${url}" alt="${label||'Photo'}" />${main?'<span class="photo-tile-main">Main</span>':''}${onRemove?`<button type="button" class="photo-tile-x" aria-label="Remove photo" onclick="event.stopPropagation();${onRemove}"><i class="ti ti-x"></i></button>`:''}</div>`;
+}
+function addTileHtml(onClick){return `<button type="button" class="photo-tile photo-tile-add" aria-label="Add a photo" onclick="${onClick}"><i class="ti ti-plus"></i></button>`;}
+function renderSignupExtras(){
+  const g=document.getElementById('extra-photos-grid');if(!g)return;
+  const ex=myProfile.extra_photos||[];
+  g.innerHTML=ex.map((x,k)=>photoTileHtml(x.url,{onRemove:`removeSignupExtra(${k})`,label:'Extra photo '+(k+1)})).join('')+(ex.length<MAX_PHOTOS-1?addTileHtml("document.getElementById('extra-photo-input').click()"):'');
+}
+function removeSignupExtra(k){(myProfile.extra_photos||[]).splice(k,1);renderSignupExtras();}
+function handleExtraPhoto(input,where){
+  const file=input.files[0];input.value='';if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>openRepositionPhoto(where==='edit'?'screen-edit-profile':'screen-details','extra',e.target.result);
+  r.readAsDataURL(file);
+}
+function renderEditPhotos(){
+  const g=document.getElementById('edit-photos-grid');if(!g||!editPhotos)return;
+  const n=editPhotos.length;
+  g.innerHTML=editPhotos.map((x,k)=>photoTileHtml(x.url,{main:k===0,onTap:k===0?'':`editPhotoOptions(${k})`,onRemove:n>1?`removeEditPhoto(${k})`:'',label:k===0?'Main photo':'Photo '+(k+1)})).join('')+(n<MAX_PHOTOS?addTileHtml("document.getElementById('edit-extra-photo-input').click()"):'');
+  document.getElementById('edit-photos-count').textContent=`${n} of ${MAX_PHOTOS}`;
+  syncEditAvatar();
+}
+function syncEditAvatar(){
+  const img=document.getElementById('edit-avatar-img'),ini=document.getElementById('edit-avatar-initials'),rb=document.getElementById('edit-reposition-btn');
+  const main=editPhotos&&editPhotos[0];
+  if(main){img.src=main.url;img.style.display='block';ini.style.display='none';rb.style.display='inline-block';}
+  else{img.style.display='none';ini.style.display='block';rb.style.display='none';}
+}
+function removeEditPhoto(k){
+  if(!editPhotos)return;
+  if(editPhotos.length<=1){showToast('You need to keep at least one photo.',true);return;}
+  editPhotos.splice(k,1);renderEditPhotos();
+}
+function makeMainPhoto(k){if(!editPhotos||!editPhotos[k])return;const [x]=editPhotos.splice(k,1);editPhotos.unshift(x);renderEditPhotos();}
+function editPhotoOptions(k){
+  showModal(`<div style="width:110px;height:110px;margin:0 auto 18px;border-radius:14px;overflow:hidden"><img src="${editPhotos[k].url}" alt="" style="width:100%;height:100%;object-fit:cover" /></div><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();makeMainPhoto(${k})">Make this my main photo</button>${editPhotos.length>1?`<button class="btn-ghost" style="font-size:15px;color:var(--red);border-color:rgba(235,87,87,0.35)" onclick="removeModal();removeEditPhoto(${k})">Remove photo</button>`:''}<button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Cancel</button></div>`);
+}
+function editRepositionMain(){
+  const m=editPhotos&&editPhotos[0];if(!m)return;
+  openRepositionPhoto('screen-edit-profile','main',m.raw||m.url);
+}
+
 // ─── Distances ────────────────────────────────────────────────────────────────
 // Real profiles: worked out on the server (distHome / distCurrent), which never
 // sends anyone's postcode or coordinates. Demo profiles: worked out here.
@@ -1117,15 +1251,21 @@ async function tryDetails(){
 
 async function finishProfileCreation(userId,email){
   let photo_url='';
+  const photo_paths=[],savedPhotos=[];
   try{
     if(myProfile.photo_file){
       const ext=myProfile.photo_file.name.split('.').pop();
       const path=`${userId}/avatar.${ext}`;
       const {error:upErr}=await sb.storage.from('avatars').upload(path,myProfile.photo_file,{upsert:true});
       if(upErr){console.warn('Photo upload failed:',upErr.message);}
-      else{const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;myProfile.photo_ref=photo_url;await uploadBlurCopy(userId,myProfile.photo_file);}
+      else{const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;myProfile.photo_ref=photo_url;photo_paths.push(path);savedPhotos.push({path,url:myProfile.photo});await uploadBlurCopy(userId,myProfile.photo_file);}
     }
   }catch(e){console.warn('Photo upload exception:',e);}
+  // Optional extra photos (up to 4 more)
+  for(const x of (myProfile.extra_photos||[]).slice(0,MAX_PHOTOS-1)){
+    try{const path=await uploadPhotoFile(userId,x.file);photo_paths.push(path);savedPhotos.push({path,url:x.url});}
+    catch(e){console.warn('Extra photo upload failed:',e.message||e);}
+  }
 
   const based_score=calcBasedScore(myAnswers);
 
@@ -1145,7 +1285,7 @@ async function finishProfileCreation(userId,email){
   myProfile.religion=religion;
   const {error:profileErr}=await sb.from('profiles').upsert({
     id:userId,name:myProfile.name,dob:myProfile.dob,location:myProfile.location,
-    sex:myProfile.sex,photo_url,based_score,answers:myAnswers,
+    sex:myProfile.sex,photo_url,photo_paths,based_score,answers:myAnswers,
     is_hidden:false,is_premium:false,lat,lng,
     country:myProfile.country||'GB',units:myProfile.units||defaultUnitsFor(myProfile.country||'GB'),
     email:email,religion:religion,
@@ -1160,6 +1300,7 @@ async function finishProfileCreation(userId,email){
     return false;
   }
   removeModal();
+  myPhotos=savedPhotos;myProfile.extra_photos=[];
   rememberEmail(email);
   try{localStorage.removeItem('basedReferralCode');}catch(e){}
   excludedReligions=new Set();pendingReligions=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
@@ -1196,6 +1337,7 @@ async function stageSignupRemotely(userId){
       body:JSON.stringify({
         user_id:userId,name:myProfile.name,dob:myProfile.dob,location:myProfile.location,
         sex:myProfile.sex,religion:myProfile.religion,photo:myProfile.photo,answers:myAnswers,
+        extra_photos:(myProfile.extra_photos||[]).map(x=>x.url),
         marketing_consent:!!myProfile.marketing_consent,terms_accepted_at:myProfile.terms_accepted_at,
         referred_by:myProfile.referred_by||null,
         country:myProfile.country||'GB',units:myProfile.units||'mi',lat:myProfile.lat??null,lng:myProfile.lng??null
@@ -1359,7 +1501,7 @@ async function restoreSession(){
     myProfile={name:p.name,dob:p.dob,location:p.location,sex:p.sex,photo:null,photo_ref:p.photo_url||null,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null,country:p.country||'GB',units:p.units||defaultUnitsFor(p.country||'GB')};
     // Your own photo is private too — open it through a short-lived signed link
     const ownPath=photoPathFromUrl(p.photo_url);
-    if(ownPath){const s=await signedPhotoUrls([ownPath]);myProfile.photo=s[ownPath]||null;}
+    await loadMyPhotos(p);myProfile.photo=myPhotos[0]?myPhotos[0].url:null;
     if(ownPath)ensureBlurCopy(currentUser.id,myProfile.photo);
     myAnswers=p.answers||new Array(NUM_Q).fill(0);
     isPremium=p.is_premium||false;
@@ -1648,9 +1790,16 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   }
   const isRealProfile=/^[0-9a-f-]{36}$/.test(String(profileKey));
   if(isRealProfile&&!isMutual)actionRow+=`<div style="text-align:center;margin-top:18px"><button onclick="openReport('${profileKey}','${String(name).replace(/'/g,"\\'")}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${name}</button></div>`;
-  const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden"><img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${name}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4);color:var(--text-on-dark)">${inits}</div>`;
-  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);return pp&&pp.verified?VERIFIED_TICK:'';})()}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);const t=pp?distanceText(pp):'';return t?` <span style="font-family:var(--sans);font-size:14px;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';})()}</div></div></div>${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
+  const canGallery=isMutual&&/^[0-9a-f-]{36}$/.test(String(profileKey));
+  const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden${canGallery?';cursor:pointer':''}"${canGallery?` role="button" aria-label="View ${name}’s photos" onclick="openMatchGallery('${profileKey}',0,'${photoUrl}')"`:''}><img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${name}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4);color:var(--text-on-dark)">${inits}</div>`;
+  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);return pp&&pp.verified?VERIFIED_TICK:'';})()}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);const t=pp?distanceText(pp):'';return t?` <span style="font-family:var(--sans);font-size:14px;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';})()}</div></div></div>${canGallery?'<div id="profile-photo-strip"></div>':''}${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
   goTo('screen-profile');
+  if(canGallery)matchPhotos(profileKey).then(urls=>{
+    const strip=document.getElementById('profile-photo-strip');
+    if(!strip||urls.length<2)return;
+    strip.className='photo-strip';
+    strip.innerHTML=urls.map((u,k)=>`<button type="button" aria-label="Photo ${k+1} of ${urls.length}" onclick="openMatchGallery('${profileKey}',${k})"><img src="${u}" alt="" /></button>`).join('');
+  });
   document.getElementById('profile-detail-body').scrollTop=0;
 }
 
@@ -1892,7 +2041,7 @@ function handlePhotoUpload(input){
   const r=new FileReader();
   r.onload=e=>{
     myProfile.photo_raw=e.target.result; // unedited source, used whenever repositioning is (re)opened
-    openRepositionPhoto('screen-details');
+    openRepositionPhoto('screen-details','main');
   };
   r.readAsDataURL(file);
 }
@@ -1900,14 +2049,13 @@ function handleEditPhoto(input){
   const file=input.files[0];if(!file)return;
   const r=new FileReader();
   r.onload=e=>{
-    myProfile.photo_raw=e.target.result;
-    openRepositionPhoto('screen-edit-profile');
+    openRepositionPhoto('screen-edit-profile','main',e.target.result);
   };
   r.readAsDataURL(file);
 }
 
 // ─── Photo reposition (drag + zoom, baked into the exported image) ────────────
-const repositionState={naturalW:0,naturalH:0,baseScale:1,zoom:1,offsetX:0,offsetY:0,VP:280,dragging:false,startX:0,startY:0,startOffX:0,startOffY:0,returnScreen:'screen-details'};
+const repositionState={naturalW:0,naturalH:0,baseScale:1,zoom:1,offsetX:0,offsetY:0,VP:280,dragging:false,startX:0,startY:0,startOffX:0,startOffY:0,returnScreen:'screen-details',target:'main',raw:null};
 // ─── Terms & Conditions ─────────────────────────────────────────────────────
 const TERMS_TEXT=`
 <p style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Last updated: 13 September 2026</p>
@@ -1982,9 +2130,12 @@ function agreeToTerms(){
   goTo('screen-details');
 }
 
-function openRepositionPhoto(returnScreen){
+// target: 'main' (the main photo) or 'extra' (an additional photo); src: the image to crop
+function openRepositionPhoto(returnScreen,target,srcOverride){
   if(returnScreen)repositionState.returnScreen=returnScreen;
-  const src=myProfile.photo_raw||myProfile.photo;
+  repositionState.target=target||'main';
+  const src=srcOverride||myProfile.photo_raw||myProfile.photo;
+  repositionState.raw=src;
   if(!src)return;
   const imgEl=document.getElementById('reposition-img');
   const probe=new Image();
@@ -2063,6 +2214,19 @@ function saveRepositionPhoto(){
     return;
   }
   canvas.toBlob(blob=>{
+    const file=new File([blob],'photo.jpg',{type:'image/jpeg'});
+    const inEdit=s.returnScreen==='screen-edit-profile';
+    if(s.target==='extra'){
+      if(inEdit){if(editPhotos&&editPhotos.length<MAX_PHOTOS)editPhotos.push({path:null,url:dataUrl,file,raw:s.raw});renderEditPhotos();}
+      else{myProfile.extra_photos=myProfile.extra_photos||[];if(myProfile.extra_photos.length<MAX_PHOTOS-1)myProfile.extra_photos.push({url:dataUrl,file});renderSignupExtras();}
+      goTo(s.returnScreen);return;
+    }
+    if(inEdit&&editPhotos){
+      // Settings: replace the main photo in the working copy (saved with the rest of Settings)
+      const m={path:null,url:dataUrl,file,raw:s.raw};
+      if(editPhotos.length)editPhotos[0]=m;else editPhotos.push(m);
+      renderEditPhotos();goTo(s.returnScreen);return;
+    }
     myProfile.photo=dataUrl;
     myProfile.photo_file=new File([blob],'profile.jpg',{type:'image/jpeg'});
     // Update whichever screen's preview is relevant
@@ -2079,6 +2243,7 @@ function saveRepositionPhoto(){
   },'image/jpeg',0.9);
 }
 initRepositionDrag();
+renderSignupExtras();
 function startQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();document.getElementById('q-next-btn').textContent='Create my account';goTo('screen-questions');}
 function resetQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();document.getElementById('q-next-btn').textContent='See my score';}
 function religionPickerHtml(pickerId,selected){
@@ -3013,6 +3178,7 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
 
 function openEnlargedPhoto(){
   if(!activeChatPhotoUrl)return; // no photo (e.g. initials-only avatar) — nothing to enlarge
+  if(activeChatPartnerId&&/^[0-9a-f-]{36}$/.test(String(activeChatPartnerId))){openMatchGallery(activeChatPartnerId,0,activeChatPhotoUrl);return;}
   const overlay=document.createElement('div');
   overlay.id='photo-lightbox';
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px';
@@ -3490,8 +3656,9 @@ function openEditProfile(){
   ['edit-name','edit-dob','edit-location'].forEach(id=>document.getElementById(id).classList.remove('input-error'));
   const init=(myProfile.name||'?').charAt(0).toUpperCase();
   document.getElementById('edit-avatar-initials').textContent=init;
-  if(myProfile.photo){document.getElementById('edit-avatar-img').src=myProfile.photo;document.getElementById('edit-avatar-img').style.display='block';document.getElementById('edit-avatar-initials').style.display='none';document.getElementById('edit-reposition-btn').style.display='inline-block';}
-  else{document.getElementById('edit-avatar-img').style.display='none';document.getElementById('edit-avatar-initials').style.display='block';document.getElementById('edit-reposition-btn').style.display='none';}
+  editPhotos=myPhotos.map(x=>({path:x.path,url:x.url,file:null,raw:null}));
+  if(!editPhotos.length&&myProfile.photo)editPhotos=[{path:photoPathFromUrl(myProfile.photo_ref),url:myProfile.photo,file:null,raw:null}];
+  renderEditPhotos();
   document.getElementById('hide-toggle').classList.toggle('on',profileHidden);
   document.getElementById('hidden-banner').style.display=profileHidden?'block':'none';
   renderVerifyRow();
@@ -3511,7 +3678,7 @@ function editFormState(){
     location:document.getElementById('edit-location').value.trim(),
     units:myUnits(),
     religions:[...(pendingReligions||excludedReligions)].sort(),
-    photo:myProfile.photo_file?myProfile.photo:null
+    photos:(editPhotos||[]).map(x=>x.path||('new:'+x.url.length+':'+x.url.slice(-24)))
   });
 }
 function editHasChanges(){return editSnapshot!==null&&editFormState()!==editSnapshot;}
@@ -3525,6 +3692,7 @@ function discardEditChanges(){
     if(myUnits()!==editBefore.units)setUnits(editBefore.units,true);
     myProfile.photo=editBefore.photo;myProfile.photo_file=editBefore.photo_file;
   }
+  editPhotos=null;
   editSnapshot=null;editBefore=null;
   goTo('screen-main');
 }
@@ -3543,12 +3711,23 @@ async function saveProfile(){
   if(!openCountries.has(editCountry)){showToast(`BASED isn't available in ${countryName(editCountry)} yet.`,true);return;}
   if(!editLocationEl.value.trim())editLocationEl.value=myProfile.location||'';
   if(currentUser){
-    let photo_url=myProfile.photo_ref||'';
-    if(myProfile.photo_file){
-      const ext=myProfile.photo_file.name.split('.').pop();
-      const path=`${currentUser.id}/avatar.${ext}`;
-      const {error}=await sb.storage.from('avatars').upload(path,myProfile.photo_file,{upsert:true});
-      if(!error){const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;myProfile.photo_ref=photo_url;await uploadBlurCopy(currentUser.id,myProfile.photo_file);myProfile.photo_file=null;}
+    // Photos: upload any new ones first; the list on the profile is only changed once everything is up
+    let photoUpdate={},photoPlan=null;
+    if(editPhotos){
+      if(!editPhotos.length){showToast('You need to keep at least one photo.',true);return;}
+      const changed=editPhotos.some(x=>x.file)||JSON.stringify(editPhotos.map(x=>x.path))!==JSON.stringify(myPhotos.map(x=>x.path));
+      if(changed){
+        const saving=[],uploaded=[];
+        for(const x of editPhotos.slice(0,MAX_PHOTOS)){
+          if(x.file){
+            try{const path=await uploadPhotoFile(currentUser.id,x.file);uploaded.push(path);saving.push({path,url:x.url});}
+            catch(e){if(uploaded.length)sb.storage.from('avatars').remove(uploaded);showToast('Couldn’t upload a photo — please try again.',true);return;}
+          }else saving.push({path:x.path,url:x.url});
+        }
+        photoUpdate={photo_paths:saving.map(x=>x.path),photo_url:publicUrlFor(saving[0].path)};
+        photoPlan={saving,uploaded,mainFile:editPhotos[0].file,mainChanged:!myPhotos[0]||saving[0].path!==myPhotos[0].path,
+                   removed:myPhotos.map(o=>o.path).filter(o=>o&&!saving.some(n=>n.path===o))};
+      }
     }
     // Only look the location up again if the country or the text actually changed
     const locChanged=editCountry!==(myProfile.country||'GB')||editLocationEl.value.trim()!==(myProfile.location||'');
@@ -3559,10 +3738,17 @@ async function saveProfile(){
       editLocationEl.classList.add('input-error');
       return;
     }
-    const {error:saveErr}=await sb.from('profiles').update({name:myProfile.name,dob:myProfile.dob,location:geo.location,country:editCountry,units:myUnits(),sex:myProfile.sex,is_hidden:profileHidden,photo_url:photo_url||undefined,lat:geo.lat,lng:geo.lng}).eq('id',currentUser.id);
+    const {error:saveErr}=await sb.from('profiles').update({name:myProfile.name,dob:myProfile.dob,location:geo.location,country:editCountry,units:myUnits(),sex:myProfile.sex,is_hidden:profileHidden,...photoUpdate,lat:geo.lat,lng:geo.lng}).eq('id',currentUser.id);
+    if(saveErr&&photoPlan&&photoPlan.uploaded.length)sb.storage.from('avatars').remove(photoPlan.uploaded); // nothing points at them
     if(saveErr){showToast(/COUNTRY_NOT_OPEN/.test(saveErr.message)?`BASED isn't available in ${countryName(editCountry)} yet.`:'Could not save — please try again.',true);return;}
     myProfile.location=geo.location;myProfile.country=editCountry;
     myProfile.lat=geo.lat;myProfile.lng=geo.lng;
+    if(photoPlan){
+      myPhotos=photoPlan.saving;myProfile.photo=myPhotos[0].url;myProfile.photo_ref=photoUpdate.photo_url;myProfile.photo_file=null;
+      if(photoPlan.mainChanged){if(photoPlan.mainFile)await uploadBlurCopy(currentUser.id,photoPlan.mainFile);else await blurFromUrl(currentUser.id,myPhotos[0].url);}
+      if(photoPlan.removed.length)sb.storage.from('avatars').remove(photoPlan.removed).then(({error})=>{if(error)console.warn('Removing old photos failed:',error.message);});
+    }
+    editPhotos=null;
     await loadBrowseProfiles(); // distances from the (possibly new) home postcode
     renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
     showToast('Profile saved');
@@ -3632,7 +3818,8 @@ async function executeDelete(){
   const wasPremium=isPremium;
   excludedReligions=new Set();pendingReligions=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
   isPremium=false;currentUser=null;
-  myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null};
+  myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null,extra_photos:[]};myPhotos=[];editPhotos=null;
+  try{renderSignupExtras();}catch(e){}
   myAnswers=new Array(NUM_Q).fill(0);
   expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();mySuper=new Set();theirSuper=new Set();profileHidden=false;
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
