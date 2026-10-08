@@ -531,6 +531,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 
     <div style="border-top:0.5px solid rgba(255,255,255,0.08);padding-top:20px;display:flex;flex-direction:column;gap:2px">
       <div id="verify-row" style="display:flex;align-items:center;gap:12px;padding:4px 0 16px;border-bottom:0.5px solid rgba(255,255,255,0.07)"></div>
+      <div id="plan-row" style="display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)"></div>
       <div class="toggle-row">
         <div style="flex:1;padding-right:16px">
           <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:4px">Hide my profile</p>
@@ -2575,12 +2576,16 @@ function pickUpgradeOption(t){if(!upgradeState)return;upgradeState.selected=t;re
 
 function renderUpgrade(){
   const s=upgradeState;if(!s)return;
-  const f=s.f,p=perm(f),info=FEATURE_INFO[f]||{name:'This feature',icon:'ti-lock'},my=myTierNow();
-  const label=COMPARE_LABEL[f]||info.name;
+  const f=s.f,p=perm(f),my=myTierNow();
+  const info=s.generic?{name:'Your plan',icon:'ti-crown'}:(FEATURE_INFO[f]||{name:'This feature',icon:'ti-lock'});
+  const label=s.generic?'Upgrade':(COMPARE_LABEL[f]||info.name);
   const names=s.options.map(t=>OPTION_LABEL[t]);
   const joined=names.length>1?names.slice(0,-1).join(', ')+' and '+names[names.length-1]:names[0];
   let title,body;
-  if(s.isLimit){
+  if(s.generic){
+    title=s.options.length===1?`Upgrade to ${OPTION_LABEL[s.options[0]]}`:'Get more from BASED';
+    body=(my==='plus'?'You’re on BASED+. BASED Gold adds everything below.':'Choose the plan that suits you. You can change or cancel at any time.');
+  }else if(s.isLimit){
     const unit=p.limit===1&&FEATURE_ONE[f]?FEATURE_ONE[f]:(info.unit||'uses');
     title=p.period==='total'?`You’ve used your ${p.limit} free ${unit}`:p.period==='day'?`You’ve used today’s ${p.limit} ${unit}`:`You’ve used this week’s ${p.limit} ${unit}`;
     const paid=s.options.filter(t=>t!=='id').map(t=>OPTION_LABEL[t]).join(' or ');
@@ -2974,6 +2979,7 @@ async function refreshPermissions(force){
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   if(typeof renderMatchesTab==='function')renderMatchesTab();
   if(typeof updateFilterCounts==='function')updateFilterCounts();
+  renderPlanRow();
   if(before&&after&&before!==after&&(after==='plus'||after==='gold'))showToast(`You’re now on ${TIER_LABEL[after]}`,false,2200);
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshPermissions();});
@@ -3002,6 +3008,26 @@ function onMyVerificationChanged(p){
   }
 }
 
+// Settings → Current plan, with an Upgrade button unless you're already on Gold
+function renderPlanRow(){
+  const row=document.getElementById('plan-row');if(!row)return;
+  const t=myTierNow(),paid=t==='plus'||t==='gold';
+  const name=paid?TIER_LABEL[t]:'Free';
+  const btn=t==='gold'?'':`<button onclick="openPlanUpgrade()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);border-radius:11px;padding:9px 15px;color:var(--verified);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">Upgrade</button>`;
+  row.innerHTML=`<i class="ti ti-crown" style="font-size:24px;color:${paid?'var(--gold)':'var(--text-muted)'}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Current plan</p><p style="font-size:13px;color:${paid?'var(--gold-light)':'var(--text-muted)'}">${name}</p></div>${btn}`;
+}
+// The upgrade screen without a particular feature in mind: both paid plans from Free,
+// just Gold from BASED+
+function openPlanUpgrade(){
+  const my=myTierNow();
+  const options=['plus','gold'].filter(t=>TIER_ORDER.indexOf(t)>TIER_ORDER.indexOf(my));
+  if(!options.length)return;
+  const active=document.querySelector('.screen.active');
+  upgradeState={f:null,generic:true,isLimit:false,selected:options[0],options,returnTo:active?active.id:'screen-main'};
+  renderUpgrade();
+  goTo('screen-upgrade');
+  document.getElementById('upgrade-body').scrollTop=0;
+}
 function renderVerifyRow(){
   const row=document.getElementById('verify-row');
   if(!row)return;
@@ -3827,7 +3853,7 @@ function openEditProfile(){
   renderEditPhotos();
   document.getElementById('hide-toggle').classList.toggle('on',profileHidden);
   document.getElementById('hidden-banner').style.display=profileHidden?'block':'none';
-  renderVerifyRow();
+  renderVerifyRow();renderPlanRow();
   pendingReligions=null;pendingDealbreakers=null;updateFilterCounts();
   editBefore={units:myUnits(),photo:myProfile.photo,photo_file:myProfile.photo_file||null};
   editSnapshot=editFormState();
