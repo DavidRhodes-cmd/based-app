@@ -3027,6 +3027,18 @@ function renderReligionFilter(){
 }
 // Changes are held here until "Save" on the Religion filters screen
 let pendingReligions=null;
+// Swiping back from a filter screen with unsaved changes asks whether to save or discard them
+function sameSet(a,b){if(a.size!==b.size)return false;for(const x of a)if(!b.has(x))return false;return true;}
+function filterScreenChanged(which){
+  return which==='religion'?(pendingReligions&&!sameSet(pendingReligions,excludedReligions))
+                           :(pendingDealbreakers&&!sameSet(pendingDealbreakers,dealbreakers));
+}
+function leaveFilterScreen(which){
+  const save=which==='religion'?'saveReligionScreen()':'saveDealbreakerScreen()';
+  const discard=which==='religion'?'cancelReligionScreen()':'cancelDealbreakerScreen()';
+  if(!filterScreenChanged(which)){(which==='religion'?cancelReligionScreen:cancelDealbreakerScreen)();return;}
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Save your changes?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">You’ve changed your ${which==='religion'?'religion':'dealbreaker'} filters but haven’t saved them.</p><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();${save}">Save changes</button><button class="btn-ghost" style="font-size:15px" onclick="removeModal();${discard}">Discard changes</button><button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Keep editing</button></div>`);
+}
 function openReligionScreen(){
   pendingReligions=new Set(excludedReligions);renderReligionFilter();
   goTo('screen-religion-filter');
@@ -3263,8 +3275,8 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
     const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
     if(dx<60||Math.abs(dx)<Math.abs(dy)*1.5)return; // right swipes only, and a clear, mostly-horizontal one
     if(id==='screen-plans')closePlans();
-    else if(id==='screen-dealbreakers')cancelDealbreakerScreen();
-    else if(id==='screen-religion-filter')cancelReligionScreen();
+    else if(id==='screen-dealbreakers')leaveFilterScreen('dealbreakers');
+    else if(id==='screen-religion-filter')leaveFilterScreen('religion');
     else closeUpgrade();
   },{passive:true});
 });
