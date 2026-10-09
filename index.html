@@ -185,6 +185,21 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 .db-row.on .db-box{background:var(--gold);border-color:var(--gold);}
 .db-row:disabled{opacity:0.45;cursor:default;}
 .db-row .db-sub{display:block;font-size:11px;color:var(--text-muted);margin-top:2px;}
+.ins-periods{display:grid;grid-template-columns:repeat(4,1fr);background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.12);border-radius:12px;padding:4px;gap:4px;}
+.ins-periods button{background:transparent;border:none;border-radius:9px;padding:9px 0;color:var(--text-muted);font-family:var(--sans);font-size:14px;cursor:pointer;}
+.ins-periods button.on{background:rgba(201,168,76,0.18);color:var(--gold);font-weight:600;}
+.ins-h{font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin:6px 0 9px;}
+.ins-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:20px;}
+.ins-tile{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:14px;padding:13px 13px 11px;text-align:left;font-family:var(--sans);color:var(--text-on-dark);display:flex;flex-direction:column;gap:3px;min-width:0;}
+button.ins-tile{cursor:pointer;}
+button.ins-tile:active{opacity:0.75;}
+.ins-n{font-family:var(--serif);font-size:28px;line-height:1.1;color:var(--text-on-dark);display:flex;align-items:center;justify-content:space-between;}
+.ins-n i{font-size:16px;color:var(--text-muted);}
+.ins-l{font-size:13px;color:var(--text-on-dark);line-height:1.3;}
+.ins-d{font-size:11px;color:var(--text-muted);}
+.ins-d.up{color:var(--green);}
+.ins-row{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:0.5px solid rgba(255,255,255,0.07);width:100%;background:transparent;border-left:none;border-right:none;border-top:none;text-align:left;font-family:var(--sans);color:var(--text-on-dark);cursor:pointer;}
+.ins-row .avatar{width:44px;height:44px;flex-shrink:0;overflow:hidden;}
 .bottom-safe{padding-bottom:calc(var(--safe-bottom) + 12px);}
 .btn-safe{margin-bottom:calc(var(--safe-bottom) + 12px);}
 /* Didit verification pop-up: keep its close button clear of the iPhone status bar */
@@ -555,6 +570,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
           <button class="btn-ghost filter-btn" data-feature="religion_filter" onclick="openReligionScreen()"><span>Religion filters</span><span class="filter-count" id="religion-count"></span></button>
         </div>
         <button class="btn-ghost filter-btn" data-feature="saved_intro" onclick="openIntroEditor()" style="margin-top:8px;width:100%"><span>Pre-saved introduction</span><span class="filter-count" id="intro-status"></span></button>
+        <button class="btn-ghost filter-btn" data-feature="profile_insights" onclick="openInsights()" style="margin-top:8px;width:100%"><span>Profile insights</span><span class="filter-count">Who’s viewing you, interest and activity</span></button>
       </div>
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
         <button class="btn-ghost" onclick="inviteFriends()" style="font-size:14px;padding:11px 17px"><i class="ti ti-user-plus" style="margin-right:7px"></i>Invite friends</button>
@@ -578,6 +594,30 @@ select.form-input option{background:#1a1f2e;color:#fff;}
   </div>
   <div class="scrollable" style="padding:20px 16px" id="modify-answers-list"></div>
 </div>
+<!-- PROFILE INSIGHTS -->
+<div id="screen-insights" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="closeInsights()" aria-label="Back"><i class="ti ti-arrow-left"></i></button>
+    <span style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark)">Profile insights</span>
+    <div style="width:28px"></div>
+  </div>
+  <div class="scrollable" style="padding:16px 16px 24px">
+    <div class="ins-periods" role="tablist" aria-label="Period">
+      <button role="tab" data-p="day" onclick="setInsightsPeriod('day')">Day</button><button role="tab" data-p="week" onclick="setInsightsPeriod('week')">Week</button><button role="tab" data-p="month" onclick="setInsightsPeriod('month')">Month</button><button role="tab" data-p="year" onclick="setInsightsPeriod('year')">Year</button>
+    </div>
+    <p id="ins-range" style="font-size:12px;color:var(--text-muted);text-align:center;margin:10px 0 16px"></p>
+    <div id="ins-body"></div>
+  </div>
+</div>
+<div id="screen-insight-list" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goTo('screen-insights')" aria-label="Back"><i class="ti ti-arrow-left"></i></button>
+    <span id="ins-list-title" style="font-family:var(--serif);font-size:17px;color:var(--text-on-dark);text-align:center;flex:1;padding:0 8px"></span>
+    <div style="width:28px"></div>
+  </div>
+  <div class="scrollable" style="padding:14px 16px 24px" id="ins-list-body"></div>
+</div>
+
 <!-- DEALBREAKER FILTERS -->
 <div id="screen-dealbreakers" class="screen">
   <div class="app-header">
@@ -3320,7 +3360,7 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
 })();
 
 // ─── Swipe right on the upgrade / compare-plans / filter screens to go back ──
-['screen-upgrade','screen-plans','screen-dealbreakers','screen-religion-filter'].forEach(id=>{
+['screen-upgrade','screen-plans','screen-dealbreakers','screen-religion-filter','screen-insights','screen-insight-list'].forEach(id=>{
   const container=document.getElementById(id);
   let startX=0,startY=0,tracking=false;
   container.addEventListener('touchstart',e=>{
@@ -3336,6 +3376,8 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
     if(id==='screen-plans')closePlans();
     else if(id==='screen-dealbreakers')leaveFilterScreen('dealbreakers');
     else if(id==='screen-religion-filter')leaveFilterScreen('religion');
+    else if(id==='screen-insights')closeInsights();
+    else if(id==='screen-insight-list')goTo('screen-insights');
     else closeUpgrade();
   },{passive:true});
 });
@@ -3973,6 +4015,75 @@ async function saveProfile(){
   editSnapshot=null;editBefore=null;
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   goTo('screen-main');
+}
+
+// ─── Profile insights (BASED Gold) ───────────────────────────────────────────
+// Counts for the chosen period (with the previous period for comparison); tap a
+// tile to see the people behind it. The server never includes anyone who has
+// blocked or reported you.
+const INSIGHT_SECTIONS=[
+  ['Interest in you',[['views_in','Viewed your profile','ti-eye'],['interest_in','Sent you interest','ti-heart'],['super_in','Sent you a super interest','ti-confetti'],['matches','New mutual matches','ti-hearts'],['msgs_in','Messages received','ti-message']]],
+  ['Your activity',[['views_out','Profiles you viewed','ti-eye'],['interest_out','Interest you sent','ti-heart'],['super_out','Super interests you sent','ti-confetti'],['msgs_out','Messages you sent','ti-send'],['withdrawn','Interest you withdrew','ti-arrow-back-up'],['moved_on','People you moved on from','ti-arrow-right'],['hidden','Blocked or hidden','ti-ban'],['reported','People you reported','ti-flag']]]
+];
+const PERIOD_TEXT={day:['Last 24 hours','previous day'],week:['Last 7 days','previous week'],month:['Last 30 days','previous month'],year:['Last 12 months','previous year']};
+let insightsPeriod='week',insightsData=null,insightsReturn='screen-edit-profile';
+function openInsights(){
+  if(!canUse('profile_insights')){showUpgradePrompt('profile_insights');return;}
+  const a=document.querySelector('.screen.active');if(a&&a.id!=='screen-insights'&&a.id!=='screen-insight-list')insightsReturn=a.id;
+  goTo('screen-insights');setInsightsPeriod(insightsPeriod);
+}
+function closeInsights(){goTo(insightsReturn||'screen-edit-profile');}
+async function setInsightsPeriod(p){
+  insightsPeriod=p;
+  document.querySelectorAll('.ins-periods button').forEach(b=>{const on=b.dataset.p===p;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);});
+  document.getElementById('ins-range').textContent=PERIOD_TEXT[p][0];
+  const body=document.getElementById('ins-body');
+  body.innerHTML='<p style="text-align:center;color:var(--text-muted);font-size:13px;padding:30px 0"><i class="ti ti-loader" style="font-size:22px;color:var(--gold);animation:spin 1s linear infinite;display:block;margin:0 auto 8px"></i>Loading…</p>';
+  const {data,error}=await sb.rpc('my_insights',{p_period:p});
+  if(p!==insightsPeriod)return; // switched period while loading
+  if(error){body.innerHTML=`<p style="text-align:center;color:var(--text-muted);font-size:14px;padding:30px 0">${/FEATURE_LOCKED/.test(error.message)?'Profile insights are part of BASED Gold.':'Couldn’t load your insights — please try again.'}</p>`;return;}
+  insightsData=data||{metrics:{}};
+  renderInsights();
+}
+function renderInsights(){
+  const m=(insightsData&&insightsData.metrics)||{},prevName=PERIOD_TEXT[insightsPeriod][1];
+  document.getElementById('ins-body').innerHTML=INSIGHT_SECTIONS.map(([title,items])=>`<p class="ins-h">${title}</p><div class="ins-grid">${items.map(([k,label,icon])=>{
+    const x=m[k]||{n:0,prev:0,people:[]},n=x.n||0,prev=x.prev||0,diff=n-prev;
+    const delta=!n&&!prev?'':diff>0?`<span class="ins-d up">▲ ${diff} more than the ${prevName}</span>`:diff<0?`<span class="ins-d">▼ ${-diff} fewer than the ${prevName}</span>`:`<span class="ins-d">Same as the ${prevName}</span>`;
+    const tappable=(x.people||[]).length>0;
+    const inner=`<span class="ins-n">${n}${tappable?'<i class="ti ti-chevron-right"></i>':`<i class="ti ${icon}"></i>`}</span><span class="ins-l">${label}</span>${delta}`;
+    return tappable?`<button class="ins-tile" onclick="openInsightList('${k}')">${inner}</button>`:`<div class="ins-tile">${inner}</div>`;
+  }).join('')}</div>`).join('');
+}
+function timeAgo(iso){
+  const d=new Date(iso),s=(Date.now()-d.getTime())/1000;
+  if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+' min ago';if(s<86400)return Math.floor(s/3600)+' h ago';
+  if(s<7*86400)return Math.floor(s/86400)+(Math.floor(s/86400)===1?' day ago':' days ago');
+  return d.toLocaleDateString([], {day:'numeric',month:'short',year:d.getFullYear()===new Date().getFullYear()?undefined:'numeric'});
+}
+function openInsightList(k){
+  const x=(insightsData&&insightsData.metrics||{})[k];if(!x)return;
+  const label=INSIGHT_SECTIONS.flatMap(sct=>sct[1]).find(i=>i[0]===k)[1];
+  document.getElementById('ins-list-title').textContent=label;
+  const many=k.startsWith('msgs')?'messages':'times';
+  document.getElementById('ins-list-body').innerHTML=`<p style="font-size:12px;color:var(--text-muted);margin-bottom:6px">${PERIOD_TEXT[insightsPeriod][0]} · ${x.people.length} ${x.people.length===1?'person':'people'}</p>`+
+    x.people.map(p=>{
+      const bp=browseProfiles.find(b=>b.id===p.id);
+      const img=p.mutual&&bp&&bp.photo_url?`<img src="${bp.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="" />`
+        :`<img src="${BLUR_BASE}${p.id}/blur.jpg" style="width:100%;height:100%;object-fit:cover;border-radius:50%;filter:blur(4px);transform:scale(1.1)" alt="" onerror="this.replaceWith(document.createTextNode('${String(p.name||'?').charAt(0).replace(/'/g,'')}'))" />`;
+      const sub=p.times>1?`${p.times} ${many} · last ${timeAgo(p.at)}`:timeAgo(p.at);
+      return `<button class="ins-row" onclick="openInsightPerson('${p.id}','${k}')"><div class="avatar">${img}</div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600">${p.name||'Member'}${p.age?', '+p.age:''}${p.verified?VERIFIED_TICK:''}${p.mutual?' <span style="font-size:11px;color:var(--green);font-weight:400">· Match</span>':''}</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">${sub}</div></div><i class="ti ti-chevron-right" style="color:var(--text-muted)"></i></button>`;
+    }).join('');
+  goTo('screen-insight-list');
+  const sc=document.getElementById('ins-list-body');if(sc)sc.scrollTop=0;
+}
+function openInsightPerson(id,k){
+  if(k==='hidden'||k==='reported'){showToast('You’ve blocked or reported this person, so their profile isn’t shown.',false,2600);return;}
+  const p=browseProfiles.find(x=>x.id===id);
+  if(!p){showToast('This profile isn’t available right now.',false,2200);return;}
+  if(mutualMatches.has(id)&&k.startsWith('msgs')){openChat(id,p.initials,p.name,p.photo_url||'');return;}
+  openProfile(p.answers,calcCompat(p.answers),p.basedScore,p.initials,p.name,p.age,p.location,p.photo_url,id,'incoming',p.religion||null);
+  document.getElementById('profile-back-btn').onclick=()=>goTo('screen-insight-list');
 }
 
 // ─── Pre-saved introduction (BASED Gold) ─────────────────────────────────────
