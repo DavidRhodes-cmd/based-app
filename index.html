@@ -1612,6 +1612,7 @@ async function restoreSession(){
     mySearchFilters=(p.search_filters&&typeof p.search_filters==='object')?p.search_filters:{};
     profileHidden=p.is_hidden||false;
     readReceipts=p.read_receipts!==false;
+    myStripeCustomer=!!p.stripe_customer_id;
     savedIntro=p.saved_intro||'';
     myVerificationStatus=p.verification_status||'unverified';
     myVerificationIssue=p.verification_issue||null;
@@ -2711,10 +2712,94 @@ function closePlans(){
   if(upgradeState&&!upgradeState.plansOnly){goTo('screen-upgrade');return;}
   const back=(upgradeState&&upgradeState.returnTo)||'screen-main';upgradeState=null;goTo(back);
 }
-// Payments arrive in the next stage; until then this explains what will happen
-function startUpgrade(tier){
-  const myTier=myTierNow();
-  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">${TIER_LABEL[tier]} · ${TIER_PRICE[tier]}/month</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">Payments are coming very soon.${myTier==='liveness'?' After paying you’ll do a quick ID check, then everything unlocks.':''}</p><button class="btn-primary" style="font-size:15px" onclick="removeModal()">OK</button>`);
+// ─── Payments (Stripe) ───────────────────────────────────────────────────────
+// The server talks to Stripe; the app only ever gets a link to Stripe's own
+// secure page. Your plan changes when Stripe tells the server a payment went through.
+let myStripeCustomer=false;
+async function callStripe(action,extra){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)return {ok:false,data:{error:'Please sign in again.'}};
+  try{
+    const r=await fetch(FN_BASE+'stripe-checkout',{method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token},
+      body:JSON.stringify(Object.assign({action},extra||{}))});
+    const data=await r.json().catch(()=>({}));
+    return {ok:r.ok,data};
+  }catch(e){return {ok:false,data:{error:'Network problem. Please check your connection and try again.'}};}
+}
+function busyModal(text){
+  showModal(`<div style="text-align:center;padding:8px 0"><i class="ti ti-loader" style="font-size:28px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="font-size:14px;color:var(--text-muted);margin-top:14px">${text}</p></div>`);
+}
+async function startUpgrade(tier){
+  const from=myTierNow();
+  const upgradeInPlace=from==='plus'&&tier==='gold';
+  if(upgradeInPlace&&myStripeCustomer){
+    // Already paying: confirm before charging the difference
+    showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Move up to ${TIER_LABEL.gold}?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">${TIER_PRICE.gold}/month from now on. You’ll be charged today just for the difference for the rest of this month, using the card you already pay with.</p><button class="btn-primary" style="font-size:15px;margin-bottom:10px" onclick="goCheckout('gold')">Upgrade to Gold</button><button class="btn-ghost" style="font-size:14px" onclick="removeModal()">Not now</button>`);
+    return;
+  }
+  goCheckout(tier);
+}
+async function goCheckout(tier){
+  busyModal(myTierNow()==='plus'&&tier==='gold'&&myStripeCustomer?'Upgrading your plan…':'Opening secure checkout…');
+  const {ok,data}=await callStripe('checkout',{plan:tier});
+  if(ok&&data.url){
+    try{sessionStorage.setItem('basedCheckoutPlan',tier);}catch(e){}
+    location.href=data.url; // Stripe's own secure payment page
+    return;
+  }
+  removeModal();
+  if(ok&&data.status==='upgraded'){
+    await refreshPermissions(true);
+    closeUpgradeScreens();
+    showToast(`You’re now on ${TIER_LABEL[data.tier]||TIER_LABEL.gold} ✓`);
+    return;
+  }
+  if(ok&&data.status==='already'){
+    await refreshPermissions(true);
+    closeUpgradeScreens();
+    showToast(`You’re already on ${TIER_LABEL[data.tier]||'that plan'}`);
+    return;
+  }
+  showToast(data.error||'Payments aren’t available just now. Please try again shortly.',true,4000);
+}
+function closeUpgradeScreens(){
+  const back=(upgradeState&&upgradeState.returnTo)||'screen-main';upgradeState=null;
+  if(back==='screen-edit-profile'){renderPlanRow();goTo('screen-edit-profile');}else goMain();
+}
+// Stripe's page for changing card, seeing receipts or cancelling
+async function openBilling(){
+  busyModal('Opening your billing page…');
+  const {ok,data}=await callStripe('portal');
+  if(ok&&data.url){location.href=data.url;return;}
+  removeModal();
+  showToast(data.error||'Couldn’t open billing just now. Please try again shortly.',true,4000);
+}
+// Back from Stripe: ask the server for the latest (the webhook usually beats us to it)
+async function afterCheckoutReturn(kind){
+  if(kind==='cancel'){showToast('Payment cancelled — you haven’t been charged');return;}
+  let plan=null;try{plan=sessionStorage.getItem('basedCheckoutPlan');sessionStorage.removeItem('basedCheckoutPlan');}catch(e){}
+  if(kind==='success')busyModal('Confirming your payment…');
+  let tier='none';
+  for(let i=0;i<4;i++){ // a few tries, in case Stripe is a moment behind
+    const {ok,data}=await callStripe('sync');
+    if(ok&&data.tier&&data.tier!=='none'){tier=data.tier;break;}
+    if(kind!=='success')break;
+    await new Promise(r=>setTimeout(r,1500));
+  }
+  myStripeCustomer=true;
+  await refreshPermissions(true);
+  removeModal();
+  if(kind==='billing'){renderPlanRow();return;}
+  const label=TIER_LABEL[tier!=='none'?tier:plan]||'your new plan';
+  if(myVerificationStatus!=='approved'){
+    // Paid plans start once your ID is verified
+    showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-check" style="font-size:24px;color:var(--green)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Payment received</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">Now a quick ID check, then ${label} unlocks straight away.</p><button class="btn-primary" style="font-size:15px" onclick="removeModal();openVerifyScreen('header')">Verify my ID</button>`);
+    return;
+  }
+  if(tier==='none'){showToast('Payment received — your plan will switch on in a moment',false,4000);return;}
+  launchConfetti(null);
+  showToast(`Welcome to ${label} ✓`,false,3500);
 }
 
 // ─── Identity verification (Didit) ───────────────────────────────────────────
@@ -3017,6 +3102,7 @@ function subscribeToMyVerification(){
 // and also whenever you switch tabs or come back to the app.
 let lastPlanKey=null,permRefreshAt=0;
 function onMyPlanMaybeChanged(p){
+  if(p&&p.stripe_customer_id)myStripeCustomer=true;
   const key=(p.subscription_tier||'none')+'|'+(p.subscription_expires_at||'');
   if(key!==lastPlanKey)refreshPermissions(true);
   lastPlanKey=key;
@@ -3065,7 +3151,11 @@ function renderPlanRow(){
   const row=document.getElementById('plan-row');if(!row)return;
   const t=myTierNow(),paid=t==='plus'||t==='gold';
   const name=paid?TIER_LABEL[t]:'Free';
-  const btn=t==='gold'?'':`<button onclick="openPlanUpgrade()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);border-radius:11px;padding:9px 15px;color:var(--verified);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">Upgrade</button>`;
+  const bs='border-radius:11px;padding:9px 13px;font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap';
+  const up=t==='gold'?'':`<button onclick="openPlanUpgrade()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Upgrade</button>`;
+  // Manage = Stripe's page to change card, see receipts or cancel (only once you've paid through Stripe)
+  const manage=myStripeCustomer?`<button onclick="openBilling()" style="background:transparent;border:0.5px solid rgba(255,255,255,0.18);color:var(--text-muted);${bs}">Manage</button>`:'';
+  const btn=`<div style="display:flex;gap:8px">${manage}${up}</div>`;
   row.innerHTML=`<i class="ti ti-crown" style="font-size:24px;color:${paid?'var(--gold)':'var(--text-muted)'}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Current plan</p><p style="font-size:13px;color:${paid?'var(--gold-light)':'var(--text-muted)'}">${name}</p></div>${btn}`;
 }
 // The upgrade screen without a particular feature in mind: both paid plans from Free,
@@ -4243,7 +4333,9 @@ document.head.appendChild(spinStyle);
   loadOpenCountries();
   const cfgReady=loadAppConfig();
   const verifyReturn=new URLSearchParams(location.search).get('verification')==='done';
-  if(verifyReturn){try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}}
+  const qs=new URLSearchParams(location.search);
+  const payReturn=qs.get('checkout')==='success'?'success':qs.get('checkout')==='cancel'?'cancel':qs.get('billing')==='done'?'billing':null;
+  if(verifyReturn||payReturn){try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}}
   browseProfiles=[];
   await loadDemoProfiles();
   renderProfiles(0);
@@ -4262,6 +4354,10 @@ document.head.appendChild(spinStyle);
     else if(!hasPendingSignupOnLoad&&!authLinkError&&needsAgeGate())openAgeCheck();
     else if(!hasPendingSignupOnLoad&&!authLinkError&&needsVerificationGate())openVerifyScreen('gate');
     else if(!hasPendingSignupOnLoad&&!authLinkError)goTo('screen-main'); // let the confirmation-completion flow navigate instead, if one's in progress; stay put on an auth-link error
+    if(payReturn&&!authLinkError){
+      if(payReturn==='billing'){openEditProfile();}
+      afterCheckoutReturn(payReturn);
+    }
   }
   if(authLinkError){
     try{await sb.auth.signOut();}catch(e){}
