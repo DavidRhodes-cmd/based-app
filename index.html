@@ -897,6 +897,13 @@ let interactionsChannel=null; // Supabase realtime channel for live match/intere
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);if(id==='screen-main'&&typeof updateGetVerifiedBtn==='function')updateGetVerifiedBtn();}
+// Member-written text (names, messages) is made safe before it goes into the page.
+// esc: for text and attribute values. ja: for a value inside a '…' JS string in an onclick attribute.
+// Names: letters, spaces, hyphens, apostrophes and full stops (matches the server's rule)
+const NAME_RULE='Names can use letters, numbers, spaces, hyphens, apostrophes and full stops, up to 40 characters.';
+function nameOk(n){return /^\p{L}[\p{L}\p{N} .'’-]{0,39}$/u.test(n);}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function ja(v){return esc(String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' '));}
 function showModal(html){removeModal();const bd=document.createElement('div');bd.className='modal-backdrop';bd.id='modal-bd';bd.innerHTML=`<div class="modal-box">${html}</div>`;document.getElementById('app-shell').appendChild(bd);}
 function removeModal(){const m=document.getElementById('modal-bd');if(m)m.remove();}
 function showToast(msg,isError=false,duration=2800){let t=document.getElementById('sb-toast');if(!t){t=document.createElement('div');t.id='sb-toast';t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:22px;font-size:13px;z-index:9999;transition:opacity 0.3s;font-family:-apple-system,sans-serif;max-width:300px;text-align:center';document.body.appendChild(t);}t.textContent=msg;t.style.background=isError?'rgba(235,87,87,0.95)':'rgba(111,207,151,0.95)';t.style.color='#fff';t.style.opacity='1';clearTimeout(t._hideTimer);t._hideTimer=setTimeout(()=>{t.style.opacity='0';},duration);}
@@ -1061,7 +1068,7 @@ function onLocationInput(prefix){
     const box=document.getElementById(prefix+'-loc-suggest');
     if(!results.length){box.innerHTML=`<button type="button" disabled style="color:var(--text-muted);cursor:default">No towns found in ${countryName(cc)} — try another spelling</button>`;box.style.display='block';return;}
     window.__placeResults=window.__placeResults||{};window.__placeResults[prefix]=results;
-    box.innerHTML=results.map((r,i)=>`<button type="button" onmousedown="event.preventDefault()" onclick="pickPlace('${prefix}',${i})">${r.name}${r.region?`<span>${r.region}</span>`:''}</button>`).join('');
+    box.innerHTML=results.map((r,i)=>`<button type="button" onmousedown="event.preventDefault()" onclick="pickPlace('${prefix}',${i})">${esc(r.name)}${r.region?`<span>${esc(r.region)}</span>`:''}</button>`).join('');
     box.style.display='block';
   },300);
 }
@@ -1232,7 +1239,7 @@ async function openMatchGallery(pid,start,fallbackUrl){
 }
 // Photo tiles (Create profile extras and the Settings grid)
 function photoTileHtml(url,{main,onTap,onRemove,label}){
-  return `<div class="photo-tile"${onTap?` role="button" tabindex="0" onclick="${onTap}"`:''}><img src="${url}" alt="${label||'Photo'}" />${main?'<span class="photo-tile-main">Main</span>':''}${onRemove?`<button type="button" class="photo-tile-x" aria-label="Remove photo" onclick="event.stopPropagation();${onRemove}"><i class="ti ti-x"></i></button>`:''}</div>`;
+  return `<div class="photo-tile"${onTap?` role="button" tabindex="0" onclick="${onTap}"`:''}><img src="${esc(url)}" alt="${label||'Photo'}" />${main?'<span class="photo-tile-main">Main</span>':''}${onRemove?`<button type="button" class="photo-tile-x" aria-label="Remove photo" onclick="event.stopPropagation();${onRemove}"><i class="ti ti-x"></i></button>`:''}</div>`;
 }
 function addTileHtml(onClick){return `<button type="button" class="photo-tile photo-tile-add" aria-label="Add a photo" onclick="${onClick}"><i class="ti ti-plus"></i></button>`;}
 function renderSignupExtras(){
@@ -1267,7 +1274,7 @@ function removeEditPhoto(k){
 }
 function makeMainPhoto(k){if(!editPhotos||!editPhotos[k])return;const [x]=editPhotos.splice(k,1);editPhotos.unshift(x);renderEditPhotos();}
 function editPhotoOptions(k){
-  showModal(`<div style="width:110px;height:110px;margin:0 auto 18px;border-radius:14px;overflow:hidden"><img src="${editPhotos[k].url}" alt="" style="width:100%;height:100%;object-fit:cover" /></div><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();makeMainPhoto(${k})">Make this my main photo</button>${editPhotos.length>1?`<button class="btn-ghost" style="font-size:15px;color:var(--red);border-color:rgba(235,87,87,0.35)" onclick="removeModal();removeEditPhoto(${k})">Remove photo</button>`:''}<button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Cancel</button></div>`);
+  showModal(`<div style="width:110px;height:110px;margin:0 auto 18px;border-radius:14px;overflow:hidden"><img src="${esc(editPhotos[k].url)}" alt="" style="width:100%;height:100%;object-fit:cover" /></div><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();makeMainPhoto(${k})">Make this my main photo</button>${editPhotos.length>1?`<button class="btn-ghost" style="font-size:15px;color:var(--red);border-color:rgba(235,87,87,0.35)" onclick="removeModal();removeEditPhoto(${k})">Remove photo</button>`:''}<button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Cancel</button></div>`);
 }
 function editRepositionMain(){
   const m=editPhotos&&editPhotos[0];if(!m)return;
@@ -1283,9 +1290,12 @@ function distanceFor(p){
   if(p.id&&!p.isDemo)return useCurrent?(km?p.distCurrentKm:p.distCurrent):(km?p.distHomeKm:p.distHome);
   const o=useCurrent?liveLocationCoords:{lat:myProfile.lat,lng:myProfile.lng};
   if(o.lat==null||o.lng==null||p.lat==null||p.lng==null)return null;
-  return Math.max(1,Math.round(haversineDistance(o.lat,o.lng,p.lat,p.lng)*(km?1.609344:1)));
+  return distBand(Math.max(1,Math.round(haversineDistance(o.lat,o.lng,p.lat,p.lng)*(km?1.609344:1))));
 }
-function distanceText(p){const d=distanceFor(p);if(d==null)return '';return myUnits()==='km'?`(${d} km away)`:`(${d} mile${d===1?'':'s'} away)`;}
+// Distances are only ever shown in bands (same steps as the server), so nobody can
+// work out exactly where someone lives
+function distBand(d){if(d==null)return null;if(d<=5)return 5;if(d<=30)return Math.ceil(d/5)*5;if(d<=100)return Math.ceil(d/10)*10;return Math.ceil(d/50)*50;}
+function distanceText(p){const d=distanceFor(p);if(d==null)return '';const u=myUnits()==='km'?'km':'miles';return d<=5?`(within 5 ${u})`:`(about ${d} ${u} away)`;}
 function distanceSpan(p){const t=distanceText(p);return t?` <span style="font-size:13px;font-weight:400;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';}
 
 // ─── Auth: sign up / sign in ──────────────────────────────────────────────────
@@ -1306,6 +1316,7 @@ async function tryDetails(){
   const dobRaw=dobEl.value;
   const location=locationEl.value.trim();
   if(!name){err.style.display='block';err.textContent='Please enter your name.';nameEl.classList.add('input-error');return;}
+  if(!nameOk(name)){err.style.display='block';err.textContent=NAME_RULE;nameEl.classList.add('input-error');return;}
   if(!email){err.style.display='block';err.textContent='Please enter your email.';emailEl.classList.add('input-error');return;}
   if(!dobRaw){err.style.display='block';err.textContent='Please enter your date of birth.';dobEl.classList.add('input-error');return;}
   const signupCountry=document.getElementById('inp-country').value;
@@ -1784,7 +1795,7 @@ function renderProfiles(minPct){
       if(!passesDealbreakers(p))return false;
       // Distance filter — profiles with no known distance are never filtered out
       const dist=distanceFor(p);
-      if(dist!=null&&maxDist<distMax()&&dist>maxDist)return false;
+      if(dist!=null&&maxDist<distMax()&&dist>distBand(maxDist))return false; // distances come in bands, so compare band to band
       return true;
     })
     .sort((a,b)=>b.compat-a.compat);
@@ -1800,10 +1811,10 @@ function renderProfiles(minPct){
     const hasInterest=expressedInterest.has(profileKey);
     const compatColor=p.compat>=80?'var(--green)':p.compat>=60?'var(--gold)':'var(--red)';
     const badge=isMutual?`<span style="font-size:10px;color:var(--green);border:0.5px solid rgba(111,207,151,0.4);border-radius:5px;padding:2px 7px;margin-left:5px"><i class="ti ti-heart" style="font-size:10px"></i> Match</span>`:'';
-    const avatarContent=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" />`:`<span style="color:var(--text-on-dark)">${p.initials}</span>`;
+    const avatarContent=p.photo_url?`<img src="${esc(p.photo_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" />`:`<span style="color:var(--text-on-dark)">${esc(p.initials)}</span>`;
     const aStr=JSON.stringify(p.answers).replace(/"/g,'&quot;');
     if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="showUpgradePrompt('profile_views','limit')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:7px">${perm('profile_views').period==='day'?'More views tomorrow, or upgrade':'Upgrade to view'}</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div></div>`;}
-    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${aStr}',${p.compat},${p.basedScore},'${p.initials}','${p.name}',${p.age},'','${p.photo_url||''}','${profileKey}','${p.religion||''}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px;padding-right:72px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.name}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</div>${badge?`<div style="margin-bottom:6px">${badge}</div>`:'<div style="margin-bottom:6px"></div>'}<div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
+    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${ja(aStr)}',${p.compat},${p.basedScore},'${ja(p.initials)}','${ja(p.name)}',${p.age},'','${ja(p.photo_url||'')}','${profileKey}','${ja(p.religion||'')}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px;padding-right:72px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</div>${badge?`<div style="margin-bottom:6px">${badge}</div>`:'<div style="margin-bottom:6px"></div>'}<div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
   });
   if(outOfFreeViews()){const pv=perm('profile_views');html+=`<div style="background:rgba(15,18,30,0.95);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;padding:22px;margin-top:6px;text-align:center"><i class="ti ti-crown" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:8px">${pv.period==='day'?`You’ve used today’s ${pv.limit} profile views`:`You’ve seen your ${pv.limit} free profiles`}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">${pv.period==='day'?'More tomorrow — or upgrade for unlimited browsing.':'Verify your ID for 5 a day, or upgrade for unlimited browsing.'}</p><button class="btn-primary" onclick="showUpgradePrompt('profile_views','limit')" style="font-size:15px;padding:14px">See options</button></div>`;}
   container.innerHTML=html;
@@ -1843,7 +1854,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     const lineLeft=Math.min(myP,themP),lineWidth=Math.abs(myP-themP);
     const myLabel=my>0?'+'+my:String(my),themLabel=them>0?'+'+them:String(them);
     const sectionDivider=(!qObj.scoring&&QUESTIONS[i-1]&&QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:16px">Not counted in your Based Score</p>':'';
-    const religionTag=(i===FAITH_Q_INDEX&&them>0&&theirReligion)?`<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(201,168,76,0.12);color:var(--gold);border:0.5px solid rgba(201,168,76,0.3);white-space:nowrap;flex-shrink:0;margin-top:1px">${theirReligion}</span>`:'';
+    const religionTag=(i===FAITH_Q_INDEX&&them>0&&theirReligion)?`<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(201,168,76,0.12);color:var(--gold);border:0.5px solid rgba(201,168,76,0.3);white-space:nowrap;flex-shrink:0;margin-top:1px">${esc(theirReligion)}</span>`:'';
     return `${sectionDivider}<div style="margin-bottom:18px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
         <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${q}</p>
@@ -1873,15 +1884,15 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     </div>`;
   }).join('');
   let topBanner='';
-  if(!isMutual&&theirSuper.has(profileKey))topBanner=`<div class="super-note"><i class="ti ti-confetti" style="font-size:22px;color:var(--gold)"></i><div><p style="font-size:15px;color:var(--gold-light);font-weight:600">${name} sent you a super interest</p><p style="font-size:13px;color:var(--text-muted)">They’re especially keen to get to know you.<br>Express interest back to start talking.</p></div></div>`;
+  if(!isMutual&&theirSuper.has(profileKey))topBanner=`<div class="super-note"><i class="ti ti-confetti" style="font-size:22px;color:var(--gold)"></i><div><p style="font-size:15px;color:var(--gold-light);font-weight:600">${esc(name)} sent you a super interest</p><p style="font-size:13px;color:var(--text-muted)">They’re especially keen to get to know you.<br>Express interest back to start talking.</p></div></div>`;
   if(isMutual)topBanner=`<div style="background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.35);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px"><i class="ti ti-heart" style="font-size:22px;color:var(--green)"></i><div><p style="font-size:15px;color:var(--green);font-weight:600">It's mutual!</p><p style="font-size:13px;color:var(--text-muted)">You both expressed interest.<br>You can now message each other.</p></div></div>`;
   const aEncoded=JSON.stringify(answers).replace(/"/g,'&quot;');
   let actionRow='';
   if(isMutual){
-    actionRow=`<div style="margin-top:18px;display:flex;flex-direction:column;gap:11px"><button class="btn-primary" onclick="openChat('${profileKey}','${inits}','${name}','${photoUrl||''}')"><i class="ti ti-message" style="margin-right:7px"></i>Send a message</button><div class="action-btn-row"><button class="act-btn" onclick="confirmBlock('${profileKey}','${String(name).replace(/'/g,"\\'")}')"><i class="ti ti-ban" style="font-size:18px"></i>Block this user</button><button class="act-btn hide-profile" onclick="openReport('${profileKey}','${String(name).replace(/'/g,"\\'")}')"><i class="ti ti-flag" style="font-size:18px"></i>Report this user</button></div></div>`;
+    actionRow=`<div style="margin-top:18px;display:flex;flex-direction:column;gap:11px"><button class="btn-primary" onclick="openChat('${profileKey}','${ja(inits)}','${ja(name)}','${ja(photoUrl||'')}')"><i class="ti ti-message" style="margin-right:7px"></i>Send a message</button><div class="action-btn-row"><button class="act-btn" onclick="confirmBlock('${profileKey}','${ja(name)}')"><i class="ti ti-ban" style="font-size:18px"></i>Block this user</button><button class="act-btn hide-profile" onclick="openReport('${profileKey}','${ja(name)}')"><i class="ti ti-flag" style="font-size:18px"></i>Report this user</button></div></div>`;
   } else {
     const intCls=hasInterest?'act-btn expressed':'act-btn interested';
-    const intClick=hasInterest?'':` onclick="doExpressInterest('${profileKey}','${inits}','${aEncoded}',${compat},${basedScore},'${age}','${location}','${photoUrl||''}','${name}','${theirReligion||''}')"`;
+    const intClick=hasInterest?'':` onclick="doExpressInterest('${profileKey}','${ja(inits)}','${ja(aEncoded)}',${compat},${basedScore},'${ja(age)}','${ja(location)}','${ja(photoUrl||'')}','${ja(name)}','${ja(theirReligion||'')}')"`;
     const intInner=hasInterest?'<i class="ti ti-check" style="margin-right:6px"></i>Interest sent':'<svg id="interest-heart-icon" width="15" height="15" viewBox="0 0 24 24" style="vertical-align:-3px;margin-right:6px" fill="none"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="none" stroke="currentColor" stroke-width="2"/></svg>Interested';
     const moveOnBtn=context==='incoming'?'':`<button class="act-btn" onclick="doMoveOn('${profileKey}')"><i class="ti ti-arrow-right"></i>Move on</button>`;
     const sentSuper=mySuper.has(profileKey);
@@ -1891,21 +1902,21 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     if(!sentSuper&&!incomingInterest.has(profileKey)&&!isHidden('super_interest')){
       const sp=perm('super_interest'),left=limitLeft('super_interest');
       const leftTxt=sp.access!=='allowed'?'':sp.limit==null?'':` · ${left} left${sp.period==='total'?'':' '+periodText(sp.period)}`;
-      const superArgs=`'${profileKey}','${inits}','${aEncoded}',${compat},${basedScore},'${age}','${location}','${photoUrl||''}','${name}','${theirReligion||''}',true`;
+      const superArgs=`'${profileKey}','${ja(inits)}','${ja(aEncoded)}',${compat},${basedScore},'${ja(age)}','${ja(location)}','${ja(photoUrl||'')}','${ja(name)}','${ja(theirReligion||'')}',true`;
       actionRow+=`<button class="super-btn${sp.access!=='allowed'||left<=0?' spent':''}" id="super-btn" onclick="doExpressInterest(${superArgs})"><i class="ti ti-confetti"></i><span>${hasInterest?'Make it a super interest':'Send a super interest'}<span style="opacity:0.75;font-weight:400">${leftTxt}</span></span></button>`;
     }
   }
   const isRealProfile=/^[0-9a-f-]{36}$/.test(String(profileKey));
-  if(isRealProfile&&!isMutual)actionRow+=`<div style="text-align:center;margin-top:18px"><button onclick="openReport('${profileKey}','${String(name).replace(/'/g,"\\'")}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${name}</button></div>`;
+  if(isRealProfile&&!isMutual)actionRow+=`<div style="text-align:center;margin-top:18px"><button onclick="openReport('${profileKey}','${ja(name)}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${esc(name)}</button></div>`;
   const canGallery=isMutual&&/^[0-9a-f-]{36}$/.test(String(profileKey));
-  const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden${canGallery?';cursor:pointer':''}"${canGallery?` role="button" aria-label="View ${name}’s photos" onclick="openMatchGallery('${profileKey}',0,'${photoUrl}')"`:''}><img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${name}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4);color:var(--text-on-dark)">${inits}</div>`;
-  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${name}, ${age}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);return pp&&pp.verified?VERIFIED_TICK:'';})()}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);const t=pp?distanceText(pp):'';return t?` <span style="font-family:var(--sans);font-size:14px;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';})()}</div></div></div>${canGallery?'<div id="profile-photo-strip"></div>':''}${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
+  const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden${canGallery?';cursor:pointer':''}"${canGallery?` role="button" aria-label="View ${esc(name)}’s photos" onclick="openMatchGallery('${profileKey}',0,'${ja(photoUrl)}')"`:''}><img src="${esc(photoUrl)}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${esc(name)}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4);color:var(--text-on-dark)">${esc(inits)}</div>`;
+  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${esc(name)}, ${age}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);return pp&&pp.verified?VERIFIED_TICK:'';})()}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);const t=pp?distanceText(pp):'';return t?` <span style="font-family:var(--sans);font-size:14px;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';})()}</div></div></div>${canGallery?'<div id="profile-photo-strip"></div>':''}${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
   goTo('screen-profile');
   if(canGallery)matchPhotos(profileKey).then(urls=>{
     const strip=document.getElementById('profile-photo-strip');
     if(!strip||urls.length<2)return;
     strip.className='photo-strip';
-    strip.innerHTML=urls.map((u,k)=>`<button type="button" aria-label="Photo ${k+1} of ${urls.length}" onclick="openMatchGallery('${profileKey}',${k})"><img src="${u}" alt="" /></button>`).join('');
+    strip.innerHTML=urls.map((u,k)=>`<button type="button" aria-label="Photo ${k+1} of ${urls.length}" onclick="openMatchGallery('${profileKey}',${k})"><img src="${esc(u)}" alt="" /></button>`).join('');
   });
   document.getElementById('profile-detail-body').scrollTop=0;
 }
@@ -3567,7 +3578,7 @@ function openEnlargedPhoto(){
   overlay.id='photo-lightbox';
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px';
   overlay.onclick=closeEnlargedPhoto;
-  overlay.innerHTML=`<div style="width:min(80vw,80vh);height:min(80vw,80vh);border-radius:50%;overflow:hidden"><img src="${activeChatPhotoUrl}" style="width:100%;height:100%;object-fit:cover" /></div><button onclick="event.stopPropagation();closeEnlargedPhoto();" style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.15);border:none;width:38px;height:38px;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="ti ti-x"></i></button>`;
+  overlay.innerHTML=`<div style="width:min(80vw,80vh);height:min(80vw,80vh);border-radius:50%;overflow:hidden"><img src="${esc(activeChatPhotoUrl)}" style="width:100%;height:100%;object-fit:cover" /></div><button onclick="event.stopPropagation();closeEnlargedPhoto();" style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.15);border:none;width:38px;height:38px;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="ti ti-x"></i></button>`;
   document.body.appendChild(overlay);
 }
 function closeEnlargedPhoto(){const el=document.getElementById('photo-lightbox');if(el)el.remove();}
@@ -3588,8 +3599,8 @@ let bannerTimer=null;
 function showLiveBanner({title,sub,photo,initials,onTap,icon}){
   let b=document.getElementById('live-banner');
   if(!b){b=document.createElement('div');b.id='live-banner';b.className='live-banner';document.getElementById('app-shell').appendChild(b);}
-  const av=icon?`<i class="ti ${icon}" style="font-size:20px;color:var(--gold)"></i>`:photo?`<img src="${photo}" style="width:100%;height:100%;object-fit:cover" />`:(initials||'?');
-  b.innerHTML=`<div class="lb-av">${av}</div><div style="flex:1;min-width:0"><div class="lb-title">${title}</div>${sub?`<div class="lb-sub">${sub}</div>`:''}</div><i class="ti ti-chevron-right" style="color:var(--text-muted)"></i>`;
+  const av=icon?`<i class="ti ${icon}" style="font-size:20px;color:var(--gold)"></i>`:photo?`<img src="${esc(photo)}" style="width:100%;height:100%;object-fit:cover" />`:esc(initials||'?');
+  b.innerHTML=`<div class="lb-av">${av}</div><div style="flex:1;min-width:0"><div class="lb-title">${esc(title)}</div>${sub?`<div class="lb-sub">${esc(sub)}</div>`:''}</div><i class="ti ti-chevron-right" style="color:var(--text-muted)"></i>`;
   b.onclick=()=>{hideLiveBanner();onTap&&onTap();};
   requestAnimationFrame(()=>b.classList.add('show'));
   try{if(navigator.vibrate)navigator.vibrate(30);}catch(e){}
@@ -3658,14 +3669,14 @@ async function refreshUnreadCounts(){
 // ─── Bin on a match in It's mutual ────────────────────────────────────────────
 function openChatBinMenu(pid,name){
   const btn='display:flex;align-items:center;justify-content:center;gap:9px;width:100%;margin-bottom:10px';
-  showModal(`<p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:6px">${name}</p><p style="font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.5">What would you like to do?</p>
-    <button class="btn-ghost" style="${btn}" onclick="confirmUnmatch('${pid}','${String(name).replace(/'/g,"\\'")}')"><i class="ti ti-heart-off"></i>No longer interested</button>
-    <button class="btn-ghost" style="${btn}" onclick="removeModal();confirmBlock('${pid}','${String(name).replace(/'/g,"\\'")}')"><i class="ti ti-ban"></i>Block this user</button>
-    <button class="btn-ghost" style="${btn};color:var(--red);border-color:rgba(235,87,87,0.4)" onclick="removeModal();openReport('${pid}','${String(name).replace(/'/g,"\\'")}')"><i class="ti ti-flag"></i>Report this user</button>
+  showModal(`<p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:6px">${esc(name)}</p><p style="font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.5">What would you like to do?</p>
+    <button class="btn-ghost" style="${btn}" onclick="confirmUnmatch('${pid}','${ja(name)}')"><i class="ti ti-heart-off"></i>No longer interested</button>
+    <button class="btn-ghost" style="${btn}" onclick="removeModal();confirmBlock('${pid}','${ja(name)}')"><i class="ti ti-ban"></i>Block this user</button>
+    <button class="btn-ghost" style="${btn};color:var(--red);border-color:rgba(235,87,87,0.4)" onclick="removeModal();openReport('${pid}','${ja(name)}')"><i class="ti ti-flag"></i>Report this user</button>
     <button style="background:transparent;border:none;color:var(--text-muted);font-size:14px;font-family:var(--sans);cursor:pointer;padding:8px" onclick="removeModal()">Cancel</button>`);
 }
 function confirmUnmatch(pid,name){
-  showModal(`<i class="ti ti-heart-off" style="font-size:28px;color:var(--gold);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px">No longer interested in ${name}?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.55;margin-bottom:20px">You'll be unmatched and this chat will disappear for both of you. You'll each appear in the other's Search again, so you could match again later.</p><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1" onclick="executeUnmatch('${pid}','${String(name).replace(/'/g,"\\'")}')">Unmatch</button></div>`);
+  showModal(`<i class="ti ti-heart-off" style="font-size:28px;color:var(--gold);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px">No longer interested in ${esc(name)}?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.55;margin-bottom:20px">You'll be unmatched and this chat will disappear for both of you. You'll each appear in the other's Search again, so you could match again later.</p><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1" onclick="executeUnmatch('${pid}','${ja(name)}')">Unmatch</button></div>`);
 }
 async function executeUnmatch(pid,name){
   removeModal();
@@ -3688,7 +3699,7 @@ let blockTarget=null;
 function confirmBlock(id,nm){
   blockTarget={id:id||activeChatPartnerId,name:nm||activeChatName||'this person'};
   const name=blockTarget.name;
-  showModal(`<i class="ti ti-ban" style="font-size:28px;color:var(--red);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px">Block ${name}?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.55;margin-bottom:20px">You'll be unmatched and neither of you will be able to see or contact the other again. This conversation will disappear. ${name} won't be told you blocked them.</p><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1;background:var(--red);color:#fff" onclick="executeBlock()">Block</button></div>`);
+  showModal(`<i class="ti ti-ban" style="font-size:28px;color:var(--red);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px">Block ${esc(name)}?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.55;margin-bottom:20px">You'll be unmatched and neither of you will be able to see or contact the other again. This conversation will disappear. ${esc(name)} won't be told you blocked them.</p><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1;background:var(--red);color:#fff" onclick="executeBlock()">Block</button></div>`);
 }
 async function executeBlock(){
   removeModal();
@@ -3723,7 +3734,7 @@ let reportTarget=null;
 function openReport(profileKey,name){
   reportTarget={id:profileKey,name};
   const opts=REPORT_REASONS.map(([v,l])=>`<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:0.5px solid rgba(255,255,255,0.12);border-radius:10px;margin-bottom:8px;cursor:pointer;text-align:left"><input type="radio" name="report-reason" value="${v}" style="accent-color:var(--gold);width:17px;height:17px;flex-shrink:0" /><span style="font-size:14px;color:var(--text-on-dark)">${l}</span></label>`).join('');
-  showModal(`<i class="ti ti-flag" style="font-size:28px;color:var(--red);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:6px">Report ${name}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Your report is private — ${name} won't be told who reported them. You won't see each other again.</p><div style="max-height:40vh;overflow-y:auto">${opts}<textarea id="report-details" maxlength="2000" placeholder="Anything else we should know? (optional)" class="form-input" style="min-height:80px;resize:vertical;font-size:14px;margin-top:4px"></textarea></div><p id="report-error" style="font-size:12px;color:var(--red);margin:8px 0 0;display:none"></p><div style="display:flex;gap:10px;margin-top:14px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" id="report-submit" style="flex:1" onclick="submitReport()">Send report</button></div><p style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.5">If you're in danger or have been threatened, call 999.</p>`);
+  showModal(`<i class="ti ti-flag" style="font-size:28px;color:var(--red);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:6px">Report ${esc(name)}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Your report is private — ${esc(name)} won't be told who reported them. You won't see each other again.</p><div style="max-height:40vh;overflow-y:auto">${opts}<textarea id="report-details" maxlength="2000" placeholder="Anything else we should know? (optional)" class="form-input" style="min-height:80px;resize:vertical;font-size:14px;margin-top:4px"></textarea></div><p id="report-error" style="font-size:12px;color:var(--red);margin:8px 0 0;display:none"></p><div style="display:flex;gap:10px;margin-top:14px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" id="report-submit" style="flex:1" onclick="submitReport()">Send report</button></div><p style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.5">If you're in danger or have been threatened, call 999.</p>`);
 }
 async function submitReport(){
   const sel=document.querySelector('input[name="report-reason"]:checked');
@@ -3771,7 +3782,7 @@ async function openChat(partnerId,inits,name,photoUrl){
   if(acked)return openChatNow(partnerId,inits,name,photoUrl);
   pendingChatArgs=[partnerId,inits,name,photoUrl];
   const body=SAFETY_TIPS.map(([h,items])=>`<h4>${h}</h4>`+items.map(([t,d])=>`<p><b>${t}:</b> ${d}</p>`).join('')).join('');
-  showModal(`<i class="ti ti-shield-check" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:6px">Before you chat with ${name}</p><p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Please read these safety tips — scroll to the bottom to continue.</p><div class="safety-scroll" id="safety-scroll" onscroll="checkSafetyScrolled()">${body}</div><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="pendingChatArgs=null;removeModal()">Cancel</button><button class="btn-primary" id="safety-ok" style="flex:1;opacity:0.4;pointer-events:none" onclick="acceptSafetyTips()">OK</button></div>`);
+  showModal(`<i class="ti ti-shield-check" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:6px">Before you chat with ${esc(name)}</p><p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">Please read these safety tips — scroll to the bottom to continue.</p><div class="safety-scroll" id="safety-scroll" onscroll="checkSafetyScrolled()">${body}</div><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="pendingChatArgs=null;removeModal()">Cancel</button><button class="btn-primary" id="safety-ok" style="flex:1;opacity:0.4;pointer-events:none" onclick="acceptSafetyTips()">OK</button></div>`);
   checkSafetyScrolled(); // in case it all fits without scrolling
 }
 function checkSafetyScrolled(){
@@ -3791,7 +3802,7 @@ async function openChatNow(partnerId,inits,name,photoUrl){
   activeChatName=name;activeChatPartnerId=partnerId;activeChatPhotoUrl=photoUrl||null;
   {const h=document.getElementById('chat-name-header');h.textContent=name;const pp=browseProfiles.find(x=>(x.id||x.name)===partnerId);if(pp&&pp.verified)h.insertAdjacentHTML('beforeend',VERIFIED_TICK);}
   const headerAvatar=document.getElementById('chat-avatar-header');
-  if(photoUrl){headerAvatar.innerHTML=`<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;}
+  if(photoUrl){headerAvatar.innerHTML=`<img src="${esc(photoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;}
   else{headerAvatar.textContent=inits;}
   // Show the chat screen FIRST, then load messages into it. Filling a hidden
   // scroll area and then revealing it can leave it unpainted on iPhone Safari.
@@ -3819,7 +3830,7 @@ async function renderChatMessages(){
   if(msgsErr)console.warn('Failed to load messages:',msgsErr.message);
   const el=document.getElementById('chat-messages');
   if(!msgs||!msgs.length){
-    el.innerHTML=`<div style="text-align:center;padding:32px 18px"><div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:14px;padding:18px"><i class="ti ti-heart" style="font-size:24px;color:var(--gold);margin-bottom:10px;display:block"></i><p style="font-size:14px;color:var(--gold-light);margin-bottom:5px">It's mutual!</p><p style="font-size:13px;color:var(--text-muted)">Say hello to ${activeChatName} —<br>you share the values that matter.</p></div></div>`;
+    el.innerHTML=`<div style="text-align:center;padding:32px 18px"><div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:14px;padding:18px"><i class="ti ti-heart" style="font-size:24px;color:var(--gold);margin-bottom:10px;display:block"></i><p style="font-size:14px;color:var(--gold-light);margin-bottom:5px">It's mutual!</p><p style="font-size:13px;color:var(--text-muted)">Say hello to ${esc(activeChatName)} —<br>you share the values that matter.</p></div></div>`;
     return;
   }
   chatMsgsCache=msgs;
@@ -3833,7 +3844,7 @@ function drawChatMessages(scroll){
   // "Read" goes under the last of my messages the other person has seen
   let readIdx=-1;
   if(partnerReadAt){const t=new Date(partnerReadAt).getTime();msgs.forEach((m,i)=>{if(m.sender_id===currentUser.id&&new Date(m.created_at).getTime()<=t)readIdx=i;});}
-  el.innerHTML=msgs.map((m,i)=>{const mine=m.sender_id===currentUser.id;return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div class="msg-bubble ${mine?'mine':'theirs'}">${m.content}</div></div>${i===readIdx?`<div style="display:flex;justify-content:flex-end">${readMarkHtml(partnerReadAt)}</div>`:''}`;}).join('');
+  el.innerHTML=msgs.map((m,i)=>{const mine=m.sender_id===currentUser.id;return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div class="msg-bubble ${mine?'mine':'theirs'}">${esc(m.content)}</div></div>${i===readIdx?`<div style="display:flex;justify-content:flex-end">${readMarkHtml(partnerReadAt)}</div>`:''}`;}).join('');
   void el.offsetHeight; // make Safari lay out the new messages before scrolling
   if(scroll||nearBottom)scrollChatToBottom();
 }
@@ -3912,13 +3923,13 @@ function renderMatchesTab(){
     inList.innerHTML=lockedCard+incomingIds.map(pid=>{
       const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
       if(!p)return '';
-      const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;filter:blur(6px);transform:scale(1.1)" />`:`${p.initials}`;
+      const av=p.photo_url?`<img src="${esc(p.photo_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;filter:blur(6px);transform:scale(1.1)" />`:`${esc(p.initials)}`;
       const daysSince=incomingInterestAt[pid]?(Date.now()-new Date(incomingInterestAt[pid]).getTime())/86400000:0;
       const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
       const statusLabel=daysSince>=3?'3+ days ago':daysSince>=2?'2-3 days ago':'Less than 2 days ago';
       const dot=`<span title="${statusLabel}" style="width:18px;height:18px;border-radius:9px;background:${statusColor};display:inline-block;flex-shrink:0"></span>`;
       const sup=theirSuper.has(pid);
-      return `<div class="${sup?'super-card':''}" style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--gold${sup?'-light':''});margin-top:3px;${sup?'font-weight:600':''}">${sup?'<i class="ti ti-confetti" style="font-size:14px"></i> Sent you a super interest':'<i class="ti ti-heart" style="font-size:13px"></i> Interested in you'}</div></div><button onclick="event.stopPropagation();doDismissIncoming('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Remove from list"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
+      return `<div class="${sup?'super-card':''}" style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--gold${sup?'-light':''});margin-top:3px;${sup?'font-weight:600':''}">${sup?'<i class="ti ti-confetti" style="font-size:14px"></i> Sent you a super interest':'<i class="ti ti-heart" style="font-size:13px"></i> Interested in you'}</div></div><button onclick="event.stopPropagation();doDismissIncoming('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Remove from list"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
     }).join('');
   }
   const expIds=Array.from(expressedInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&visible(id)).sort(byNewest(myInterestedAt));
@@ -3927,12 +3938,12 @@ function renderMatchesTab(){
     ee.innerHTML=expIds.map(pid=>{
       const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
       if(!p)return '';
-      const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;filter:blur(6px);transform:scale(1.1)" />`:`${p.initials}`;
+      const av=p.photo_url?`<img src="${esc(p.photo_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;filter:blur(6px);transform:scale(1.1)" />`:`${esc(p.initials)}`;
       const daysSince=myInterestedAt[pid]?(Date.now()-new Date(myInterestedAt[pid]).getTime())/86400000:0;
       const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
       const statusLabel=daysSince>=3?'3+ days ago':daysSince>=2?'2-3 days ago':'Less than 2 days ago';
       const dot=`<span title="${statusLabel}" style="width:18px;height:18px;border-radius:9px;background:${statusColor};display:inline-block;flex-shrink:0"></span>`;
-      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${p.name}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">${mySuper.has(pid)?'<i class="ti ti-confetti" style="font-size:13px;color:var(--gold)"></i> Super interest sent · waiting…':'Waiting for them to respond…'}</div></div><button onclick="event.stopPropagation();confirmWithdrawInterest('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Withdraw interest"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
+      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">${mySuper.has(pid)?'<i class="ti ti-confetti" style="font-size:13px;color:var(--gold)"></i> Super interest sent · waiting…':'Waiting for them to respond…'}</div></div><button onclick="event.stopPropagation();confirmWithdrawInterest('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Withdraw interest"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
     }).join('');
   }
 }
@@ -3989,8 +4000,8 @@ async function renderConversationsTab(){
     const dot=unreadN
       ?`<span title="${statusLabel} · ${unreadN} unread" style="min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:${statusColor};color:${daysSince>=3?'#fff':'#1a1f2e'};font-size:11px;font-weight:700;line-height:18px;text-align:center;display:inline-block;flex-shrink:0;box-sizing:border-box">${unreadN>9?'9+':unreadN}</span>`
       :`<span title="${statusLabel}" style="width:18px;height:18px;border-radius:9px;background:${statusColor};display:inline-block;flex-shrink:0"></span>`;
-    const av=p.photo_url?`<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${p.initials}`;
-    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${p.initials}','${p.name}','${p.photo_url||''}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px;min-width:0"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${p.name}</span>${p.verified?VERIFIED_TICK.replace('margin-left:4px','margin-left:-3px;flex-shrink:0'):''}${distanceSpan(p)}</div><div style="font-size:13px;color:${unreadFrom.get(pid)?'var(--text-on-dark)':'var(--text-muted)'};font-weight:${unreadFrom.get(pid)?'600':'400'};margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div><button onclick="event.stopPropagation();openChatBinMenu('${pid}','${String(p.name).replace(/'/g,"\\'")}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Options for this match"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
+    const av=p.photo_url?`<img src="${esc(p.photo_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${esc(p.initials)}`;
+    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${ja(p.initials)}','${ja(p.name)}','${ja(p.photo_url||'')}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px;min-width:0"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${esc(p.name)}</span>${p.verified?VERIFIED_TICK.replace('margin-left:4px','margin-left:-3px;flex-shrink:0'):''}${distanceSpan(p)}</div><div style="font-size:13px;color:${unreadFrom.get(pid)?'var(--text-on-dark)':'var(--text-muted)'};font-weight:${unreadFrom.get(pid)?'600':'400'};margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(preview)}</div></div><button onclick="event.stopPropagation();openChatBinMenu('${pid}','${ja(p.name)}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Options for this match"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
   });
   document.getElementById('conversations-list').innerHTML=html||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet.</p>';
   updateConnectedNotif(entries.length,oldestDays);
@@ -4095,7 +4106,8 @@ function discardEditChanges(){
 }
 
 async function saveProfile(){
-  myProfile.name=document.getElementById('edit-name').value||myProfile.name;
+  {const nv=document.getElementById('edit-name').value.trim();if(nv&&!nameOk(nv)){showToast(NAME_RULE,true,4000);return;}}
+  myProfile.name=document.getElementById('edit-name').value.trim()||myProfile.name;
   const editDobEl=document.getElementById('edit-dob'),editLocationEl=document.getElementById('edit-location');
   editDobEl.classList.remove('input-error');editLocationEl.classList.remove('input-error');
   const editDobRaw=editDobEl.value;
@@ -4137,7 +4149,7 @@ async function saveProfile(){
     }
     const {error:saveErr}=await sb.from('profiles').update({name:myProfile.name,dob:myProfile.dob,location:geo.location,country:editCountry,units:myUnits(),sex:myProfile.sex,is_hidden:profileHidden,...photoUpdate,lat:geo.lat,lng:geo.lng}).eq('id',currentUser.id);
     if(saveErr&&photoPlan&&photoPlan.uploaded.length)sb.storage.from('avatars').remove(photoPlan.uploaded); // nothing points at them
-    if(saveErr){showToast(/COUNTRY_NOT_OPEN/.test(saveErr.message)?`BASED isn't available in ${countryName(editCountry)} yet.`:'Could not save — please try again.',true);return;}
+    if(saveErr){showToast(/COUNTRY_NOT_OPEN/.test(saveErr.message)?`BASED isn't available in ${countryName(editCountry)} yet.`:/LOCATION_CHANGE_LIMIT/.test(saveErr.message)?'You’ve changed your postcode 3 times today. You can change it again tomorrow.':/NAME_INVALID/.test(saveErr.message)?NAME_RULE:'Could not save — please try again.',true,4500);return;}
     myProfile.location=geo.location;myProfile.country=editCountry;
     myProfile.lat=geo.lat;myProfile.lng=geo.lng;
     if(photoPlan){
@@ -4209,10 +4221,10 @@ function openInsightList(k){
       const bp=browseProfiles.find(b=>b.id===p.id)||(typeof DEMO_PROFILES!=='undefined'&&DEMO_PROFILES||[]).find(b=>b.id===p.id);
       if(bp&&!p.name){p.name=bp.name;p.age=bp.age;}
       const isDemo=String(p.id).startsWith('demo-');
-      const img=isDemo?`<span>${String(p.name||'?').charAt(0)}</span>`:p.mutual&&bp&&bp.photo_url?`<img src="${bp.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="" />`
+      const img=isDemo?`<span>${String(p.name||'?').charAt(0)}</span>`:p.mutual&&bp&&bp.photo_url?`<img src="${esc(bp.photo_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="" />`
         :`<img src="${BLUR_BASE}${p.id}/blur.jpg" style="width:100%;height:100%;object-fit:cover;border-radius:50%;filter:blur(4px);transform:scale(1.1)" alt="" onerror="this.replaceWith(document.createTextNode('${String(p.name||'?').charAt(0).replace(/'/g,'')}'))" />`;
       const sub=p.times>1?`${p.times} ${many} · last ${timeAgo(p.at)}`:timeAgo(p.at);
-      return `<button class="ins-row" onclick="openInsightPerson('${p.id}','${k}')"><div class="avatar">${img}</div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600">${p.name||'Member'}${p.age?', '+p.age:''}${p.verified?VERIFIED_TICK:''}${p.mutual?' <span style="font-size:11px;color:var(--green);font-weight:400">· Match</span>':''}</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">${sub}</div></div><i class="ti ti-chevron-right" style="color:var(--text-muted)"></i></button>`;
+      return `<button class="ins-row" onclick="openInsightPerson('${p.id}','${k}')"><div class="avatar">${img}</div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600">${esc(p.name||'Member')}${p.age?', '+p.age:''}${p.verified?VERIFIED_TICK:''}${p.mutual?' <span style="font-size:11px;color:var(--green);font-weight:400">· Match</span>':''}</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">${sub}</div></div><i class="ti ti-chevron-right" style="color:var(--text-muted)"></i></button>`;
     }).join('');
   goTo('screen-insight-list');
   const sc=document.getElementById('ins-list-body');if(sc)sc.scrollTop=0;
