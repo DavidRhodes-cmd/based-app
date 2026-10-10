@@ -217,11 +217,15 @@ button.ins-tile:active{opacity:0.75;}
 .didit-close-button svg{stroke:#fff!important;width:12px;height:12px;}
 .didit-close-button::after{content:'Cancel';color:#fff;font-size:14px;font-family:var(--sans);font-weight:500;}
 @media (min-width:541px){.didit-close-button{top:8px!important;}}
-.feature-locked{position:relative;opacity:0.55;}
+/* Locked features: the contents are dimmed, but the gold padlock stays bright (like the ones in Search) */
+.feature-locked{position:relative;}
+.feature-locked>*{opacity:0.5;}
 .feature-locked[data-lock="plain"]{opacity:1;}
 .feature-locked[data-lock="plain"]::after{display:none;}
 .feature-locked[data-lock="plain"] i{color:var(--text-muted)!important;opacity:0.45;}
-.feature-locked::after{content:'\eae2';font-family:'tabler-icons';position:absolute;top:6px;right:8px;font-size:15px;color:var(--gold);opacity:1;pointer-events:none;}
+.feature-locked::after{content:'\eae2';font-family:'tabler-icons';position:absolute;top:6px;right:8px;font-size:16px;color:var(--gold);opacity:1;pointer-events:none;}
+.feature-locked[data-lock="plain"]>*{opacity:1;}
+.filter-btn.feature-locked::after{top:4px;right:6px;font-size:14px;}
 </style>
 </head>
 <body>
@@ -449,7 +453,7 @@ button.ins-tile:active{opacity:0.75;}
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
         <span style="font-size:13px;color:var(--text-on-dark);width:112px;flex-shrink:0">Distance</span>
-        <input type="range" class="q-slider" style="flex:1" min="5" max="200" step="5" value="25" id="filter-dist" oninput="updateFilter()" />
+        <input type="range" class="q-slider" style="flex:1" min="5" max="200" step="5" value="200" id="filter-dist" oninput="updateFilter()" />
         <span style="font-size:13px;color:var(--gold);min-width:54px;text-align:right" id="filter-dist-val">25 mi</span>
       </div>
       <p id="location-mode-label" style="font-size:11px;color:var(--text-muted);margin:-4px 0 9px 122px;display:none"></p>
@@ -3506,7 +3510,8 @@ function distLabel(d){const u=myUnits()==='km'?' km':' mi';return d>=distMax()?d
 // next person to sign in on a shared phone starts from the defaults.
 let mySearchFilters={};
 let filterSaveTimer=null;
-const FILTER_DEFAULTS={min:0,dist:25,ageMin:18,ageMax:100};
+// New profiles start wide open: any compatibility, no distance limit (200+ mi / 300+ km), ages 18–100
+const FILTER_DEFAULTS={min:0,dist:'max',ageMin:18,ageMax:100};
 function restoreFilterPrefs(){
   let saved=mySearchFilters&&Object.keys(mySearchFilters).length?mySearchFilters:null;
   // One-off move of filters saved on this device by an older version of the app
@@ -3517,7 +3522,7 @@ function restoreFilterPrefs(){
   document.getElementById('filter-dist').max=distMax();
   const distOk=saved&&saved.dist!=null&&(saved.units||'mi')===myUnits();
   document.getElementById('filter-min').value=f.min;
-  document.getElementById('filter-dist').value=distOk?saved.dist:FILTER_DEFAULTS.dist;
+  document.getElementById('filter-dist').value=distOk?saved.dist:distMax();
   document.getElementById('filter-age-min').value=f.ageMin;
   document.getElementById('filter-age-max').value=f.ageMax;
   document.getElementById('filter-min-val').textContent=f.min+'%';
