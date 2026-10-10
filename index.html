@@ -561,6 +561,7 @@ button.ins-tile:active{opacity:0.75;}
     </div>
 
     <div style="border-top:0.5px solid rgba(255,255,255,0.08);padding-top:20px;display:flex;flex-direction:column;gap:2px">
+      <!-- Free for everyone -->
       <div class="toggle-row">
         <div style="flex:1;padding-right:16px">
           <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:4px">Hide my profile</p>
@@ -568,6 +569,11 @@ button.ins-tile:active{opacity:0.75;}
         </div>
         <div class="toggle-track" id="hide-toggle" onclick="toggleHideProfile()"><div class="toggle-thumb"></div></div>
       </div>
+      <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07);display:flex;flex-wrap:wrap;gap:8px">
+        <button class="btn-ghost" onclick="openModifyAnswers()" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px;display:inline-block;transform:rotate(90deg)"></i>Modify my answers</button>
+        <button class="btn-ghost" onclick="inviteFriends()" style="font-size:14px;padding:11px 17px"><i class="ti ti-user-plus" style="margin-right:7px"></i>Invite friends</button>
+      </div>
+      <!-- Plan features (padlocked until you upgrade) -->
       <div class="toggle-row" data-feature="read_receipts">
         <div style="flex:1;padding-right:16px">
           <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:4px">Read receipts</p>
@@ -576,17 +582,13 @@ button.ins-tile:active{opacity:0.75;}
         <div class="toggle-track" id="receipts-toggle" onclick="toggleReadReceipts()"><div class="toggle-thumb"></div></div>
       </div>
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
-        <button class="btn-ghost" onclick="openModifyAnswers()" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px;display:inline-block;transform:rotate(90deg)"></i>Modify my answers</button>
-        <div style="display:flex;gap:8px;margin-top:10px">
+        <div style="display:flex;gap:8px">
           <button class="btn-ghost filter-btn" data-feature="dealbreakers" onclick="openDealbreakerScreen()"><span>Dealbreaker filters</span><span class="filter-count" id="dealbreaker-count"></span></button>
           <button class="btn-ghost filter-btn" data-feature="religion_filter" onclick="openReligionScreen()"><span>Religion filters</span><span class="filter-count" id="religion-count"></span></button>
         </div>
         <button class="btn-ghost filter-btn" data-feature="planet_filter" onclick="openPlanetScreen()" style="margin-top:8px;width:100%"><span><i class="ti ti-planet" style="margin-right:6px"></i>Inter-planetary filter</span><span class="filter-count" id="planet-count"></span></button>
         <button class="btn-ghost filter-btn" data-feature="saved_intro" onclick="openIntroEditor()" style="margin-top:8px;width:100%"><span>Pre-saved introduction</span><span class="filter-count" id="intro-status"></span></button>
         <button class="btn-ghost filter-btn" data-feature="profile_insights" onclick="openInsights()" style="margin-top:8px;width:100%"><span>Profile insights</span><span class="filter-count">Who’s viewing you, interest and activity</span></button>
-      </div>
-      <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)">
-        <button class="btn-ghost" onclick="inviteFriends()" style="font-size:14px;padding:11px 17px"><i class="ti ti-user-plus" style="margin-right:7px"></i>Invite friends</button>
       </div>
       <div style="padding-top:14px;padding-bottom:18px">
         <button class="btn-ghost" onclick="confirmLogout()" style="font-size:14px;padding:11px 17px"><i class="ti ti-logout" style="margin-right:7px"></i>Log out</button>
