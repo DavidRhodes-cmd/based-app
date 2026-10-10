@@ -2697,14 +2697,16 @@ function renderUpgrade(){
     const price=t==='id'?'Free':`${TIER_PRICE[t]}<span style="font-size:13px;font-weight:400;color:var(--text-muted)"> /month</span>`;
     return `<button class="up-card${t===sel?' on':''}" aria-pressed="${t===sel}" onclick="pickUpgradeOption('${t}')"><span style="font-family:var(--serif);font-size:${s.options.length>2?15:18}px;color:${t==='gold'?'var(--gold-light)':'var(--text-on-dark)'}">${OPTION_LABEL[t]}</span><span style="font-size:${s.options.length>2?18:22}px;font-weight:600">${price}</span>${s.options.length>2?'':`<span style="font-size:12px;color:var(--text-muted)">${OPTION_TAGLINE[t]}</span>`}</button>`;
   }).join('');
-  let gains=PLAN_FEATURES.filter(x=>tierBetter(x,my,sel));
+  // Gold shown beside (or above) BASED+: list only what Gold adds, under "Everything in BASED+, and:"
+  const goldExtras=sel==='gold'&&(s.options.includes('plus')||my==='plus');
+  let gains=PLAN_FEATURES.filter(x=>tierBetter(x,my,sel)&&(!goldExtras||tierBetter(x,'plus','gold')));
   if(gains.includes(f))gains=[f].concat(gains.filter(x=>x!==f));
   const rows=gains.map(x=>{
-    const goldOnly=sel==='gold'&&tierBetter(x,'plus','gold'); // anything Gold gives that BASED+ doesn't (including more of something)
+    const goldOnly=sel==='gold'&&!goldExtras&&tierBetter(x,'plus','gold'); // anything Gold gives that BASED+ doesn't (including more of something)
     const sub=x==='travel_mode'?'<span style="display:block;font-size:12px;color:var(--text-muted);margin-top:2px">Search and appear at your current location</span>':'';
     return `<div class="up-row${x===f?' hl':''}"><i class="ti ti-check" style="font-size:18px;color:var(--gold);flex-shrink:0"></i><span style="flex:1;font-size:15px;color:var(--text-on-dark)">${gainLine(x,sel)}${sub}</span>${goldOnly?'<span class="up-tag">GOLD</span>':''}</div>`;
   }).join('');
-  const heading=sel==='id'?'What you get when you verify your ID':`What you get with ${OPTION_LABEL[sel]}`;
+  const heading=sel==='id'?'What you get when you verify your ID':goldExtras?'Everything in BASED+, and:':`What you get with ${OPTION_LABEL[sel]}`;
   document.getElementById('upgrade-body').innerHTML=`
     <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;margin-bottom:22px">
       <div style="width:60px;height:60px;border-radius:50%;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);display:flex;align-items:center;justify-content:center"><i class="ti ${info.icon}" style="font-size:26px;color:var(--gold)"></i></div>
