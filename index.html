@@ -1028,6 +1028,14 @@ function applyCountryUI(prefix){
   inp.autocomplete=isUK?'postal-code':'address-level2';
 }
 let editPrevCountry='GB'; // the country shown in Settings before the latest change
+// Put the Settings country and town back to what's saved on the account
+function resetEditLocation(){
+  const cc=myProfile.country||'GB';
+  const sel=document.getElementById('edit-country');sel.value=cc;editPrevCountry=cc;
+  document.getElementById('edit-country-note').style.display='none';
+  applyCountryUI('edit');locState.edit.picked=null;hideSuggest('edit');
+  const el=document.getElementById('edit-location');el.value=myProfile.location||'';el.classList.remove('input-error');
+}
 function onCountryChange(prefix){
   const cc=document.getElementById(prefix+'-country').value;
   if(prefix==='edit'&&!openCountries.has(cc)){
@@ -1345,7 +1353,7 @@ function distanceFor(p){
 // Distances are only ever shown in bands (same steps as the server), so nobody can
 // work out exactly where someone lives
 function distBand(d){if(d==null)return null;if(d<=5)return 5;if(d<=30)return Math.ceil(d/5)*5;if(d<=100)return Math.ceil(d/10)*10;return Math.ceil(d/50)*50;}
-function distanceText(p){const d=distanceFor(p);if(d==null)return '';const u=myUnits()==='km'?'km':'miles';return d<=5?`(within 5 ${u})`:`(about ${d} ${u} away)`;}
+function distanceText(p){if(p&&p.planet&&p.planet!=='earth')return `(from ${planetName(p.planet)})`;const d=distanceFor(p);if(d==null)return '';const u=myUnits()==='km'?'km':'miles';return d<=5?`(within 5 ${u})`:`(about ${d} ${u} away)`;}
 function distanceSpan(p){const t=distanceText(p);return t?` <span style="font-size:13px;font-weight:400;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';}
 
 // ─── Auth: sign up / sign in ──────────────────────────────────────────────────
@@ -1811,7 +1819,8 @@ async function loadBrowseProfiles(){
       basedScore:p.based_score,
       answers:p.answers||new Array(NUM_Q).fill(0),
       // Mutual match → real photo (signed link); everyone else → blurred copy only
-      photo_url:(p.is_mutual&&signed[p.photo_path])||(p.blur_path?BLUR_BASE+p.blur_path:null),
+      photo_url:(p.planet&&p.planet!=='earth')?planetPhoto(p.planet):((p.is_mutual&&signed[p.photo_path])||(p.blur_path?BLUR_BASE+p.blur_path:null)),
+      planet:p.planet||'earth',
       distHome:p.dist_home_mi,
       distCurrent:p.dist_current_mi,
       distHomeKm:p.dist_home_km,
@@ -3380,6 +3389,12 @@ function loadPlanets(p){
   const list=(Array.isArray(p&&p.included_planets)?p.included_planets:[]).filter(k=>ok.includes(k));
   includedPlanets=new Set(list.length?list:['earth']);pendingPlanets=null;renderPlanetFilter();updateFilterCounts();
 }
+// Alien members have their planet as their photo
+function planetPhoto(k){
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><defs><radialGradient id="pl-shade" cx="35%" cy="32%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></radialGradient></defs><rect width="40" height="40" fill="#0b1022"/><circle cx="5" cy="7" r=".5" fill="#fff"/><circle cx="34" cy="5" r=".4" fill="#fff"/><circle cx="36" cy="31" r=".5" fill="#fff"/><circle cx="7" cy="34" r=".35" fill="#fff"/><circle cx="30" cy="20" r=".3" fill="#fff" opacity=".7"/>${planetSvg(k).replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')}</svg>`;
+  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
+function planetName(k){const x=PLANETS.find(p=>p[0]===k);return x?x[1]:k;}
 function passesPlanets(p){return (canUse('planet_filter')?includedPlanets:EARTH_ONLY).has(p.planet||'earth');}
 
 // ─── Religion filter (Settings → "Show me the following religions") ─────────
@@ -4245,7 +4260,14 @@ async function saveProfile(){
   const previousLocation=myProfile.location;
   const editCountry=document.getElementById('edit-country').value;
   if(!openCountries.has(editCountry)){showToast(`BASED isn't available in ${countryName(editCountry)} yet.`,true);return;}
-  if(!editLocationEl.value.trim())editLocationEl.value=myProfile.location||'';
+  // A new country needs a town in that country: never carry the old town across
+  if(!editLocationEl.value.trim()){
+    if(editCountry!==(myProfile.country||'GB')){
+      showToast(editCountry==='GB'?'Please enter your postcode.':`Please choose your nearest town or city in ${countryName(editCountry)}.`,true,4000);
+      editLocationEl.classList.add('input-error');editLocationEl.focus();return;
+    }
+    editLocationEl.value=myProfile.location||'';
+  }
   if(currentUser){
     // Photos: upload any new ones first; the list on the profile is only changed once everything is up
     let photoUpdate={},photoPlan=null;
@@ -4276,7 +4298,8 @@ async function saveProfile(){
     }
     const {error:saveErr}=await sb.from('profiles').update({name:myProfile.name,dob:myProfile.dob,location:geo.location,country:editCountry,units:myUnits(),sex:myProfile.sex,is_hidden:profileHidden,...photoUpdate,lat:geo.lat,lng:geo.lng}).eq('id',currentUser.id);
     if(saveErr&&photoPlan&&photoPlan.uploaded.length)sb.storage.from('avatars').remove(photoPlan.uploaded); // nothing points at them
-    if(saveErr){showToast(/COUNTRY_NOT_OPEN/.test(saveErr.message)?`BASED isn't available in ${countryName(editCountry)} yet.`:/LOCATION_CHANGE_LIMIT/.test(saveErr.message)?'You’ve changed your postcode 3 times today. You can change it again tomorrow.':/NAME_INVALID/.test(saveErr.message)?NAME_RULE:'Could not save — please try again.',true,4500);return;}
+    if(saveErr&&/LOCATION_CHANGE_LIMIT/.test(saveErr.message))resetEditLocation(); // the account still has the old country and town: show those again
+    if(saveErr){showToast(/COUNTRY_NOT_OPEN/.test(saveErr.message)?`BASED isn't available in ${countryName(editCountry)} yet.`:/LOCATION_CHANGE_LIMIT/.test(saveErr.message)?'You’ve changed your location 3 times today, so it’s been put back. You can change it again tomorrow.':/NAME_INVALID/.test(saveErr.message)?NAME_RULE:'Could not save — please try again.',true,4500);return;}
     myProfile.location=geo.location;myProfile.country=editCountry;
     myProfile.lat=geo.lat;myProfile.lng=geo.lng;
     if(photoPlan){
