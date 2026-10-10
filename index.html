@@ -108,6 +108,20 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .read-mark i{color:var(--gold);font-size:14px;}
 .msg-bubble.mine{background:rgba(201,168,76,0.18);color:var(--text-on-dark);align-self:flex-end;border-bottom-right-radius:4px;}
 .msg-bubble.theirs{background:rgba(255,255,255,0.07);color:var(--text-on-dark);align-self:flex-start;border-bottom-left-radius:4px;}
+.msg-row{display:flex;position:relative;}
+.msg-row.has-react{margin-bottom:10px;}
+.msg-bubble[data-mid]{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s;}
+.msg-bubble[data-mid]:active{transform:scale(0.98);}
+.msg-react{position:absolute;bottom:-13px;font-size:13px;line-height:1;background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.45);border-radius:12px;padding:3px 5px;box-shadow:0 2px 6px rgba(0,0,0,0.35);}
+.react-picker{position:fixed;z-index:9500;display:flex;gap:2px;background:rgba(26,31,46,0.98);border:0.5px solid rgba(201,168,76,0.55);border-radius:26px;padding:5px 7px;box-shadow:0 10px 28px rgba(0,0,0,0.55);animation:reactIn .16s ease-out;}
+.react-picker button{font-size:24px;line-height:1;background:transparent;border:none;padding:6px;border-radius:50%;cursor:pointer;transition:transform .12s;}
+.react-picker button:active{transform:scale(1.25);}
+.react-picker button.on{background:rgba(201,168,76,0.28);}
+@keyframes reactIn{from{opacity:0;transform:scale(0.85) translateY(6px);}to{opacity:1;transform:none;}}
+.typing-bubble{display:flex;gap:4px;align-items:center;padding:14px 16px;}
+.typing-bubble span{width:7px;height:7px;border-radius:50%;background:var(--text-muted);animation:typingDot 1.2s infinite ease-in-out;}
+.typing-bubble span:nth-child(2){animation-delay:.18s;}.typing-bubble span:nth-child(3){animation-delay:.36s;}
+@keyframes typingDot{0%,60%,100%{opacity:.3;transform:none;}30%{opacity:1;transform:translateY(-3px);}}
 .notif-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;margin-left:2px;}
 .notif-badge{min-width:16px;height:16px;padding:0 4px;border-radius:8px;color:#0a0d16;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-left:4px;line-height:1;}
 .unread-badge.dot-only{min-width:10px;width:10px;height:10px;padding:0;top:4px;right:4px;}
@@ -3760,6 +3774,14 @@ function subscribeToAllMessages(){
       const m=payload.new||{};
       if(!m.match_id||String(m.sender_id)===currentUser.id)return;
       const parts=m.match_id.split('__');if(!parts.includes(currentUser.id))return;
+      const due=msgDueIn(m);
+      if(due>0){setTimeout(()=>incomingMessageNotice(m),due+400);return;} // a reply that's on its way
+      incomingMessageNotice(m);
+    })
+    .subscribe();
+}
+function incomingMessageNotice(m){
+      if(!currentUser)return;
       const pid=String(m.sender_id);
       if(viewingChatWith(pid))return; // already on screen
       unreadFrom.set(pid,(unreadFrom.get(pid)||0)+1);updateUnreadBadge();
@@ -3767,8 +3789,6 @@ function subscribeToAllMessages(){
       if(document.getElementById('screen-main').classList.contains('active')&&document.getElementById('tab-messages-content').style.display==='block')renderConversationsTab();
       showLiveBanner({title:`New message from ${p?p.name:'your match'}`,sub:'Tap to open the chat',photo:p&&p.photo_url,initials:p&&p.initials,
         onTap:()=>{if(p)openChat(pid,p.initials,p.name,p.photo_url||'');}});
-    })
-    .subscribe();
 }
 
 // ─── Read tracking (per chat, remembered on the server) ─────────────────────
@@ -3950,7 +3970,7 @@ async function openChatNow(partnerId,inits,name,photoUrl){
   const msgEl=document.getElementById('chat-messages');
   msgEl.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:13px"><i class="ti ti-loader" style="font-size:22px;color:var(--gold);animation:spin 1s linear infinite;display:block;margin:0 auto 8px"></i>Loading messages…</div>';
   goTo('screen-chat');
-  partnerReadAt=null;chatMsgsCache=[];
+  partnerReadAt=null;chatMsgsCache=[];chatReactions={};pendingIncoming.clear();closeReactPicker();
   document.getElementById('chat-input').value='';autosizeChatInput();
   await renderChatMessages();
   prefillIntro();
@@ -3966,9 +3986,11 @@ function getMatchId(uid1,uid2){// deterministic match ID from two user IDs
 async function renderChatMessages(){
   if(!currentUser)return;
   const matchId=getMatchId(currentUser.id,activeChatPartnerId);
-  const {data:msgs,error:msgsErr}=await sb.rpc('get_decrypted_messages',{p_match_id:matchId});
+  const [{data:msgs,error:msgsErr},rx]=await Promise.all([sb.rpc('get_decrypted_messages',{p_match_id:matchId}),fetchReactions(matchId)]);
   if(getMatchId(currentUser.id,activeChatPartnerId)!==matchId)return; // switched chats while loading
   if(msgsErr)console.warn('Failed to load messages:',msgsErr.message);
+  if(rx)chatReactions=rx;
+  (msgs||[]).forEach(m=>pendingIncoming.delete(m.id)); // a delayed reply has now arrived
   const el=document.getElementById('chat-messages');
   if(!msgs||!msgs.length){
     el.innerHTML=`<div style="text-align:center;padding:32px 18px"><div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.25);border-radius:14px;padding:18px"><i class="ti ti-heart" style="font-size:24px;color:var(--gold);margin-bottom:10px;display:block"></i><p style="font-size:14px;color:var(--gold-light);margin-bottom:5px">It's mutual!</p><p style="font-size:13px;color:var(--text-muted)">Say hello to ${esc(activeChatName)} —<br>you share the values that matter.</p></div></div>`;
@@ -3985,7 +4007,10 @@ function drawChatMessages(scroll){
   // "Read" goes under the last of my messages the other person has seen
   let readIdx=-1;
   if(partnerReadAt){const t=new Date(partnerReadAt).getTime();msgs.forEach((m,i)=>{if(m.sender_id===currentUser.id&&new Date(m.created_at).getTime()<=t)readIdx=i;});}
-  el.innerHTML=msgs.map((m,i)=>{const mine=m.sender_id===currentUser.id;return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div class="msg-bubble ${mine?'mine':'theirs'}">${esc(m.content)}</div></div>${i===readIdx?`<div style="display:flex;justify-content:flex-end">${readMarkHtml(partnerReadAt)}</div>`:''}`;}).join('');
+  // Reactions: under their messages you see yours; under yours you see theirs. Tap one of theirs to react.
+  el.innerHTML=msgs.map((m,i)=>{const mine=m.sender_id===currentUser.id;const rx=chatReactions[m.id]||{};const shown=mine?rx.theirs:rx.mine;
+    return `<div class="msg-row${shown?' has-react':''}" style="justify-content:${mine?'flex-end':'flex-start'}"><div class="msg-bubble ${mine?'mine':'theirs'}"${mine?'':` data-mid="${esc(m.id)}" onclick="openReactPicker(this)"`}>${esc(m.content)}</div>${shown?`<span class="msg-react" style="${mine?'right':'left'}:10px"${mine?'':` onclick="openReactPicker(this.previousElementSibling)"`}>${esc(shown)}</span>`:''}</div>${i===readIdx?`<div style="display:flex;justify-content:flex-end">${readMarkHtml(partnerReadAt)}</div>`:''}`;}).join('')
+    +(pendingIncoming.size?`<div class="msg-row" id="typing-row"><div class="msg-bubble theirs typing-bubble" aria-label="${esc(activeChatName||'They')} is typing"><span></span><span></span><span></span></div></div>`:'');
   void el.offsetHeight; // make Safari lay out the new messages before scrolling
   if(scroll||nearBottom)scrollChatToBottom();
 }
@@ -4032,10 +4057,73 @@ async function sendMessage(){
 function subscribeToMessages(partnerId){
   if(messageChannel)sb.removeChannel(messageChannel);
   const matchId=getMatchId(currentUser?.id||'',partnerId);
+  const refresh=async()=>{if(!viewingChatWith(partnerId))return;await renderChatMessages();markChatRead(partnerId);updateMatchNotifs();};
   messageChannel=sb.channel('messages:'+matchId)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`match_id=eq.${matchId}`},
-      async()=>{await renderChatMessages();if(viewingChatWith(partnerId))markChatRead(partnerId);updateMatchNotifs();})
+      async payload=>{
+        const m=payload.new||{},due=msgDueIn(m);
+        if(due>0&&m.id&&String(m.sender_id)!==currentUser.id){
+          // A reply that's on its way: show "typing…" and bring it in when it's due
+          pendingIncoming.add(m.id);drawChatMessages(false);scrollChatToBottom();
+          let tries=0;const check=async()=>{if(!viewingChatWith(partnerId)||!pendingIncoming.has(m.id))return;
+            await refresh();if(pendingIncoming.has(m.id)){if(++tries<10)setTimeout(check,1000);else{pendingIncoming.delete(m.id);drawChatMessages(false);}}};
+          setTimeout(check,due+300);
+          return;
+        }
+        await refresh();
+      })
+    .on('postgres_changes',{event:'*',schema:'public',table:'message_reactions',filter:`match_id=eq.${matchId}`},
+      payload=>{const x=payload.new||{};if(!x.message_id||!viewingChatWith(partnerId))return;
+        const k=chatReactions[x.message_id]||(chatReactions[x.message_id]={});
+        if(String(x.user_id)===currentUser.id)k.mine=x.emoji||undefined;else k.theirs=x.emoji||undefined;
+        drawChatMessages(false);})
     .subscribe();
+}
+
+// ─── Delayed replies ─────────────────────────────────────────────────────────
+// Some replies are dated a few seconds ahead (the aliens take 5 seconds to answer);
+// the server won't hand them out before then. How long until this one is due (ms)?
+let pendingIncoming=new Set();
+function msgDueIn(m){
+  const s=String((m&&m.created_at)||'').replace(' ','T');if(!s)return 0;
+  const t=Date.parse(/[zZ]$|[+-]\d\d:?\d\d$/.test(s)?s:s+'Z'); // stored as UTC
+  return isNaN(t)?0:Math.min(Math.max(t-Date.now(),0),10000);
+}
+
+// ─── Emoji reactions ─────────────────────────────────────────────────────────
+const REACTIONS=['❤️','😂','😮','😢','👍','🔥'];
+let chatReactions={}; // message id -> {mine, theirs}
+async function fetchReactions(matchId){
+  try{const {data,error}=await sb.from('message_reactions').select('message_id,user_id,emoji').eq('match_id',matchId);
+    if(error)return null;const r={};
+    (data||[]).forEach(x=>{if(!x.emoji)return;const k=r[x.message_id]||(r[x.message_id]={});
+      if(String(x.user_id)===currentUser.id)k.mine=x.emoji;else k.theirs=x.emoji;});
+    return r;}catch(e){return null;}
+}
+function openReactPicker(bubble){
+  if(!bubble||!bubble.dataset||!bubble.dataset.mid)return;
+  try{if(String(window.getSelection&&getSelection()||'').length)return;}catch(e){} // they're selecting text to copy
+  closeReactPicker();
+  const id=bubble.dataset.mid,cur=(chatReactions[id]||{}).mine;
+  const p=document.createElement('div');p.id='react-picker';p.className='react-picker';
+  p.innerHTML=REACTIONS.map(e=>`<button class="${e===cur?'on':''}" aria-label="React ${e}" onclick="event.stopPropagation();setReaction('${ja(id)}','${e}')">${e}</button>`).join('');
+  document.body.appendChild(p);
+  const r=bubble.getBoundingClientRect(),w=p.offsetWidth,h=p.offsetHeight;
+  let top=r.top-h-8;if(top<70)top=r.bottom+8;
+  p.style.top=top+'px';p.style.left=Math.max(8,Math.min(r.left,window.innerWidth-w-8))+'px';
+  try{if(navigator.vibrate)navigator.vibrate(15);}catch(e){}
+}
+function closeReactPicker(){const p=document.getElementById('react-picker');if(p)p.remove();}
+document.addEventListener('click',e=>{if(!e.target.closest('#react-picker')&&!e.target.closest('[data-mid]')&&!e.target.closest('.msg-react'))closeReactPicker();});
+document.addEventListener('scroll',e=>{if(e.target&&e.target.id==='chat-messages')closeReactPicker();},true);
+async function setReaction(id,emoji){
+  closeReactPicker();
+  const k=chatReactions[id]||(chatReactions[id]={}),before=k.mine;
+  const next=before===emoji?null:emoji; // tapping the same one again takes it away
+  k.mine=next||undefined;drawChatMessages(false);
+  const {error}=await sb.rpc('react_to_message',{p_message_id:id,p_emoji:next});
+  if(error){k.mine=before;drawChatMessages(false);
+    showToast(/NOT_MATCHED/.test(error.message)?'This conversation is no longer available.':'Couldn’t add that reaction — please try again.',true);}
 }
 
 function updateMatchNotifs(){
