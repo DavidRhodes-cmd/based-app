@@ -983,7 +983,7 @@ function defaultUnitsFor(cc){return MILES_COUNTRIES.has(cc)?'mi':'km';}
 function myUnits(){return myProfile.units||defaultUnitsFor(myProfile.country||'GB');}
 // Emoji flag from a two-letter country code (e.g. "GB" -> 🇬🇧)
 function countryFlag(cc){return String.fromCodePoint(...[...cc.toUpperCase()].map(ch=>0x1F1E6+ch.charCodeAt(0)-65));}
-const SHORTLIST_COUNTRIES=['GB','US','CA','AU','NZ'];
+const SHORTLIST_COUNTRIES=['GB','AU','CA','US']; // open countries, shown first (UK is the default)
 function countryOptionsHtml(selected){
   const opt=cc=>`<option value="${cc}"${selected===cc?' selected':''}>${countryFlag(cc)}  ${cc==='GB'?'United Kingdom':countryName(cc)}</option>`;
   const others=COUNTRY_CODES.filter(cc=>!SHORTLIST_COUNTRIES.includes(cc)).map(cc=>[cc,countryName(cc)]).sort((a,b)=>a[1].localeCompare(b[1]));
@@ -2495,7 +2495,10 @@ let PERMS=null; // {tier, country, features:{name:{access,limit,period,used,upgr
 let incomingHiddenCount=0;
 let TIER_RULES=null; // raw feature_permissions rows, for "BASED+ gives you …" wording // people interested in me whose names this tier can't see
 const TIER_LABEL={liveness:'Selfie verified',id:'ID verified',plus:'BASED+',gold:'BASED Gold'};
-const TIER_PRICE={plus:'£4.99',gold:'£9.99'};
+// Monthly prices in the member's own currency (must match the Stripe prices)
+const LOCAL_PRICES={GB:{plus:'£4.99',gold:'£9.99'},US:{plus:'$6.99',gold:'$12.99'},AU:{plus:'A$9.99',gold:'A$19.99'},CA:{plus:'C$8.99',gold:'C$17.99'}};
+function localPrice(t){const c=(myProfile&&myProfile.country)||(PERMS&&PERMS.country)||'GB';return (LOCAL_PRICES[c]||LOCAL_PRICES.GB)[t];}
+const TIER_PRICE={get plus(){return localPrice('plus');},get gold(){return localPrice('gold');}};
 const FEATURE_INFO={
   profile_views:{name:'More profile views',icon:'ti-eye',unit:'profile views'},
   express_interest:{name:'More interests',icon:'ti-heart',unit:'interests'},
