@@ -326,13 +326,36 @@ button.ins-tile:active{opacity:0.75;}
 <!-- TERMS AND CONDITIONS -->
 <div id="screen-terms" class="screen">
   <div class="app-header">
-    <button class="btn-back" onclick="goTo('screen-details')"><i class="ti ti-arrow-left"></i></button>
+    <button class="btn-back" onclick="goTo(termsReturn)"><i class="ti ti-arrow-left"></i></button>
     <span id="terms-title" style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark)">Terms and Conditions</span>
     <div style="width:28px"></div>
   </div>
   <div class="scrollable" id="terms-scroll-area" style="padding:20px 16px" onscroll="onTermsScroll()"></div>
   <div style="padding:14px 16px;flex-shrink:0" class="bottom-safe">
     <button class="btn-primary" id="terms-agree-btn" style="width:100%;opacity:0.4" disabled onclick="agreeToTerms()">Scroll to the end to agree</button>
+  </div>
+</div>
+
+<!-- SUPPORT -->
+<div id="screen-support" class="screen">
+  <div class="app-header">
+    <button class="btn-back" onclick="goTo('screen-main')"><i class="ti ti-arrow-left"></i></button>
+    <span style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark)">Support</span>
+    <div style="width:28px"></div>
+  </div>
+  <div class="scrollable" style="padding:20px 16px">
+    <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:6px">Your agreements</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:16px">What you agreed to when you joined BASED. Tap the underlined words to read them again.</p>
+    <div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px 14px 4px">
+      <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer"><input type="checkbox" id="sup-agree-terms" onchange="onSupportConsent('terms',this)" style="width:18px;height:18px;accent-color:var(--gold);flex-shrink:0;margin-top:1px" /><span style="font-size:14px;color:var(--text-on-dark);line-height:1.45">I agree to the BASED <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('terms','screen-support');">Terms and Conditions</span></span></label>
+      <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer"><input type="checkbox" id="sup-agree-special" onchange="onSupportConsent('special',this)" style="width:18px;height:18px;accent-color:var(--gold);flex-shrink:0;margin-top:1px" /><span style="font-size:14px;color:var(--text-on-dark);line-height:1.45">I agree to BASED processing my <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('special','screen-support');">special category data</span> to operate the Service</span></label>
+      <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer"><input type="checkbox" id="sup-marketing" onchange="onSupportConsent('marketing',this)" style="width:18px;height:18px;accent-color:var(--gold);flex-shrink:0;margin-top:1px" /><span style="font-size:14px;color:var(--text-on-dark);line-height:1.45">Send me updates and offers from BASED (optional — you can unsubscribe anytime)</span></label>
+    </div>
+    <p style="font-size:15px;color:var(--text-on-dark);margin:26px 0 6px">Your data</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px">You can ask for a copy of all the personal data BASED holds about you, including your conversations and photos.</p>
+    <button class="btn-ghost" onclick="openDataRequest()" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%"><i class="ti ti-file-download"></i>Request a copy of my data</button>
+    <p style="font-size:15px;color:var(--text-on-dark);margin:26px 0 6px">Contact us</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.55">Need help, or want to tell us something? Email <a href="mailto:support@baseddatingonline.com" style="color:var(--gold)">support@baseddatingonline.com</a> and we’ll get back to you.</p>
   </div>
 </div>
 
@@ -451,7 +474,8 @@ button.ins-tile:active{opacity:0.75;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:9px"><div class="logo-mark"><span class="logo-icon"><i class="ti ti-search"></i></span><span class="logo-text">BASED</span><span class="logo-mic"><i class="ti ti-microphone"></i></span></div><i id="header-verified-tick" class="ti ti-discount-check-filled" title="You’re verified" style="display:none;font-size:22px;line-height:22px;color:var(--verified)"></i></div>
     <button id="get-verified-btn" onclick="openVerifyScreen('header')" style="display:none;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:10px;padding:6px 10px;color:var(--verified);font-size:14px;font-weight:600;font-family:var(--sans);line-height:20px;cursor:pointer;white-space:nowrap;margin-left:auto;margin-right:10px"><i class="ti ti-discount-check" style="font-size:16px"></i>Get verified</button>
-    <button id="settings-btn" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:22px;padding:4px"><i class="ti ti-settings"></i></button>
+    <div style="position:relative"><button id="settings-btn" aria-label="Menu" aria-haspopup="true" onclick="toggleMainMenu(event)" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:24px;padding:4px;line-height:1"><i class="ti ti-dots"></i></button>
+      <div id="main-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" onclick="closeMainMenu();openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="closeMainMenu();openSupport()"><i class="ti ti-lifebuoy"></i>Support</button></div></div>
   </div>
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-browse" onclick="switchTab('browse')"><i class="ti ti-search" style="font-size:15px"></i> Search</button>
@@ -2255,7 +2279,7 @@ function handleEditPhoto(input){
 const repositionState={naturalW:0,naturalH:0,baseScale:1,zoom:1,offsetX:0,offsetY:0,VP:280,dragging:false,startX:0,startY:0,startOffX:0,startOffY:0,returnScreen:'screen-details',target:'main',raw:null};
 // ─── Terms & Conditions ─────────────────────────────────────────────────────
 const TERMS_TEXT=`
-<p style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Last updated: 13 September 2026</p>
+<p style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Last updated: 11 October 2026</p>
 
 <p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:8px">1. Who we are</p>
 <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">BASED is operated by Based Dating Limited, a company registered in England and Wales ("we", "us", "our"). These Terms and Conditions ("Terms") govern your use of the BASED app and website (the "Service"). By creating an account, you agree to be bound by these Terms.</p>
@@ -2267,7 +2291,7 @@ const TERMS_TEXT=`
 <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">You are responsible for keeping your login details secure and for all activity that happens under your account. You agree to provide accurate information, including your real name, date of birth, and a genuine photo of yourself. You may not create more than one account, impersonate another person, or create an account on behalf of someone else without their permission.</p>
 
 <p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:8px">4. How we use your information</p>
-<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:10px">By using BASED, you agree that we may use the information you provide (including your profile details, photo, and questionnaire answers) to:</p>
+<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:10px">By using BASED, you consent that we may use the information you provide (including your profile details, photo, and questionnaire answers) to:</p>
 <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:6px">• Operate the Service, including showing your profile to other users and calculating compatibility scores;</p>
 <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:6px">• Enable correspondence between you and other users you match with, including facilitating messages sent through the Service;</p>
 <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:6px">• Send you service-related communications, such as notifying you of a new match, a message, or changes to your account, your subscription, or these Terms;</p>
@@ -2319,9 +2343,9 @@ const SPECIAL_DATA_TEXT=`
 <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">• Comply with our legal obligations.</p>
 <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:30px">You can withdraw this consent at any time by deleting your account in Settings. For full detail on how we collect, store, and protect your data, see our Privacy Policy.</p>
 `;
-let termsKind='terms';
-function openTerms(kind){
-  termsKind=kind==='special'?'special':'terms';
+let termsKind='terms',termsReturn='screen-details';
+function openTerms(kind,from){
+  termsKind=kind==='special'?'special':'terms';termsReturn=from||'screen-details';
   document.getElementById('terms-title').textContent=termsKind==='special'?'Special category data':'Terms and Conditions';
   const area=document.getElementById('terms-scroll-area');
   area.innerHTML=termsKind==='special'?SPECIAL_DATA_TEXT:TERMS_TEXT;
@@ -2338,8 +2362,74 @@ function onTermsScroll(){
   if(nearBottom&&btn.disabled){btn.disabled=false;btn.style.opacity='1';btn.textContent='I agree';}
 }
 function agreeToTerms(){
+  if(termsReturn==='screen-support'){
+    const box=document.getElementById(termsKind==='special'?'sup-agree-special':'sup-agree-terms');
+    if(!box.checked){box.checked=true;onSupportConsent(termsKind,box);} // records the agreement
+    goTo('screen-support');return;
+  }
   document.getElementById(termsKind==='special'?'inp-agree-special':'inp-agree-terms').checked=true;
   goTo('screen-details');
+}
+
+// ─── ⋯ menu (Settings / Support) ─────────────────────────────────────────────
+function toggleMainMenu(e){e.stopPropagation();document.getElementById('main-menu').classList.toggle('open');}
+function closeMainMenu(){const m=document.getElementById('main-menu');if(m)m.classList.remove('open');}
+document.addEventListener('click',e=>{if(!e.target.closest('#main-menu'))closeMainMenu();});
+
+// ─── Support: the agreements made at sign-up ─────────────────────────────────
+let supportConsent={terms:false,special:false,marketing:false};
+async function openSupport(){
+  ['sup-agree-terms','sup-agree-special','sup-marketing'].forEach(id=>{document.getElementById(id).disabled=true;});
+  goTo('screen-support');
+  try{
+    const {data,error}=await sb.from('profiles').select('terms_accepted_at,special_data_consent_at,marketing_consent').eq('id',currentUser.id).maybeSingle();
+    if(error)throw error;
+    supportConsent={terms:!!(data&&data.terms_accepted_at),special:!!(data&&data.special_data_consent_at),marketing:!!(data&&data.marketing_consent)};
+  }catch(e){showToast('Couldn’t load your agreements — please try again.',true);}
+  renderSupportConsent();
+}
+function renderSupportConsent(){
+  const set=(id,v)=>{const el=document.getElementById(id);el.checked=v;el.disabled=false;};
+  set('sup-agree-terms',supportConsent.terms);set('sup-agree-special',supportConsent.special);set('sup-marketing',supportConsent.marketing);
+}
+// Subject Access Request: they email support@ from their registered address; the pack is
+// emailed back automatically, only ever to that registered address.
+function openDataRequest(){
+  const addr=(currentUser&&currentUser.email)||myProfile.email||'';
+  const body=`Please send me a copy of the personal data BASED holds about me.\n\nRegistered email: ${addr}`;
+  const href=`mailto:support@baseddatingonline.com?subject=${encodeURIComponent('Subject Access Request')}&body=${encodeURIComponent(body)}`;
+  showModal(`<i class="ti ti-file-download" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px">Request a copy of your data</p>
+    <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:12px;text-align:left">Send an email <b style="color:var(--text-on-dark)">from the email address registered to your BASED account</b>:</p>
+    <div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.3);border-radius:12px;padding:12px 14px;text-align:left;font-size:14px;line-height:1.7;margin-bottom:12px;word-break:break-word">
+      <div><span style="color:var(--text-muted)">From:</span> <span style="color:var(--text-on-dark)">${esc(addr)}</span></div>
+      <div><span style="color:var(--text-muted)">To:</span> <span style="color:var(--text-on-dark)">support@baseddatingonline.com</span></div>
+      <div><span style="color:var(--text-muted)">Subject:</span> <span style="color:var(--text-on-dark)">Subject Access Request</span></div></div>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:18px;text-align:left">We'll email your data as a zip file to that same address, usually within a few minutes and always within one month. If your email app opens with a different “From” address, please change it before sending.</p>
+    <div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><a class="btn-primary" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none" href="${esc(href)}" onclick="setTimeout(removeModal,300)">Open email</a></div>`);
+}
+const WITHDRAW_TEXT={
+  terms:'BASED needs your agreement to our Terms & Conditions in order to operate the service. If you withdraw your agreement we will delete your account and all your data and cancel any future subscription charges.',
+  special:'Under law BASED needs your agreement to us processing your special category data in order to operate the service. If you withdraw your agreement we will delete your account and all your data and cancel any future subscription charges.'
+};
+const CONSENT_COLUMN={terms:'terms_accepted_at',special:'special_data_consent_at',marketing:'marketing_consent'};
+async function saveSupportConsent(kind,value){
+  const col=CONSENT_COLUMN[kind],val=kind==='marketing'?value:(value?new Date().toISOString():null);
+  const {error}=await sb.from('profiles').update({[col]:val}).eq('id',currentUser.id);
+  if(error){showToast('Something went wrong — please try again.',true);renderSupportConsent();return false;}
+  supportConsent[kind]=value;if(kind==='marketing')myProfile.marketing_consent=value;
+  renderSupportConsent();return true;
+}
+function onSupportConsent(kind,box){
+  if(box.checked){ // agreeing (again)
+    saveSupportConsent(kind,true).then(ok=>{if(ok&&kind==='marketing')showToast('You’ll get updates and offers from BASED.');});
+    return;
+  }
+  box.checked=true; // nothing changes until they choose an option below
+  if(kind==='marketing'){
+    showModal(`<i class="ti ti-mail-off" style="font-size:28px;color:var(--gold);display:block;margin-bottom:10px"></i><p style="font-size:15px;color:var(--text-on-dark);line-height:1.55;margin-bottom:20px">We will not send you any more updates and offers.</p><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1" onclick="removeModal();saveSupportConsent('marketing',false)">OK</button></div>`);
+    return;
+  }
+  showModal(`<i class="ti ti-alert-triangle" style="font-size:28px;color:var(--red);display:block;margin-bottom:10px"></i><p style="font-size:14px;color:var(--text-on-dark);line-height:1.6;margin-bottom:20px">${WITHDRAW_TEXT[kind]}</p><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1;background:var(--red);color:#fff" onclick="executeDelete()">Delete my account</button></div>`);
 }
 
 // target: 'main' (the main photo) or 'extra' (an additional photo); src: the image to crop
@@ -4682,7 +4772,6 @@ document.head.appendChild(spinStyle);
   }
 })();
 
-document.getElementById('settings-btn').addEventListener('click',openEditProfile);
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
