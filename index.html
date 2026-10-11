@@ -152,6 +152,14 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 .unit-toggle{display:flex;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);border-radius:11px;padding:3px;gap:3px;}
 .unit-toggle button{flex:1;background:transparent;border:none;border-radius:8px;padding:9px 0;color:var(--text-muted);font-size:14px;font-family:var(--sans);cursor:pointer;}
 .unit-toggle button.on{background:rgba(201,168,76,0.15);color:var(--gold);font-weight:600;}
+.rights-list{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:14px;overflow:hidden;}
+.rights-list button{display:flex;align-items:center;gap:12px;width:100%;background:transparent;border:none;border-bottom:0.5px solid rgba(255,255,255,0.08);padding:13px 14px;color:var(--text-on-dark);font-family:var(--sans);cursor:pointer;text-align:left;}
+.rights-list button:last-child{border-bottom:none;}
+.rights-list button>i:first-child{font-size:20px;color:var(--gold);flex-shrink:0;}
+.rights-list button>i:last-child{font-size:16px;color:var(--text-muted);flex-shrink:0;}
+.rights-list span{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;}
+.rights-list b{font-size:14.5px;font-weight:500;}.rights-list small{font-size:12px;color:var(--text-muted);}
+.rights-list button:active{background:rgba(255,255,255,0.04);}
 .chat-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:200px;background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.18);border-radius:12px;overflow:hidden;z-index:50;box-shadow:0 12px 28px rgba(0,0,0,0.45);}
 .chat-menu.open{display:block;}
 .chat-menu button{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:none;border-bottom:0.5px solid rgba(255,255,255,0.08);padding:13px 16px;color:var(--text-on-dark);font-size:15px;font-family:var(--sans);cursor:pointer;text-align:left;}
@@ -317,6 +325,7 @@ button.ins-tile:active{opacity:0.75;}
     <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-terms" tabindex="9" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to the BASED <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('terms');">Terms and Conditions</span></span></label>
     <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-special" tabindex="10" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to BASED processing my <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('special');">special category data</span> to operate the Service</span></label>
     <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:22px;cursor:pointer"><input type="checkbox" id="inp-marketing-consent" tabindex="11" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">Send me updates and offers from BASED (optional — you can unsubscribe anytime)</span></label>
+    <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin:-8px 0 18px">To find out what we collect, why, and your rights, read <span style="color:var(--gold);text-decoration:underline;cursor:pointer" onclick="openTerms('privacy','screen-details')">how we use your data</span> (our privacy notice).</p>
     <button class="btn-primary btn-safe" id="details-continue-btn" tabindex="12" onclick="tryDetails()">Continue to questions</button>
         <p style="font-size:12px;color:var(--red);text-align:center;margin-top:9px;display:none" id="details-error">Please upload a photo before continuing.</p>
     </div>
@@ -351,9 +360,16 @@ button.ins-tile:active{opacity:0.75;}
       <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer"><input type="checkbox" id="sup-agree-special" onchange="onSupportConsent('special',this)" style="width:18px;height:18px;accent-color:var(--gold);flex-shrink:0;margin-top:1px" /><span style="font-size:14px;color:var(--text-on-dark);line-height:1.45">I agree to BASED processing my <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('special','screen-support');">special category data</span> to operate the Service</span></label>
       <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer"><input type="checkbox" id="sup-marketing" onchange="onSupportConsent('marketing',this)" style="width:18px;height:18px;accent-color:var(--gold);flex-shrink:0;margin-top:1px" /><span style="font-size:14px;color:var(--text-on-dark);line-height:1.45">Send me updates and offers from BASED (optional — you can unsubscribe anytime)</span></label>
     </div>
-    <p style="font-size:15px;color:var(--text-on-dark);margin:26px 0 6px">Your data</p>
-    <p style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px">You can ask for a copy of all the personal data BASED holds about you, including your conversations and photos.</p>
-    <button class="btn-ghost" onclick="openDataRequest()" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%"><i class="ti ti-file-download"></i>Request a copy of my data</button>
+    <p style="font-size:15px;color:var(--text-on-dark);margin:26px 0 6px">Your data and your rights</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px">Under UK data protection law (UK GDPR) you have rights over your personal data. Tap any of these to use them.</p>
+    <div class="rights-list">
+      <button onclick="openTerms('privacy','screen-support')"><i class="ti ti-info-circle"></i><span><b>How we use your data</b><small>Right to be informed</small></span><i class="ti ti-chevron-right"></i></button>
+      <button onclick="openRightRectify()"><i class="ti ti-edit"></i><span><b>Correct your data</b><small>Right to rectification</small></span><i class="ti ti-chevron-right"></i></button>
+      <button onclick="openRightRestrict()"><i class="ti ti-player-pause"></i><span><b>Pause your account</b><small>Right to restrict processing</small></span><i class="ti ti-chevron-right"></i></button>
+      <button onclick="openRightObject()"><i class="ti ti-hand-stop"></i><span><b>Object to how we use your data</b><small>Right to object</small></span><i class="ti ti-chevron-right"></i></button>
+      <button onclick="openRightErase()"><i class="ti ti-trash"></i><span><b>Delete your account and data</b><small>Right to erasure (“to be forgotten”)</small></span><i class="ti ti-chevron-right"></i></button>
+      <button onclick="openDataRequest()"><i class="ti ti-file-download"></i><span><b>Request a copy of your data</b><small>Right of access and right to data portability</small></span><i class="ti ti-chevron-right"></i></button>
+    </div>
     <p style="font-size:15px;color:var(--text-on-dark);margin:26px 0 6px">Contact us</p>
     <p style="font-size:13px;color:var(--text-muted);line-height:1.55">Need help, or want to tell us something? Email <a href="mailto:support@baseddatingonline.com" style="color:var(--gold)">support@baseddatingonline.com</a> and we’ll get back to you.</p>
   </div>
@@ -2343,14 +2359,34 @@ const SPECIAL_DATA_TEXT=`
 <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">• Comply with our legal obligations.</p>
 <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:30px">You can withdraw this consent at any time by deleting your account in Settings. For full detail on how we collect, store, and protect your data, see our Privacy Policy.</p>
 `;
+// The privacy notice (right to be informed). Keep in step with privacy.html and the SAR pack.
+const P_=(t,mb=12)=>`<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:${mb}px">${t}</p>`;
+const H_=t=>`<p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin:6px 0 8px">${t}</p>`;
+const PRIVACY_UPDATED='11 October 2026';
+const PRIVACY_TEXT=
+  `<p style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Last updated: ${PRIVACY_UPDATED}</p>`+
+  H_('Who we are')+P_('BASED is run by Based Dating Limited, a company registered in England and Wales. We are the “controller” of your personal data. Contact: support@baseddatingonline.com.',18)+
+  H_('What we collect')+P_('<b style="color:var(--text-on-dark)">From you:</b> your first name, email, password (stored only as a secure hash), date of birth, biological sex, country and postcode or town (turned into a map position for distances), photos, questionnaire answers, your religion (if you choose to give it), your Search settings, your pre-saved introduction, and the messages and emoji reactions you send.')+
+    P_('<b style="color:var(--text-on-dark)">From your use of BASED:</b> who you show interest in, move on from or block; profiles you view; reports you make; when you last read each chat; your plan and its status; and your consents.')+
+    P_('<b style="color:var(--text-on-dark)">From others:</b> messages other members send you, reports made about you, your payment status from Stripe, and your age and identity check results from Didit.',18)+
+  H_('Why we use it')+P_('To run BASED for you (our contract with you, the Terms and Conditions): showing your profile, working out compatibility, letting matches message each other, managing your plan and sending service emails.')+
+    P_('Your religion, photos and messages are “special category data”, which we use only with your explicit consent, given when you joined.')+
+    P_('To keep members safe (our legitimate interest): age and identity checks, investigating reports and misuse, and limits that stop abuse.')+
+    P_('To send you updates and offers, only if you opted in. And to meet our legal obligations.',18)+
+  H_('Who we share it with')+P_('Other members see your profile, as shown in the app. Your exact location, postcode and email are never shown to them. We use these providers, who handle data for us under contract: Supabase (database, file storage and sign-in), Cloudflare (hosting the app), Stripe (payments), Didit (age and identity checks), Resend (emails), and Postcodes.io and Photon (turning a postcode or town into a map position). We never sell your data and we don’t run adverts.',18)+
+  H_('Automated decisions')+P_('Compatibility scores decide the order profiles appear in, and your filters decide which profiles you see. We don’t make decisions with legal or similarly significant effects about you by automated means alone.',18)+
+  H_('How long we keep it')+P_('While you have an account. When you delete it, everything is deleted straight away, except: conversations under an open safety report; if a report about you is open, a private copy of your account until 90 days after the report is closed; a one-way fingerprint of your email with your free-allowance usage, so allowances don’t reset if you re-join; and payment records Stripe must keep by law.',18)+
+  H_('Your rights')+P_('You can find out how we use your data, get a copy of it, correct it, delete it, pause (restrict) its use, object to how we use it, take it to another service, and withdraw your consent at any time. Use the options on the Support page, or email support@baseddatingonline.com. We reply within one month.')+
+    P_('If you’re unhappy with how we’ve handled your data, please tell us first. You can also complain to the Information Commissioner’s Office: ico.org.uk/make-a-complaint or 0303 123 1113.',30);
 let termsKind='terms',termsReturn='screen-details';
 function openTerms(kind,from){
-  termsKind=kind==='special'?'special':'terms';termsReturn=from||'screen-details';
-  document.getElementById('terms-title').textContent=termsKind==='special'?'Special category data':'Terms and Conditions';
+  termsKind=kind==='special'||kind==='privacy'?kind:'terms';termsReturn=from||'screen-details';
+  document.getElementById('terms-title').textContent={special:'Special category data',privacy:'How we use your data',terms:'Terms and Conditions'}[termsKind];
   const area=document.getElementById('terms-scroll-area');
-  area.innerHTML=termsKind==='special'?SPECIAL_DATA_TEXT:TERMS_TEXT;
+  area.innerHTML={special:SPECIAL_DATA_TEXT,privacy:PRIVACY_TEXT,terms:TERMS_TEXT}[termsKind];
   const btn=document.getElementById('terms-agree-btn');
   btn.disabled=true;btn.style.opacity='0.4';btn.textContent='Scroll to the end to agree';
+  btn.parentElement.style.display=termsKind==='privacy'?'none':''; // nothing to agree to — it's information
   area.scrollTop=0;
   goTo('screen-terms');
   requestAnimationFrame(onTermsScroll); // short enough to read without scrolling? Then it's ready straight away
@@ -2359,7 +2395,7 @@ function onTermsScroll(){
   const el=document.getElementById('terms-scroll-area');
   const nearBottom=el.scrollTop+el.clientHeight>=el.scrollHeight-20;
   const btn=document.getElementById('terms-agree-btn');
-  if(nearBottom&&btn.disabled){btn.disabled=false;btn.style.opacity='1';btn.textContent='I agree';}
+  if(nearBottom&&btn.disabled&&termsKind!=='privacy'){btn.disabled=false;btn.style.opacity='1';btn.textContent='I agree';}
 }
 function agreeToTerms(){
   if(termsReturn==='screen-support'){
@@ -2392,6 +2428,43 @@ function renderSupportConsent(){
   const set=(id,v)=>{const el=document.getElementById(id);el.checked=v;el.disabled=false;};
   set('sup-agree-terms',supportConsent.terms);set('sup-agree-special',supportConsent.special);set('sup-marketing',supportConsent.marketing);
 }
+// ─── GDPR rights (Support) ───────────────────────────────────────────────────
+const RIGHT_ICON=(ic,c)=>`<i class="ti ${ic}" style="font-size:30px;color:${c||'var(--gold)'};display:block;margin-bottom:10px"></i>`;
+const RIGHT_H=t=>`<p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px">${t}</p>`;
+const RIGHT_P=(t,mb=12)=>`<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:${mb}px;text-align:left">${t}</p>`;
+function openRightRectify(){
+  const mail=`mailto:support@baseddatingonline.com?subject=${encodeURIComponent('Correction request')}&body=${encodeURIComponent('Please correct the following information on my BASED account:\n\n')}`;
+  showModal(RIGHT_ICON('ti-edit')+RIGHT_H('Correct your data')+
+    RIGHT_P('You can change most of your details yourself in <b style="color:var(--text-on-dark)">Settings</b>: your name, photos, location, religion and questionnaire answers.')+
+    RIGHT_P('If something else is wrong that you can’t change there (for example your date of birth), email us and we’ll put it right within one month.',18)+
+    `<div style="display:flex;flex-direction:column;gap:10px"><button class="btn-primary" onclick="removeModal();openEditProfile()">Open Settings</button><a class="btn-ghost" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="${esc(mail)}" onclick="setTimeout(removeModal,300)">Email a correction</a><button style="background:transparent;border:none;color:var(--text-muted);font-size:14px;font-family:var(--sans);cursor:pointer;padding:8px" onclick="removeModal()">Cancel</button></div>`);
+}
+function openRightRestrict(){
+  const on=profileHidden;
+  showModal(RIGHT_ICON(on?'ti-player-play':'ti-player-pause')+RIGHT_H(on?'Your account is paused':'Pause your account')+
+    (on?RIGHT_P('Your profile is hidden: nobody can find you in Search or show interest in you. Your data is kept safely, ready for when you come back.',18)
+       :RIGHT_P('Pausing hides your profile, so nobody can find you in Search or show interest in you. We keep your data safely, but don’t use it to show you to anyone, until you switch it back on.')+
+        RIGHT_P('You can unpause at any time here or with “Hide my profile” in Settings. If you’d like us to restrict your data in another way, email support@baseddatingonline.com.',18))+
+    `<div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1" onclick="removeModal();setAccountPaused(${!on})">${on?'Unpause':'Pause'}</button></div>`);
+}
+async function setAccountPaused(pause){
+  if(profileHidden!==pause)await toggleHideProfile();
+  showToast(pause?'Your account is paused. Your profile is hidden.':'Welcome back! Your profile is visible again.');
+}
+function openRightObject(){
+  showModal(RIGHT_ICON('ti-hand-stop')+RIGHT_H('Object to how we use your data')+
+    RIGHT_P(`<b style="color:var(--text-on-dark)">Updates and offers:</b> ${supportConsent.marketing?'you can stop these at any time by unticking “Send me updates and offers” above.':'you’re not receiving these.'}`)+
+    RIGHT_P('<b style="color:var(--text-on-dark)">Everything else:</b> BASED needs to use your data to run the service (to show your profile, match you and let you message people). If you object to this, we will delete your account and all your data, and cancel any future subscription charges.')+
+    RIGHT_P('A few safety records are kept for a limited time even then, as explained in “How we use your data”.',18)+
+    `<div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1;background:var(--red);color:#fff" onclick="executeDelete()">Delete my account</button></div>`);
+}
+function openRightErase(){
+  showModal(RIGHT_ICON('ti-trash','var(--red)')+RIGHT_H('Delete your account and data')+
+    RIGHT_P('We will permanently delete your account, profile, photos, answers, matches and messages straight away, and cancel any future subscription charges. This can’t be undone.')+
+    RIGHT_P('A few safety records are kept for a limited time, as explained in “How we use your data”.',18)+
+    `<div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1;background:var(--red);color:#fff" onclick="executeDelete()">Delete my account</button></div>`);
+}
+
 // Subject Access Request: they email support@ from their registered address; the pack is
 // emailed back automatically, only ever to that registered address.
 function openDataRequest(){
@@ -2404,7 +2477,7 @@ function openDataRequest(){
       <div><span style="color:var(--text-muted)">From:</span> <span style="color:var(--text-on-dark)">${esc(addr)}</span></div>
       <div><span style="color:var(--text-muted)">To:</span> <span style="color:var(--text-on-dark)">support@baseddatingonline.com</span></div>
       <div><span style="color:var(--text-muted)">Subject:</span> <span style="color:var(--text-on-dark)">Subject Access Request</span></div></div>
-    <p style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:18px;text-align:left">We'll email your data as a zip file to that same address, usually within a few minutes and always within one month. If your email app opens with a different “From” address, please change it before sending.</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:18px;text-align:left">We'll email your data as a zip file to that same address, usually within a few minutes and always within one month. It includes a machine-readable file you can take to another service. If your email app opens with a different “From” address, please change it before sending.</p>
     <div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><a class="btn-primary" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none" href="${esc(href)}" onclick="setTimeout(removeModal,300)">Open email</a></div>`);
 }
 const WITHDRAW_TEXT={
@@ -3833,6 +3906,24 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
     leaveEditProfile();
   },{passive:true});
 })();
+
+// ─── Swipe on Support, or on a Terms / privacy page opened from it, to go back ─
+[['screen-support',()=>goTo('screen-main')],['screen-terms',()=>goTo(termsReturn)]].forEach(([id,back])=>{
+  const container=document.getElementById(id);
+  let startX=0,startY=0,tracking=false;
+  container.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1)return;
+    startX=e.touches[0].clientX;startY=e.touches[0].clientY;tracking=true;
+  },{passive:true});
+  container.addEventListener('touchend',e=>{
+    if(!tracking)return;
+    tracking=false;
+    if(document.getElementById('modal-bd'))return; // a prompt is already showing
+    const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
+    if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.5)return; // a clear, mostly-horizontal swipe only
+    back();
+  },{passive:true});
+});
 
 function openEnlargedPhoto(){
   if(!activeChatPhotoUrl)return; // no photo (e.g. initials-only avatar) — nothing to enlarge
