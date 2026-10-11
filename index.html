@@ -602,7 +602,7 @@ button.ins-tile:active{opacity:0.75;}
       <input type="file" id="edit-extra-photo-input" accept="image/*" style="display:none" onchange="handleExtraPhoto(this,'edit')" />
     </div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" id="edit-name" /></div>
-    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="edit-dob" oninput="formatDobInput(this)" /><p id="edit-dob-note" style="display:none;font-size:11px;color:var(--text-muted);margin-top:7px"><i class="ti ti-lock" style="margin-right:4px"></i>Confirmed by your ID, so it can’t be changed.</p></div>
+    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="edit-dob" oninput="formatDobInput(this)" /><p id="edit-dob-note" style="display:none;font-size:11px;color:var(--text-muted);margin-top:7px;line-height:1.5"><i class="ti ti-lock" style="margin-right:4px"></i><span id="edit-dob-note-text">Confirmed by your ID, so it can’t be changed.</span></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Country</label><select class="form-input" id="edit-country" onchange="onCountryChange('edit')"></select><p id="edit-country-note" style="font-size:12px;color:var(--red);margin-top:7px;display:none"></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block" id="edit-location-label">Postcode</label><div class="loc-wrap"><input class="form-input" type="text" id="edit-location" oninput="onLocationInput('edit')" onblur="setTimeout(()=>hideSuggest('edit'),200)" /><div class="loc-suggest" id="edit-loc-suggest"></div></div><p style="font-size:11px;color:var(--text-muted);margin-top:7px">Used to calculate distances — not shown to other users.</p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Show distances in</label><div class="unit-toggle"><button type="button" id="units-mi" onclick="setUnits('mi')">Miles</button><button type="button" id="units-km" onclick="setUnits('km')">Kilometres</button></div></div>
@@ -1726,7 +1726,7 @@ async function restoreSession(){
   // Load profile
   const {data:p,error:pErr}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();
   if(p){
-    myProfile={name:p.name,dob:p.dob,location:p.location,sex:p.sex,photo:null,photo_ref:p.photo_url||null,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null,country:p.country||'GB',units:p.units||defaultUnitsFor(p.country||'GB')};
+    myProfile={name:p.name,dob:p.dob,dob_changes:p.dob_changes||0,location:p.location,sex:p.sex,photo:null,photo_ref:p.photo_url||null,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null,country:p.country||'GB',units:p.units||defaultUnitsFor(p.country||'GB')};
     // Your own photo is private too — open it through a short-lived signed link
     const ownPath=photoPathFromUrl(p.photo_url);
     await loadMyPhotos(p);myProfile.photo=myPhotos[0]?myPhotos[0].url:null;
@@ -1812,33 +1812,41 @@ async function recordProfileView(profileKey){
 
 async function loadMyInteractions(){
   if(!currentUser)return;
-  expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();mySuper=new Set();theirSuper=new Set();
-  viewedProfiles=new Set();
+  // Build everything into fresh sets first and swap them in at the end, so anything that
+  // redraws while this is loading (Search, Interest, chats) never sees half-empty lists —
+  // which made mutual matches flash back into Search. If a lookup fails, keep what we had.
+  const E=new Set(),M=new Set(),H=new Set(),I=new Set(),D=new Set(),MS=new Set(),TS=new Set(),V=new Set();
+  const mCreated={},iAt={},myAt={};
   try{const {data:me}=await sb.from('profiles').select('free_views_carried').eq('id',currentUser.id).maybeSingle();freeViewsCarried=(me&&me.free_views_carried)||0;}catch(e){}
-  const {data:views}=await sb.from('profile_views').select('viewed_profile_id').eq('viewer_id',currentUser.id);
-  if(views)views.forEach(r=>viewedProfiles.add(r.viewed_profile_id));
+  const {data:views,error:vErr}=await sb.from('profile_views').select('viewed_profile_id').eq('viewer_id',currentUser.id);
   // What I've done to others
-  const {data:mine}=await sb.from('interactions').select('to_user,action,created_at,is_super').eq('from_user',currentUser.id);
-  if(mine)mine.forEach(r=>{
-    if(r.action==='interested'){expressedInterest.add(r.to_user);myInterestedAt[r.to_user]=r.created_at;if(r.is_super)mySuper.add(r.to_user);}
-    if(r.action==='hide_forever'||r.action==='report')hiddenForever.add(r.to_user);
-    if(r.action==='dismissed_incoming')dismissedIncoming.add(r.to_user);
-  });
+  const {data:mine,error:mErr}=await sb.from('interactions').select('to_user,action,created_at,is_super').eq('from_user',currentUser.id);
   // How many people are interested in me (names hidden on tiers without "see who's interested")
-  try{const {data:cnt}=await sb.rpc('incoming_interest_count');incomingHiddenCount=Math.max(0,(cnt||0));}catch(e){incomingHiddenCount=0;}
+  let hiddenCnt=0;
+  try{const {data:cnt}=await sb.rpc('incoming_interest_count');hiddenCnt=Math.max(0,(cnt||0));}catch(e){hiddenCnt=0;}
   // What others have done to me (to detect mutual, and incoming interest)
-  const {data:theirs}=await sb.from('interactions').select('from_user,action,created_at,is_super').eq('to_user',currentUser.id).eq('action','interested');
-  if(theirs)theirs.forEach(r=>{
-    if(r.is_super)theirSuper.add(r.from_user);
-    if(expressedInterest.has(r.from_user)){
-      mutualMatches.add(r.from_user);
-      const mine_t=new Date(myInterestedAt[r.from_user]).getTime(),their_t=new Date(r.created_at).getTime();
-      matchCreatedAt[r.from_user]=new Date(Math.max(mine_t,their_t)).toISOString();
-    }
-    else{incomingInterest.add(r.from_user);incomingInterestAt[r.from_user]=r.created_at;}
+  const {data:theirs,error:tErr}=await sb.from('interactions').select('from_user,action,created_at,is_super').eq('to_user',currentUser.id).eq('action','interested');
+  if(vErr||mErr||tErr){console.warn('loadMyInteractions failed — keeping the previous lists:',(vErr||mErr||tErr).message);return;}
+  (views||[]).forEach(r=>V.add(r.viewed_profile_id));
+  (mine||[]).forEach(r=>{
+    if(r.action==='interested'){E.add(r.to_user);myAt[r.to_user]=r.created_at;if(r.is_super)MS.add(r.to_user);}
+    if(r.action==='hide_forever'||r.action==='report')H.add(r.to_user);
+    if(r.action==='dismissed_incoming')D.add(r.to_user);
   });
-  if(canUse('see_interested'))incomingHiddenCount=0;
-  else incomingHiddenCount=Math.max(0,incomingHiddenCount-[...incomingInterest].filter(id=>!dismissedIncoming.has(id)&&!hiddenForever.has(id)).length);
+  (theirs||[]).forEach(r=>{
+    if(r.is_super)TS.add(r.from_user);
+    if(E.has(r.from_user)){
+      M.add(r.from_user);
+      const mine_t=new Date(myAt[r.from_user]).getTime(),their_t=new Date(r.created_at).getTime();
+      mCreated[r.from_user]=new Date(Math.max(mine_t,their_t)).toISOString();
+    }
+    else{I.add(r.from_user);iAt[r.from_user]=r.created_at;}
+  });
+  expressedInterest=E;mutualMatches=M;hiddenForever=H;incomingInterest=I;dismissedIncoming=D;mySuper=MS;theirSuper=TS;
+  matchCreatedAt=mCreated;incomingInterestAt=iAt;myInterestedAt=myAt;
+  // Keep any profile you've just opened this session (recorded before the server caught up)
+  viewedProfiles.forEach(id=>V.add(id));viewedProfiles=V;
+  incomingHiddenCount=canUse('see_interested')?0:Math.max(0,hiddenCnt-[...I].filter(id=>!D.has(id)&&!H.has(id)).length);
   updateMatchNotifs();
 }
 
@@ -1860,13 +1868,13 @@ async function loadBrowseProfiles(){
   const oppSex=myProfile.sex==='male'?'female':'male';
   console.log('loadBrowseProfiles: looking for', oppSex, 'profiles');
   const demoForSex=DEMO_PROFILES.filter(p=>p.sex===oppSex).map(p=>({...p,isDemo:true}));
-  browseProfiles=[...demoForSex];
   // Secure server lookup: returns only what the app needs, plus distances
   // from your home postcode and (if known) your current location.
   const cur=liveLocationCoords||{};
   const {data:profiles,error:bErr}=await sb.rpc('browse_profiles',{p_cur_lat:cur.lat??null,p_cur_lng:cur.lng??null});
-  if(bErr)console.warn('browse_profiles failed:',bErr.message);
-  if(profiles&&profiles.length){
+  if(bErr){console.warn('browse_profiles failed — keeping the current list:',bErr.message);if(!browseProfiles.length)browseProfiles=[...demoForSex];return;}
+  if(!profiles||!profiles.length){browseProfiles=[...demoForSex];return;}
+  {
     const signed=await signedPhotoUrls(profiles.filter(p=>p.is_mutual).map(p=>p.photo_path));
     const real=profiles.map(p=>({
       id:p.id,
@@ -1883,7 +1891,8 @@ async function loadBrowseProfiles(){
       distHomeKm:p.dist_home_km,
       distCurrentKm:p.dist_current_km,
       religion:p.religion||null,
-      verified:!!p.is_verified
+      verified:!!p.is_verified,
+      isMutual:!!p.is_mutual
     }));
     browseProfiles=[...real,...demoForSex];
   }
@@ -1905,7 +1914,7 @@ function renderProfiles(minPct){
       const pk=p.id||p.name;
       // Shown on Interest / It's mutual instead — except someone you've cleared from
       // "Interested in me", who comes back to Search in case you change your mind
-      if(expressedInterest.has(pk)||mutualMatches.has(pk))return false;
+      if(p.isMutual||expressedInterest.has(pk)||mutualMatches.has(pk))return false;
       if(incomingInterest.has(pk)&&!dismissedIncoming.has(pk))return false;
       if(p.age!=null&&(p.age<minAge||p.age>maxAge))return false;
       if(canUse('religion_filter')&&excludedReligions.has(p.religion||NONE_STATED))return false;
@@ -2435,8 +2444,8 @@ const RIGHT_P=(t,mb=12)=>`<p style="font-size:14px;color:var(--text-muted);line-
 function openRightRectify(){
   const mail=`mailto:support@baseddatingonline.com?subject=${encodeURIComponent('Correction request')}&body=${encodeURIComponent('Please correct the following information on my BASED account:\n\n')}`;
   showModal(RIGHT_ICON('ti-edit')+RIGHT_H('Correct your data')+
-    RIGHT_P('You can change most of your details yourself in <b style="color:var(--text-on-dark)">Settings</b>: your name, photos, location, religion and questionnaire answers.')+
-    RIGHT_P('If something else is wrong that you can’t change there (for example your date of birth), email us and we’ll put it right within one month.',18)+
+    RIGHT_P('You can change most of your details yourself in <b style="color:var(--text-on-dark)">Settings</b>: your name, photos, location, religion and questionnaire answers. You can also correct your date of birth there once, unless it’s been confirmed by your ID.')+
+    RIGHT_P('If something else is wrong that you can’t change there, email us and we’ll put it right within one month.',18)+
     `<div style="display:flex;flex-direction:column;gap:10px"><button class="btn-primary" onclick="removeModal();openEditProfile()">Open Settings</button><a class="btn-ghost" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="${esc(mail)}" onclick="setTimeout(removeModal,300)">Email a correction</a><button style="background:transparent;border:none;color:var(--text-muted);font-size:14px;font-family:var(--sans);cursor:pointer;padding:8px" onclick="removeModal()">Cancel</button></div>`);
 }
 function openRightRestrict(){
@@ -3419,8 +3428,19 @@ function subscribeToMyVerification(){
   if(!currentUser)return;
   myProfileChannel=sb.channel('me:'+currentUser.id)
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'profiles',filter:`id=eq.${currentUser.id}`},
-      ({new:p})=>{if(p){onMyVerificationChanged(p);onMyPlanMaybeChanged(p);}})
+      ({new:p})=>{if(p){onMyDobMaybeChanged(p);onMyVerificationChanged(p);onMyPlanMaybeChanged(p);}})
     .subscribe();
+}
+// Verifying with ID sets the date of birth from the document if the profile's was different
+function onMyDobMaybeChanged(p){
+  if(!p||!p.dob)return;
+  const was=String(myProfile.dob||'').slice(0,10),now=String(p.dob).slice(0,10);
+  if(typeof p.dob_changes==='number')myProfile.dob_changes=p.dob_changes;
+  if(was&&now!==was){
+    myProfile.dob=now;
+    if(document.getElementById('screen-edit-profile').classList.contains('active'))document.getElementById('edit-dob').value=isoToDobDisplay(now);
+    showToast(`Your date of birth has been updated to ${isoToDobDisplay(now)} to match your ID.`,false,5000);
+  }
 }
 // Plan changes (upgrade, downgrade, expiry) are picked up live from the account,
 // and also whenever you switch tabs or come back to the app.
@@ -4483,7 +4503,10 @@ async function changeEmail(){
 function openEditProfile(){
   document.getElementById('edit-name').value=myProfile.name||'';
   document.getElementById('edit-dob').value=isoToDobDisplay(myProfile.dob);
-  {const locked=myVerificationStatus==='approved';const d=document.getElementById('edit-dob');d.readOnly=locked;d.style.opacity=locked?'0.6':'1';document.getElementById('edit-dob-note').style.display=locked?'block':'none';}
+  {const verified=myVerificationStatus==='approved',used=(myProfile.dob_changes||0)>=1,locked=verified||used;
+   const d=document.getElementById('edit-dob');d.readOnly=locked;d.style.opacity=locked?'0.6':'1';
+   document.getElementById('edit-dob-note').style.display=locked?'block':'none';
+   document.getElementById('edit-dob-note-text').textContent=verified?'Confirmed by your ID, so it can’t be changed.':DOB_USED_TEXT;}
   const ec=document.getElementById('edit-country');ec.innerHTML=countryOptionsHtml(myProfile.country||'GB');editPrevCountry=myProfile.country||'GB';
   document.getElementById('edit-country-note').style.display='none';
   applyCountryUI('edit');locState.edit.picked=null;hideSuggest('edit');
@@ -4534,6 +4557,15 @@ function discardEditChanges(){
   goTo('screen-main');
 }
 
+// Date of birth can be corrected once (unless it's been confirmed by ID); after that, re-join
+const DOB_USED_TEXT='You’ve already corrected your date of birth once. To change it again, please delete your account and create a new one with the correct date of birth.';
+let dobChangeConfirmed=false;
+function confirmDobChange(iso){
+  showModal(`<i class="ti ti-calendar-event" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px">Correct your date of birth?</p>
+    <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:12px">You're changing it to <b style="color:var(--text-on-dark)">${esc(isoToDobDisplay(iso))}</b>.</p>
+    <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:20px">You can only correct your date of birth <b style="color:var(--text-on-dark)">once</b>, so please check it's right. When you verify with ID, your date of birth will be taken from your document.</p>
+    <div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1" onclick="removeModal();dobChangeConfirmed=true;saveProfile()">Change it</button></div>`);
+}
 async function saveProfile(){
   {const nv=document.getElementById('edit-name').value.trim();if(nv&&!nameOk(nv)){showToast(NAME_RULE,true,4000);return;}}
   myProfile.name=document.getElementById('edit-name').value.trim()||myProfile.name;
@@ -4543,6 +4575,10 @@ async function saveProfile(){
   const editDobParsed=parseDobToISO(editDobRaw);
   if(editDobRaw&&!editDobParsed){showToast('Please enter a valid date of birth (DD/MM/YYYY).',true);editDobEl.classList.add('input-error');return;}
   if(editDobParsed&&calcAge(editDobParsed)<18){showToast('You must be at least 18 to use BASED.',true);editDobEl.classList.add('input-error');return;}
+  const previousDob=myProfile.dob;
+  const dobChanged=!!editDobParsed&&editDobParsed!==String(myProfile.dob||'').slice(0,10);
+  if(dobChanged&&!dobChangeConfirmed){confirmDobChange(editDobParsed);return;}
+  dobChangeConfirmed=false;
   myProfile.dob=editDobParsed||myProfile.dob;
   const previousLocation=myProfile.location;
   const editCountry=document.getElementById('edit-country').value;
@@ -4586,9 +4622,14 @@ async function saveProfile(){
     const {error:saveErr}=await sb.from('profiles').update({name:myProfile.name,dob:myProfile.dob,location:geo.location,country:editCountry,units:myUnits(),sex:myProfile.sex,is_hidden:profileHidden,...photoUpdate,lat:geo.lat,lng:geo.lng}).eq('id',currentUser.id);
     if(saveErr&&photoPlan&&photoPlan.uploaded.length)sb.storage.from('avatars').remove(photoPlan.uploaded); // nothing points at them
     if(saveErr&&/LOCATION_CHANGE_LIMIT/.test(saveErr.message))resetEditLocation(); // the account still has the old country and town: show those again
+    if(saveErr&&dobChanged){myProfile.dob=previousDob;editDobEl.value=isoToDobDisplay(previousDob);}
+    if(saveErr&&/DOB_(LOCKED|CHANGE_USED|UNDERAGE)/.test(saveErr.message)){
+      const m=saveErr.message;if(/DOB_CHANGE_USED/.test(m))myProfile.dob_changes=1;
+      showToast(/DOB_LOCKED/.test(m)?'Your date of birth is confirmed by your ID, so it can’t be changed.':/DOB_UNDERAGE/.test(m)?'You must be at least 18 to use BASED.':DOB_USED_TEXT,true,6000);return;}
     if(saveErr){showToast(/COUNTRY_NOT_OPEN/.test(saveErr.message)?`BASED isn't available in ${countryName(editCountry)} yet.`:/LOCATION_CHANGE_LIMIT/.test(saveErr.message)?'You’ve changed your location 3 times today, so it’s been put back. You can change it again tomorrow.':/NAME_INVALID/.test(saveErr.message)?NAME_RULE:'Could not save — please try again.',true,4500);return;}
     myProfile.location=geo.location;myProfile.country=editCountry;
     myProfile.lat=geo.lat;myProfile.lng=geo.lng;
+    if(dobChanged)myProfile.dob_changes=(myProfile.dob_changes||0)+1;
     if(photoPlan){
       myPhotos=photoPlan.saving;myProfile.photo=myPhotos[0].url;myProfile.photo_ref=photoUpdate.photo_url;myProfile.photo_file=null;
       if(photoPlan.mainChanged){if(photoPlan.mainFile)await uploadBlurCopy(currentUser.id,photoPlan.mainFile);else await blurFromUrl(currentUser.id,myPhotos[0].url);}
