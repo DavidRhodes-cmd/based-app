@@ -314,9 +314,10 @@ button.ins-tile:active{opacity:0.75;}
     <label style="display:flex;align-items:center;gap:9px;margin-bottom:20px;cursor:pointer"><input type="checkbox" id="inp-remember-password" checked style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0" /><span style="font-size:13px;color:var(--text-muted)">Remember my password on this device</span></label>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Biological sex</label><div style="display:flex;gap:10px"><button class="sex-btn" id="sex-male" tabindex="7" onclick="selectSex('male')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>Male</button><button class="sex-btn" id="sex-female" tabindex="8" onclick="selectSex('female')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>Female</button></div></div>
     <div class="banner-note" style="margin-bottom:22px">We don't want to rob you of conversation, so you can figure out the rest.</div>
-    <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-terms" tabindex="9" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to the BASED <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms();">Terms and Conditions</span></span></label>
-    <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:22px;cursor:pointer"><input type="checkbox" id="inp-marketing-consent" tabindex="10" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">Send me updates and offers from BASED (optional — you can unsubscribe anytime)</span></label>
-    <button class="btn-primary btn-safe" id="details-continue-btn" tabindex="11" onclick="tryDetails()">Continue to questions</button>
+    <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-terms" tabindex="9" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to the BASED <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('terms');">Terms and Conditions</span></span></label>
+    <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-special" tabindex="10" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to BASED processing my <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('special');">special category data</span> to operate the Service</span></label>
+    <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:22px;cursor:pointer"><input type="checkbox" id="inp-marketing-consent" tabindex="11" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">Send me updates and offers from BASED (optional — you can unsubscribe anytime)</span></label>
+    <button class="btn-primary btn-safe" id="details-continue-btn" tabindex="12" onclick="tryDetails()">Continue to questions</button>
         <p style="font-size:12px;color:var(--red);text-align:center;margin-top:9px;display:none" id="details-error">Please upload a photo before continuing.</p>
     </div>
   </div>
@@ -326,7 +327,7 @@ button.ins-tile:active{opacity:0.75;}
 <div id="screen-terms" class="screen">
   <div class="app-header">
     <button class="btn-back" onclick="goTo('screen-details')"><i class="ti ti-arrow-left"></i></button>
-    <span style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark)">Terms and Conditions</span>
+    <span id="terms-title" style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark)">Terms and Conditions</span>
     <div style="width:28px"></div>
   </div>
   <div class="scrollable" id="terms-scroll-area" style="padding:20px 16px" onscroll="onTermsScroll()"></div>
@@ -1401,6 +1402,7 @@ async function tryDetails(){
   if(!dob){err.style.display='block';err.textContent='Please enter a valid date of birth (DD/MM/YYYY).';dobEl.classList.add('input-error');return;}
   if(calcAge(dob)<18){err.style.display='block';err.textContent='You must be at least 18 to use BASED.';dobEl.classList.add('input-error');return;}
   if(!document.getElementById('inp-agree-terms').checked){err.style.display='block';err.textContent='Please agree to the Terms and Conditions to continue.';return;}
+  if(!document.getElementById('inp-agree-special').checked){err.style.display='block';err.textContent='Please agree to BASED processing your special category data to continue.';return;}
   if(pass.length<6){err.style.display='block';err.textContent='Password must be at least 6 characters.';passEl.classList.add('input-error');confirmEl.classList.add('input-error');return;}
   if(pass!==passConfirm){err.style.display='block';err.textContent='Passwords do not match.';passEl.classList.add('input-error');confirmEl.classList.add('input-error');return;}
   err.style.display='none';
@@ -1476,6 +1478,7 @@ async function finishProfileCreation(userId,email){
     email:email,religion:religion,
     marketing_consent:!!myProfile.marketing_consent,
     terms_accepted_at:myProfile.terms_accepted_at||new Date().toISOString(),
+    special_data_consent_at:myProfile.terms_accepted_at||new Date().toISOString(), // both boxes are required on the same screen, at the same moment
     referred_by:myProfile.referred_by||null
   });
   if(profileErr){
@@ -2306,12 +2309,27 @@ const TERMS_TEXT=`
 <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:30px">If you have any questions about these Terms, please contact us through the details provided on our website.</p>
 `;
 
-function openTerms(){
-  document.getElementById('terms-scroll-area').innerHTML=TERMS_TEXT;
+// Section 4 of the Terms, as it applies to special category data (religion, photos, messages)
+const SPECIAL_DATA_TEXT=`
+<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:10px">BASED will use the information you provide (including your profile details, photos saved to the app, questionnaire answers, your religion (if specified) and any messages you send) to:</p>
+<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:6px">• Operate the Service, including showing your profile to other users and calculating compatibility scores;</p>
+<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:6px">• Enable correspondence between you and other users you match with, including facilitating messages sent through the Service;</p>
+<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:6px">• Send you service-related communications, such as notifying you of a new match, a message, or changes to your account, your subscription, or these Terms;</p>
+<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:6px">• Maintain the safety, security, and integrity of the Service, including investigating suspected misuse;</p>
+<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">• Comply with our legal obligations.</p>
+<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:30px">You can withdraw this consent at any time by deleting your account in Settings. For full detail on how we collect, store, and protect your data, see our Privacy Policy.</p>
+`;
+let termsKind='terms';
+function openTerms(kind){
+  termsKind=kind==='special'?'special':'terms';
+  document.getElementById('terms-title').textContent=termsKind==='special'?'Special category data':'Terms and Conditions';
+  const area=document.getElementById('terms-scroll-area');
+  area.innerHTML=termsKind==='special'?SPECIAL_DATA_TEXT:TERMS_TEXT;
   const btn=document.getElementById('terms-agree-btn');
   btn.disabled=true;btn.style.opacity='0.4';btn.textContent='Scroll to the end to agree';
-  document.getElementById('terms-scroll-area').scrollTop=0;
+  area.scrollTop=0;
   goTo('screen-terms');
+  requestAnimationFrame(onTermsScroll); // short enough to read without scrolling? Then it's ready straight away
 }
 function onTermsScroll(){
   const el=document.getElementById('terms-scroll-area');
@@ -2320,7 +2338,7 @@ function onTermsScroll(){
   if(nearBottom&&btn.disabled){btn.disabled=false;btn.style.opacity='1';btn.textContent='I agree';}
 }
 function agreeToTerms(){
-  document.getElementById('inp-agree-terms').checked=true;
+  document.getElementById(termsKind==='special'?'inp-agree-special':'inp-agree-terms').checked=true;
   goTo('screen-details');
 }
 
