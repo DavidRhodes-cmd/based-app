@@ -4962,14 +4962,28 @@ function confirmDelete(){
 function confirmLogout(){
   showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-logout" style="font-size:24px;color:var(--text-on-dark)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;text-align:center">Log out?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px;text-align:center">You can sign back in anytime with your email and password.</p><div style="display:flex;gap:10px"><button onclick="removeModal()" class="btn-ghost" style="flex:1">Cancel</button><button onclick="executeLogout()" class="btn-primary" style="flex:1">Log out</button></div>`);
 }
-async function executeLogout(){
-  removeModal();
+// Signs out on this device whatever happens. sb.auth.signOut() can stall (waiting on a
+// token refresh, or a slow / dropped connection) or give up without clearing the saved
+// session — and then the reload just signs you straight back in. So: wait at most
+// 4 seconds for it, then remove the saved session ourselves regardless.
+async function hardSignOut(){
   try{
     if(messageChannel)sb.removeChannel(messageChannel);
     if(interactionsChannel)sb.removeChannel(interactionsChannel);
     if(myProfileChannel){sb.removeChannel(myProfileChannel);myProfileChannel=null;}
-    await sb.auth.signOut();
+  }catch(e){}
+  try{
+    await Promise.race([sb.auth.signOut(),new Promise(r=>setTimeout(()=>r({error:{message:'timed out'}}),4000))])
+      .then(r=>{if(r&&r.error)console.warn('Sign-out:',r.error.message);});
   }catch(e){console.warn('Sign-out error:',e);}
+  try{Object.keys(localStorage).filter(k=>/^sb-.*-auth-token/.test(k)).forEach(k=>localStorage.removeItem(k));}catch(e){}
+  currentUser=null;
+}
+async function executeLogout(){
+  if(window.__loggingOut)return; // a second tap while the first is still going
+  window.__loggingOut=true;
+  showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Logging out…</p></div>');
+  await hardSignOut();
   // Full fresh start, so nothing from this account (conversations, interest
   // lists, badges, cached profiles, live connections) can carry over to the
   // next person who signs in on this device.
@@ -4996,10 +5010,7 @@ async function executeDelete(){
       showToast('Something went wrong deleting your account — please try again.',true);
       return;
     }
-    if(messageChannel)sb.removeChannel(messageChannel);
-    if(interactionsChannel)sb.removeChannel(interactionsChannel);
-    if(myProfileChannel){sb.removeChannel(myProfileChannel);myProfileChannel=null;}
-    await sb.auth.signOut();
+    await hardSignOut();
   }
   const wasPremium=isPremium;
   excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;dealbreakers=new Set();pendingDealbreakers=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
