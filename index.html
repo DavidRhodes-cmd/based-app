@@ -525,6 +525,7 @@ button.ins-tile:active{opacity:0.75;}
     </div>
     <div id="search-status"></div>
     <div id="profile-cards"></div>
+    <div id="search-more"></div>
   </div>
   <div id="tab-matches-content" class="scrollable" style="padding:16px;display:none">
     <p style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:14px">Interested in me</p>
@@ -976,11 +977,14 @@ let conversations={},activeChatName='',activeChatPartnerId=null,activeChatPhotoU
 let locationMode='home',liveLocationCoords=null; // 'home' = saved postcode, 'current' = live device GPS
 let browseProfiles=[]; // loaded from Supabase + demo
 let lastProfileList=[]; // snapshot of current sorted/filtered search results, for Move On navigation
+// Search comes from the server one page at a time, already filtered by the sliders
+const SEARCH_PAGE=200;
+let widenTried=false,searchTotal=0,searchOffset=0,searchLoading=false,searchAuto=false,searchReloadTimer=null,searchSeq=0,useOldBrowse=false;
 let messageChannel=null; // Supabase realtime channel
 let interactionsChannel=null; // Supabase realtime channel for live match/interest detection
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
-function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);if(id==='screen-main'&&typeof updateGetVerifiedBtn==='function')updateGetVerifiedBtn();}
+function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);if(id==='screen-main'){if(typeof updateGetVerifiedBtn==='function')updateGetVerifiedBtn();if(typeof maybeAutoWiden==='function'&&searchAuto&&!widenTried){widenTried=true;maybeAutoWiden();}}}
 // Member-written text (names, messages) is made safe before it goes into the page.
 // esc: for text and attribute values. ja: for a value inside a '…' JS string in an onclick attribute.
 // Names: letters, spaces, hyphens, apostrophes and full stops (matches the server's rule)
@@ -1718,8 +1722,8 @@ async function trySignIn(){
   rememberEmail(email);
   await restoreSession();
   removeModal();
+  restoreFilterPrefs(); // first — the server search uses the sliders
   await loadBrowseProfiles();
-  restoreFilterPrefs();
   if(needsAgeGate()){openAgeCheck();return;}
   if(needsVerificationGate()){openVerifyScreen('gate');return;}
   goTo('screen-main');
@@ -1890,32 +1894,135 @@ async function loadBrowseProfiles(){
   const demoForSex=DEMO_PROFILES.filter(p=>p.sex===oppSex).map(p=>({...p,isDemo:true}));
   // Secure server lookup: returns only what the app needs, plus distances
   // from your home postcode and (if known) your current location.
-  const cur=liveLocationCoords||{};
-  const {data:profiles,error:bErr}=await sb.rpc('browse_profiles',{p_cur_lat:cur.lat??null,p_cur_lng:cur.lng??null});
-  if(bErr){console.warn('browse_profiles failed — keeping the current list:',bErr.message);if(!browseProfiles.length)browseProfiles=[...demoForSex];return;}
-  if(!profiles||!profiles.length){browseProfiles=[...demoForSex];return;}
-  {
-    const signed=await signedPhotoUrls(profiles.filter(p=>p.is_mutual).map(p=>p.photo_path));
-    const real=profiles.map(p=>({
-      id:p.id,
-      initials:initials(p.name),
-      name:p.name,
-      age:p.age,
-      basedScore:p.based_score,
-      answers:p.answers||new Array(NUM_Q).fill(0),
-      // Mutual match → real photo (signed link); everyone else → blurred copy only
-      photo_url:(p.planet&&p.planet!=='earth')?planetPhoto(p.planet):((p.is_mutual&&signed[p.photo_path])||(p.blur_path?BLUR_BASE+p.blur_path:null)),
-      planet:p.planet||'earth',
-      distHome:p.dist_home_mi,
-      distCurrent:p.dist_current_mi,
-      distHomeKm:p.dist_home_km,
-      distCurrentKm:p.dist_current_km,
-      religion:p.religion||null,
-      verified:!!p.is_verified,
-      isMutual:!!p.is_mutual
-    }));
-    browseProfiles=[...real,...demoForSex];
+  // The server applies the sliders and sends one page (best matches first), plus — whatever
+  // the filters — everyone the Interest and Messages tabs need (related = true).
+  // A reload keeps however many pages you'd already scrolled through.
+  const seq=++searchSeq;
+  let profiles,bErr;
+  if(!useOldBrowse){
+    const lim=Math.min(500,Math.max(SEARCH_PAGE,searchOffset));
+    ({data:profiles,error:bErr}=await sb.rpc('browse_search',{...searchParams(),p_limit:lim,p_offset:0}));
+    // The new search isn't on the server yet → carry on the old way
+    if(bErr&&/browse_search|PGRST202|does not exist|Could not find/i.test((bErr.code||'')+' '+bErr.message)){console.warn('browse_search not available — using browse_profiles');useOldBrowse=true;}
   }
+  if(useOldBrowse){
+    const cur=liveLocationCoords||{};
+    ({data:profiles,error:bErr}=await sb.rpc('browse_profiles',{p_cur_lat:cur.lat??null,p_cur_lng:cur.lng??null}));
+  }
+  if(seq!==searchSeq)return; // a newer search has started — let that one fill the list
+  if(bErr){console.warn('Search failed — keeping the current list:',bErr.message);if(!browseProfiles.length)browseProfiles=[...demoForSex];return;}
+  profiles=profiles||[];
+  const real=await mapBrowseRows(profiles);
+  if(seq!==searchSeq)return;
+  const n=real.filter(p=>!p.related).length;
+  searchOffset=n;
+  searchTotal=useOldBrowse?n:(profiles.find(p=>p.total!=null)||{}).total||0;
+  browseProfiles=[...real,...demoForSex];
+}
+// What the sliders are set to, in the form the server wants
+function searchParams(){
+  const g=id=>parseInt((document.getElementById(id)||{}).value);
+  const cur=(locationMode==='current'&&liveLocationCoords)||{}; // distance is measured from here (else from home)
+  const d=g('filter-dist');
+  const miles=(!d||d>=distMax())?null:(myUnits()==='km'?Math.ceil(d/1.609344):d);
+  return {p_cur_lat:cur.lat??null,p_cur_lng:cur.lng??null,
+    p_age_min:g('filter-age-min')||18,p_age_max:g('filter-age-max')||100,
+    p_max_miles:miles,p_min_compat:g('filter-min')||0};
+}
+async function mapBrowseRows(profiles){
+  const signed=await signedPhotoUrls(profiles.filter(p=>p.is_mutual).map(p=>p.photo_path));
+  return profiles.map(p=>({
+    id:p.id,
+    initials:initials(p.name),
+    name:p.name,
+    age:p.age,
+    basedScore:p.based_score,
+    answers:p.answers||new Array(NUM_Q).fill(0),
+    // Mutual match → real photo (signed link); everyone else → blurred copy only
+    photo_url:(p.planet&&p.planet!=='earth')?planetPhoto(p.planet):((p.is_mutual&&signed[p.photo_path])||(p.blur_path?BLUR_BASE+p.blur_path:null)),
+    planet:p.planet||'earth',
+    distHome:p.dist_home_mi,
+    distCurrent:p.dist_current_mi,
+    distHomeKm:p.dist_home_km,
+    distCurrentKm:p.dist_current_km,
+    religion:p.religion||null,
+    verified:!!p.is_verified,
+    isMutual:!!p.is_mutual,
+    related:!!p.related // here for the other tabs, not part of the Search results
+  }));
+}
+// "Show more people" (also loads by itself as you scroll near the bottom)
+async function loadMoreProfiles(){
+  if(useOldBrowse||searchLoading||!currentUser||searchOffset>=searchTotal)return;
+  searchLoading=true;renderMoreButton();
+  const seq=searchSeq;
+  const {data,error}=await sb.rpc('browse_search',{...searchParams(),p_limit:SEARCH_PAGE,p_offset:searchOffset});
+  searchLoading=false;
+  if(seq!==searchSeq)return; // the filters changed meanwhile
+  if(error){console.warn('Loading more failed:',error.message);renderMoreButton();showToast('Couldn’t load more people — please try again.',true);return;}
+  const rows=await mapBrowseRows(data||[]);
+  if(seq!==searchSeq)return;
+  const byId=new Map(browseProfiles.map((p,i)=>[p.id,i]));
+  const added=[];
+  rows.forEach(r=>{
+    if(r.related)return;
+    if(byId.has(r.id)){browseProfiles[byId.get(r.id)]={...r};} // already here for another tab → now a Search result too
+    else added.push(r);
+  });
+  const demos=browseProfiles.filter(p=>p.isDemo),others=browseProfiles.filter(p=>!p.isDemo);
+  browseProfiles=[...others,...added,...demos];
+  searchOffset+=rows.filter(r=>!r.related).length;
+  if(!rows.length)searchOffset=searchTotal; // nothing more came back — stop asking
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+}
+function renderMoreButton(){
+  const box=document.getElementById('search-more');if(!box)return;
+  const more=!useOldBrowse&&currentUser&&searchOffset<searchTotal;
+  box.innerHTML=more?`<button class="btn-ghost" onclick="loadMoreProfiles()" ${searchLoading?'disabled':''} style="font-size:14px;padding:12px;margin-bottom:12px;color:var(--gold);border-color:rgba(201,168,76,0.4)">${searchLoading?'<i class="ti ti-loader" style="animation:spin 1s linear infinite"></i> Loading…':'Show more people'}</button>`:'';
+}
+let moreObserver=null;
+function watchMoreButton(){
+  const box=document.getElementById('search-more');if(!box||moreObserver||!('IntersectionObserver' in window))return;
+  moreObserver=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)&&box.querySelector('button')&&!searchLoading)loadMoreProfiles();},{rootMargin:'400px 0px'});
+  moreObserver.observe(box);
+}
+// Ask the server again once the sliders have stopped moving
+function scheduleSearchReload(){
+  clearTimeout(searchReloadTimer);
+  searchReloadTimer=setTimeout(async()=>{
+    if(!currentUser)return;
+    searchOffset=0;
+    await loadBrowseProfiles();
+    renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  },450);
+}
+// New members start with a narrow search (±8 years, 20 miles / 30 km, 30%). If that finds
+// fewer than 20 people, open it up step by step and say so. Nothing is saved — the
+// member's own slider choices take over as soon as they move one.
+const WIDEN_MI=[20,50,100],WIDEN_KM=[30,80,160];
+async function maybeAutoWiden(){
+  if(!searchAuto||!currentUser||useOldBrowse)return;
+  const minPct=()=>parseInt(document.getElementById('filter-min').value)||0;
+  const shown=()=>{renderProfiles(minPct());return lastProfileList.filter(p=>!p.isDemo).length;};
+  if(shown()>=20)return;
+  const distEl=document.getElementById('filter-dist'),steps=myUnits()==='km'?WIDEN_KM:WIDEN_MI;
+  const u=myUnits()==='km'?'km':'miles';
+  const parts=[];let widened=null;
+  for(const s of [...steps,distMax()]){
+    if(!searchAuto)return;
+    if(parseInt(distEl.value)>=s)continue;
+    distEl.value=s;document.getElementById('filter-dist-val').textContent=distLabel(s);
+    widened=s>=distMax()?'widened your search to any distance':`widened your search to ${s} ${u}`;
+    searchOffset=0;await loadBrowseProfiles();
+    if(shown()>=20)break;
+  }
+  if(widened)parts.push(widened);
+  if(searchAuto&&shown()<20&&minPct()>0){
+    document.getElementById('filter-min').value=0;document.getElementById('filter-min-val').textContent='0%';
+    parts.push('lowered the minimum compatibility to 0%');
+    searchOffset=0;await loadBrowseProfiles();shown();
+  }
+  if(parts.length&&searchAuto)showToast('We’ve '+parts.join(' and ')+' so you have more people to see.',false,3600);
 }
 
 // ─── Profile rendering ────────────────────────────────────────────────────────
@@ -1929,6 +2036,7 @@ function renderProfiles(minPct){
   const list=browseProfiles
     .map(p=>({...p,compat:calcCompat(p.answers)}))
     .filter(p=>{
+      if(p.related)return false; // only here for the Interest / Messages tabs
       if(p.compat<minPct)return false;
       if(excluded.has(p.id)||excluded.has(p.name))return false;
       const pk=p.id||p.name;
@@ -1949,6 +2057,7 @@ function renderProfiles(minPct){
     .sort((a,b)=>b.compat-a.compat);
   lastProfileList=list;
   renderSearchStatus();
+  renderMoreButton();watchMoreButton();
   if(!list.length){container.innerHTML='<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px 0">No profiles match your filters.</p>';return;}
   let html='';
   list.forEach(p=>{
@@ -3577,8 +3686,10 @@ function updateFilter(source){
   document.getElementById('filter-age-min-val').textContent=aMin;
   document.getElementById('filter-age-max-val').textContent=aMax;
   mySearchFilters={min:v,dist:d,units:myUnits(),ageMin:aMin,ageMax:aMax,verifiedOnly};
+  searchAuto=false; // the member's own choice from now on — no more automatic widening
   clearTimeout(filterSaveTimer);filterSaveTimer=setTimeout(()=>saveFilterPrefs(mySearchFilters),700);
-  renderProfiles(v);
+  renderProfiles(v);     // narrowing shows straight away
+  scheduleSearchReload(); // widening needs the server — asked once the slider stops
 }
 // ─── Inter-planetary filter (BASED Gold, Settings → "Inter-planetary filter") ─
 // Which planets' members appear in Search. Everyone starts with Earth only, and
@@ -3772,19 +3883,29 @@ function distLabel(d){const u=myUnits()==='km'?' km':' mi';return d>=distMax()?d
 // next person to sign in on a shared phone starts from the defaults.
 let mySearchFilters={};
 let filterSaveTimer=null;
-// New profiles start wide open: any compatibility, no distance limit (200+ mi / 300+ km), ages 18–100
-const FILTER_DEFAULTS={min:0,dist:'max',ageMin:18,ageMax:100};
+// New members start narrow: 30% compatibility or more, within 20 miles / 30 km, and 8 years
+// either side of their own age. If that finds too few people it widens by itself (maybeAutoWiden).
+function filterDefaults(){
+  const a=myProfile&&myProfile.dob?calcAge(myProfile.dob):null;
+  const ok=Number.isInteger(a)&&a>=18;
+  return {min:30,dist:myUnits()==='km'?30:20,ageMin:ok?Math.max(18,a-8):18,ageMax:ok?Math.min(100,a+8):100};
+}
 function restoreFilterPrefs(){
   let saved=mySearchFilters&&Object.keys(mySearchFilters).length?mySearchFilters:null;
   // One-off move of filters saved on this device by an older version of the app
   let local=null;try{local=JSON.parse(localStorage.getItem('basedFilterPrefs'));}catch(e){}
   if(!saved&&local&&currentUser){saved=local;mySearchFilters=local;saveFilterPrefs(local);}
   try{localStorage.removeItem('basedFilterPrefs');}catch(e){}
-  const f={...FILTER_DEFAULTS,...(saved||{})};
+  const def=filterDefaults();
+  // Only "Verified only" saved (or nothing) → the member hasn't chosen filters yet
+  searchAuto=!!currentUser&&!(saved&&saved.min!=null);
+  widenTried=false;
+  const f={...def,...(saved||{})};
   document.getElementById('filter-dist').max=distMax();
   const distOk=saved&&saved.dist!=null&&(saved.units||'mi')===myUnits();
   document.getElementById('filter-min').value=f.min;
-  document.getElementById('filter-dist').value=distOk?saved.dist:distMax();
+  document.getElementById('filter-dist').value=distOk?saved.dist:def.dist;
+  searchOffset=0;
   document.getElementById('filter-age-min').value=f.ageMin;
   document.getElementById('filter-age-max').value=f.ageMax;
   document.getElementById('filter-min-val').textContent=f.min+'%';
@@ -4737,9 +4858,14 @@ function openInsightList(k){
   goTo('screen-insight-list');
   const sc=document.getElementById('ins-list-body');if(sc)sc.scrollTop=0;
 }
-function openInsightPerson(id,k){
+async function openInsightPerson(id,k){
   if(k==='hidden'||k==='reported'){showToast('You’ve blocked or reported this person, so their profile isn’t shown.',false,2600);return;}
-  const p=browseProfiles.find(x=>x.id===id)||(String(id).startsWith('demo-')&&(DEMO_PROFILES||[]).find(x=>x.id===id));
+  let p=browseProfiles.find(x=>x.id===id)||(String(id).startsWith('demo-')&&(DEMO_PROFILES||[]).find(x=>x.id===id));
+  // Search only holds a page at a time — fetch this one person (same safety rules apply)
+  if(!p&&!useOldBrowse&&/^[0-9a-f-]{36}$/i.test(String(id))){
+    const {data}=await sb.rpc('browse_search',{...searchParams(),p_only:[id]});
+    if(data&&data.length){p={...(await mapBrowseRows(data))[0],related:true};browseProfiles=[p,...browseProfiles];}
+  }
   if(!p){showToast('This profile isn’t available right now.',false,2200);return;}
   if(mutualMatches.has(id)&&k.startsWith('msgs')){openChat(id,p.initials,p.name,p.photo_url||'');return;}
   openProfile(p.answers,calcCompat(p.answers),p.basedScore,p.initials,p.name,p.age,p.location,p.photo_url,id,'incoming',p.religion||null);
@@ -4909,8 +5035,8 @@ document.head.appendChild(spinStyle);
   const restored=await restoreSession();
   await cfgReady;
   if(restored){
+    restoreFilterPrefs(); // first — the server search uses the sliders
     await loadBrowseProfiles();
-    restoreFilterPrefs();
     const minPct=parseInt(document.getElementById('filter-min').value)||0;
     const dist=parseInt(document.getElementById('filter-dist').value)||50;
     document.getElementById('filter-min-val').textContent=minPct+'%';
