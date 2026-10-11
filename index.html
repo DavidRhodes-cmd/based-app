@@ -1355,6 +1355,24 @@ function photoTileHtml(url,{main,onTap,onRemove,label}){
   return `<div class="photo-tile"${onTap?` role="button" tabindex="0" onclick="${onTap}"`:''}><img src="${esc(url)}" alt="${label||'Photo'}" />${main?'<span class="photo-tile-main">Main</span>':''}${onRemove?`<button type="button" class="photo-tile-x" aria-label="Remove photo" onclick="event.stopPropagation();${onRemove}"><i class="ti ti-x"></i></button>`:''}</div>`;
 }
 function addTileHtml(onClick){return `<button type="button" class="photo-tile photo-tile-add" aria-label="Add a photo" onclick="${onClick}"><i class="ti ti-plus"></i></button>`;}
+// Empties the Create profile form (after a sign-up has been sent, or an account deleted),
+// so the next person to tap "Create one" never sees someone else's details.
+function resetSignupForm(){
+  myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null,extra_photos:[]};
+  myAnswers=new Array(NUM_Q).fill(0);
+  ['inp-name','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.classList.remove('input-error');}});
+  ['inp-agree-terms','inp-agree-special','inp-marketing-consent'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+  const rem=document.getElementById('inp-remember-password');if(rem)rem.checked=true;
+  ['sex-male','sex-female'].forEach(id=>document.getElementById(id).classList.remove('selected'));
+  const pi=document.getElementById('photo-input');if(pi)pi.value='';
+  document.getElementById('upload-preview').style.display='none';document.getElementById('upload-preview').removeAttribute('src');
+  document.getElementById('upload-placeholder').style.display='block';
+  document.getElementById('upload-area').classList.remove('has-photo');
+  const rb=document.getElementById('reposition-btn');if(rb)rb.style.display='none';
+  const err=document.getElementById('details-error');if(err)err.style.display='none';
+  const c=document.getElementById('inp-country');if(c&&c.value!=='GB'&&[...c.options].some(o=>o.value==='GB')){c.value='GB';try{onCountryChange('inp');}catch(e){}}
+  try{renderSignupExtras();}catch(e){}
+}
 function renderSignupExtras(){
   const g=document.getElementById('extra-photos-grid');if(!g)return;
   const ex=myProfile.extra_photos||[];
@@ -1604,6 +1622,7 @@ async function signUpAndSave(){
     removeModal();
     goTo('screen-check-email');
     document.getElementById('check-email-address').textContent=email;
+    resetSignupForm(); // this sign-up is done: "Create one" starts afresh
     return;
   }
   if(document.getElementById('inp-remember-password').checked)await tryStoreCredential(email,pass);
@@ -1615,6 +1634,7 @@ async function signUpAndSave(){
     removeModal();
     goTo('screen-check-email');
     document.getElementById('check-email-address').textContent=email;
+    resetSignupForm(); // this sign-up is done: "Create one" starts afresh
     return;
   }
   currentUser=signUpData.user;
@@ -2391,14 +2411,21 @@ let termsKind='terms',termsReturn='screen-details';
 function openTerms(kind,from){
   termsKind=kind==='special'||kind==='privacy'?kind:'terms';termsReturn=from||'screen-details';
   document.getElementById('terms-title').textContent={special:'Special category data',privacy:'How we use your data',terms:'Terms and Conditions'}[termsKind];
+  // Show the screen FIRST, then fill it and go to the top. Filling a hidden scroll area and
+  // then revealing it can leave it frozen (unscrollable) on iPhone Safari, and it kept the
+  // old scroll position, so a second visit opened at the end.
+  goTo('screen-terms');
   const area=document.getElementById('terms-scroll-area');
   area.innerHTML={special:SPECIAL_DATA_TEXT,privacy:PRIVACY_TEXT,terms:TERMS_TEXT}[termsKind];
   const btn=document.getElementById('terms-agree-btn');
-  btn.disabled=true;btn.style.opacity='0.4';btn.textContent='Scroll to the end to agree';
   btn.parentElement.style.display=termsKind==='privacy'?'none':''; // nothing to agree to — it's information
+  // Already agreed (e.g. reading it again)? No need to scroll to the end again.
+  const box=document.getElementById(termsReturn==='screen-support'?(termsKind==='special'?'sup-agree-special':'sup-agree-terms'):(termsKind==='special'?'inp-agree-special':'inp-agree-terms'));
+  const agreed=!!(box&&box.checked);
+  btn.disabled=!agreed;btn.style.opacity=agreed?'1':'0.4';btn.textContent=agreed?'I agree':'Scroll to the end to agree';
+  void area.offsetHeight; // lay it out now that it's visible
   area.scrollTop=0;
-  goTo('screen-terms');
-  requestAnimationFrame(onTermsScroll); // short enough to read without scrolling? Then it's ready straight away
+  requestAnimationFrame(()=>{area.scrollTop=0;onTermsScroll();}); // short enough to read without scrolling? Then it's ready straight away
 }
 function onTermsScroll(){
   const el=document.getElementById('terms-scroll-area');
@@ -2630,13 +2657,16 @@ initRepositionDrag();
 renderSignupExtras();
 function startQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();document.getElementById('q-next-btn').textContent='Create my account';goTo('screen-questions');}
 function resetQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();document.getElementById('q-next-btn').textContent='See my score';}
-function religionPickerHtml(pickerId,selected){
-  return `<div id="${pickerId}" style="display:${selected?'grid':'none'};grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0 6px">${RELIGIONS.map(r=>`<button type="button" class="religion-box ${selected===r?'selected':''}" onclick="selectReligion('${r}','${pickerId}')">${r}</button>`).join('')}</div>`;
+function religionPickerHtml(pickerId,selected,show){
+  // "Leave blank" lets someone say they have a faith without naming it (selected until they pick one)
+  const box=(r,label,extra='')=>`<button type="button" class="religion-box ${(selected||'')===r?'selected':''}" data-r="${r}"${extra} onclick="selectReligion('${r}','${pickerId}')">${label}</button>`;
+  return `<div id="${pickerId}" style="display:${show?'grid':'none'};grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0 6px">${RELIGIONS.map(r=>box(r,r)).join('')}${box('','Leave blank',' style="grid-column:1/-1"')}</div>`;
 }
 function selectReligion(r,pickerId){
+  r=r||null;
   if(pickerId==='signup-religion-picker')myProfile.religion=r;
   else if(pickerId==='modify-religion-picker')modifyTempReligion=r;
-  document.querySelectorAll('#'+pickerId+' .religion-box').forEach(b=>b.classList.toggle('selected',b.textContent===r));
+  document.querySelectorAll('#'+pickerId+' .religion-box').forEach(b=>b.classList.toggle('selected',(b.dataset.r||null)===r));
 }
 function renderSignupQuestions(){
   document.getElementById('signup-questions-list').innerHTML=SIGNUP_QUESTIONS.map((q,i)=>{
@@ -2644,7 +2674,7 @@ function renderSignupQuestions(){
     const sectionDivider=(!q.scoring&&SIGNUP_QUESTIONS[i-1]&&SIGNUP_QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:22px">Visible to others, not counted in your Based Score</p>':'';
     const isFaithQ=i===FAITH_Q_INDEX;
     const extraOninput=isFaithQ?`document.getElementById('signup-religion-picker').style.display=this.value>0?'grid':'none';`:'';
-    const picker=isFaithQ?religionPickerHtml('signup-religion-picker',v>0?myProfile.religion:null):'';
+    const picker=isFaithQ?religionPickerHtml('signup-religion-picker',v>0?myProfile.religion:null,v>0):'';
     return `${sectionDivider}<div style="margin-bottom:26px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
         <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${q.text}</p>
@@ -2689,7 +2719,7 @@ function renderModifyAnswers(){
     const sectionDivider=(!q.scoring&&QUESTIONS[i-1]&&QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:22px">Visible to others, not counted in your Based Score</p>':'';
     const isFaithQ=i===FAITH_Q_INDEX;
     const extraOninput=isFaithQ?`document.getElementById('modify-religion-picker').style.display=this.value>0?'grid':'none';`:'';
-    const picker=isFaithQ?religionPickerHtml('modify-religion-picker',v>0?modifyTempReligion:null):'';
+    const picker=isFaithQ?religionPickerHtml('modify-religion-picker',v>0?modifyTempReligion:null,v>0):'';
     return `${sectionDivider}<div style="margin-bottom:26px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
         <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${q.text}</p>
@@ -4848,8 +4878,7 @@ async function executeDelete(){
   const wasPremium=isPremium;
   excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;dealbreakers=new Set();pendingDealbreakers=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
   isPremium=false;currentUser=null;
-  myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null,extra_photos:[]};myPhotos=[];editPhotos=null;
-  try{renderSignupExtras();}catch(e){}
+  resetSignupForm();myPhotos=[];editPhotos=null;
   myAnswers=new Array(NUM_Q).fill(0);
   expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();mySuper=new Set();theirSuper=new Set();profileHidden=false;
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
