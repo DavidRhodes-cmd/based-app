@@ -356,6 +356,7 @@ button.ins-tile:active{opacity:0.75;}
     <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:6px">Your agreements</p>
     <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:16px">What you agreed to when you joined BASED. Tap the underlined words to read them again.</p>
     <div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px 14px 4px">
+      <div id="sup-consent-error" style="display:none;background:rgba(235,87,87,0.08);border:0.5px solid rgba(235,87,87,0.35);border-radius:11px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:var(--text-on-dark);line-height:1.5">We couldn’t load your agreements just now, so they can’t be changed. <span onclick="openSupport()" style="color:var(--gold);text-decoration:underline;cursor:pointer">Try again</span></div>
       <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer"><input type="checkbox" id="sup-agree-terms" onchange="onSupportConsent('terms',this)" style="width:18px;height:18px;accent-color:var(--gold);flex-shrink:0;margin-top:1px" /><span style="font-size:14px;color:var(--text-on-dark);line-height:1.45">I agree to the BASED <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('terms','screen-support');">Terms and Conditions</span></span></label>
       <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer"><input type="checkbox" id="sup-agree-special" onchange="onSupportConsent('special',this)" style="width:18px;height:18px;accent-color:var(--gold);flex-shrink:0;margin-top:1px" /><span style="font-size:14px;color:var(--text-on-dark);line-height:1.45">I agree to BASED processing my <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('special','screen-support');">special category data</span> to operate the Service</span></label>
       <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer"><input type="checkbox" id="sup-marketing" onchange="onSupportConsent('marketing',this)" style="width:18px;height:18px;accent-color:var(--gold);flex-shrink:0;margin-top:1px" /><span style="font-size:14px;color:var(--text-on-dark);line-height:1.45">Send me updates and offers from BASED (optional — you can unsubscribe anytime)</span></label>
@@ -491,7 +492,7 @@ button.ins-tile:active{opacity:0.75;}
     <div style="display:flex;align-items:center;gap:9px"><div class="logo-mark"><span class="logo-icon"><i class="ti ti-search"></i></span><span class="logo-text">BASED</span><span class="logo-mic"><i class="ti ti-microphone"></i></span></div><i id="header-verified-tick" class="ti ti-discount-check-filled" title="You’re verified" style="display:none;font-size:22px;line-height:22px;color:var(--verified)"></i></div>
     <button id="get-verified-btn" onclick="openVerifyScreen('header')" style="display:none;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:10px;padding:6px 10px;color:var(--verified);font-size:14px;font-weight:600;font-family:var(--sans);line-height:20px;cursor:pointer;white-space:nowrap;margin-left:auto;margin-right:10px"><i class="ti ti-discount-check" style="font-size:16px"></i>Get verified</button>
     <div style="position:relative"><button id="settings-btn" aria-label="Menu" aria-haspopup="true" onclick="toggleMainMenu(event)" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:24px;padding:4px;line-height:1"><i class="ti ti-dots"></i></button>
-      <div id="main-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" onclick="closeMainMenu();openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="closeMainMenu();openSupport()"><i class="ti ti-lifebuoy"></i>Support</button></div></div>
+      <div id="main-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" onclick="closeMainMenu();openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="closeMainMenu();openSupport()"><i class="ti ti-lifebuoy"></i>Support</button><button role="menuitem" onclick="closeMainMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button></div></div>
   </div>
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-browse" onclick="switchTab('browse')"><i class="ti ti-search" style="font-size:15px"></i> Search</button>
@@ -2563,11 +2564,19 @@ let supportConsent={terms:false,special:false,marketing:false};
 async function openSupport(){
   ['sup-agree-terms','sup-agree-special','sup-marketing'].forEach(id=>{document.getElementById(id).disabled=true;});
   goTo('screen-support');
+  const note=document.getElementById('sup-consent-error');if(note)note.style.display='none';
   try{
     const {data,error}=await sb.from('profiles').select('terms_accepted_at,special_data_consent_at,marketing_consent').eq('id',currentUser.id).maybeSingle();
     if(error)throw error;
-    supportConsent={terms:!!(data&&data.terms_accepted_at),special:!!(data&&data.special_data_consent_at),marketing:!!(data&&data.marketing_consent)};
-  }catch(e){showToast('Couldn’t load your agreements — please try again.',true);}
+    // No row back (e.g. the sign-in had lapsed) is a failed load, not "nothing agreed" —
+    // never show the boxes unticked, or let anyone untick them, unless we actually know.
+    if(!data)throw new Error('profile not returned');
+    supportConsent={terms:!!data.terms_accepted_at,special:!!data.special_data_consent_at,marketing:!!data.marketing_consent};
+  }catch(e){
+    console.warn('Loading agreements failed:',e&&e.message);
+    if(note){note.style.display='block';}else showToast('Couldn’t load your agreements — please try again.',true);
+    return; // boxes stay greyed out
+  }
   renderSupportConsent();
 }
 function renderSupportConsent(){
@@ -5029,7 +5038,7 @@ async function executeDelete(){
 
 // ─── Spinner CSS (for loading states) ────────────────────────────────────────
 const spinStyle=document.createElement('style');
-spinStyle.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+spinStyle.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.ti[style*="spin"]{display:inline-block;transform-origin:50% 50%;line-height:1}'; // icons are inline by default, and inline elements can't rotate
 document.head.appendChild(spinStyle);
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
