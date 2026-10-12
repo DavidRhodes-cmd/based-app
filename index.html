@@ -1312,6 +1312,36 @@ async function refreshPhotoLinks(force){
   }
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshPhotoLinks();});
+// ─── Catch up after the app has been in the background ───────────────────────
+// Safari drops the live connection while the phone is asleep or another app is open, and
+// anything that arrived meanwhile is never replayed. So when BASED comes back on screen
+// after more than a few seconds away, reconnect and reload what may have changed.
+let hiddenAt=0,catchingUp=false;
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){hiddenAt=Date.now();return;}
+  if(hiddenAt&&Date.now()-hiddenAt>8000)catchUpAfterBackground();
+});
+window.addEventListener('pageshow',e=>{if(e.persisted)catchUpAfterBackground();}); // restored from Safari's back/forward cache
+window.addEventListener('online',()=>catchUpAfterBackground());
+async function catchUpAfterBackground(){
+  if(!currentUser||!profileLoaded||catchingUp)return;
+  catchingUp=true;
+  try{
+    subscribeToInteractions();subscribeToAllMessages();subscribeToMyVerification();
+    await loadMyInteractions();
+    await loadBrowseProfiles();
+    renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+    renderMatchesTab();
+    if(document.getElementById('tab-messages-content').style.display==='block')await renderConversationsTab();
+    if(document.getElementById('screen-chat').classList.contains('active')&&activeChatPartnerId){
+      subscribeToMessages(activeChatPartnerId);
+      await renderChatMessages();
+    }
+    await refreshUnreadCounts();
+    updateMatchNotifs();
+  }catch(e){console.warn('Catch-up after background failed:',e);}
+  finally{catchingUp=false;}
+}
 // A mutual match's photos (the server only hands the list to their matches)
 const matchPhotoCache={};
 async function matchPhotos(pid){
@@ -1508,19 +1538,20 @@ async function tryDetails(){
 async function finishProfileCreation(userId,email){
   let photo_url='';
   const photo_paths=[],savedPhotos=[];
+  let photosFailed=0,mainPhotoFailed=false;
   try{
     if(myProfile.photo_file){
       const ext=myProfile.photo_file.name.split('.').pop();
       const path=`${userId}/avatar.${ext}`;
       const {error:upErr}=await sb.storage.from('avatars').upload(path,myProfile.photo_file,{upsert:true});
-      if(upErr){console.warn('Photo upload failed:',upErr.message);}
+      if(upErr){console.warn('Photo upload failed:',upErr.message);photosFailed++;mainPhotoFailed=true;}
       else{const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;myProfile.photo_ref=photo_url;photo_paths.push(path);savedPhotos.push({path,url:myProfile.photo});await uploadBlurCopy(userId,myProfile.photo_file);}
     }
-  }catch(e){console.warn('Photo upload exception:',e);}
+  }catch(e){console.warn('Photo upload exception:',e);if(!photo_paths.length){photosFailed++;mainPhotoFailed=true;}}
   // Optional extra photos (up to 4 more)
   for(const x of (myProfile.extra_photos||[]).slice(0,MAX_PHOTOS-1)){
     try{const path=await uploadPhotoFile(userId,x.file);photo_paths.push(path);savedPhotos.push({path,url:x.url});}
-    catch(e){console.warn('Extra photo upload failed:',e.message||e);}
+    catch(e){console.warn('Extra photo upload failed:',e.message||e);photosFailed++;}
   }
 
   const based_score=calcBasedScore(myAnswers);
@@ -1557,6 +1588,7 @@ async function finishProfileCreation(userId,email){
     return false;
   }
   removeModal();
+  profileLoaded=true;profileLoadError=false;
   myPhotos=savedPhotos;myProfile.extra_photos=[];
   rememberEmail(email);
   try{localStorage.removeItem('basedReferralCode');}catch(e){}
@@ -1569,6 +1601,11 @@ async function finishProfileCreation(userId,email){
   subscribeToMyVerification();
   await loadBrowseProfiles();
   showResults();
+  if(photosFailed){
+    // Tell them, rather than leaving a profile quietly missing photos
+    const what=mainPhotoFailed?(photosFailed===1?'Your main photo':`Your main photo and ${photosFailed-1} other${photosFailed>2?'s':''}`):(photosFailed===1?'One of your photos':`${photosFailed} of your photos`);
+    showModal(`<i class="ti ti-photo-x" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px;text-align:center"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">${what} didn’t upload</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:20px;text-align:center">Your account is set up. Please add ${photosFailed===1?'it':'them'} again in <b style="color:var(--text-on-dark)">Settings</b>${mainPhotoFailed?' — members can’t see you properly without a main photo':''}.</p><button class="btn-primary" onclick="removeModal()">OK</button>`);
+  }
   return true;
 }
 
@@ -1600,8 +1637,29 @@ async function stageSignupRemotely(userId){
         country:myProfile.country||'GB',units:myProfile.units||'mi',lat:myProfile.lat??null,lng:myProfile.lng??null
       })
     });
-    if(!resp.ok){const body=await resp.json().catch(()=>({}));console.warn('Staging signup failed:',body.error||resp.statusText);}
-  }catch(e){console.warn('Staging signup exception:',e);}
+    if(!resp.ok){const body=await resp.json().catch(()=>({}));console.warn('Staging signup failed:',body.error||resp.statusText);return false;}
+    return true;
+  }catch(e){console.warn('Staging signup exception:',e);return false;}
+}
+// The profile must be safely stored before we say "check your email" — otherwise the
+// member would confirm and arrive with no profile. Three tries, then let them retry.
+async function stageSignupWithRetry(userId){
+  for(let i=0;i<3;i++){if(await stageSignupRemotely(userId))return true;await wait(1500*(i+1));}
+  return false;
+}
+let stagingRetry=null;
+function showStagingError(){
+  showModal(`<i class="ti ti-cloud-off" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px;text-align:center"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">We couldn’t save your profile yet</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:20px;text-align:center">Your account has been created, but your profile details didn’t reach us. Please check your connection and tap Try again — don’t close this page, or your answers will be lost.</p><button class="btn-primary" onclick="retryStaging()">Try again</button>`);
+}
+async function retryStaging(){
+  if(!stagingRetry)return;
+  showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Saving your profile…</p></div>');
+  if(!(await stageSignupWithRetry(stagingRetry.userId))){showStagingError();return;}
+  const email=stagingRetry.email;stagingRetry=null;
+  removeModal();
+  goTo('screen-check-email');
+  document.getElementById('check-email-address').textContent=email;
+  resetSignupForm();
 }
 async function getPendingSignup(userId){
   try{
@@ -1641,7 +1699,11 @@ async function signUpAndSave(){
     // Email confirmation is required — stage the profile data server-side (not
     // localStorage) so it's there regardless of which device/browser the
     // confirmation link is opened on, then finish automatically once confirmed.
-    await stageSignupRemotely(signUpData.user.id);
+    if(!(await stageSignupWithRetry(signUpData.user.id))){
+      stagingRetry={userId:signUpData.user.id,email};
+      showStagingError();
+      return;
+    }
     removeModal();
     goTo('screen-check-email');
     document.getElementById('check-email-address').textContent=email;
@@ -1730,6 +1792,7 @@ async function trySignIn(){
   rememberEmail(email);
   await restoreSession();
   removeModal();
+  if(profileLoadError){showProfileLoadError();return;}
   restoreFilterPrefs(); // first — the server search uses the sliders
   await loadBrowseProfiles();
   if(needsAgeGate()){openAgeCheck();return;}
@@ -1751,13 +1814,39 @@ async function resendConfirmationEmail(email){
   showToast('If that address needs confirming, a new link is on its way.');
 }
 
+// true once this member's own profile has actually been read from the server. Until then
+// Settings won't open, so blank fields can never be saved over a real profile.
+let profileLoaded=false,profileLoadError=false;
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function restoreSession(){
   const {data:{session}}=await sb.auth.getSession();
   if(!session)return false;
   currentUser=session.user;
-  // Load profile
-  const {data:p,error:pErr}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();
+  profileLoaded=false;profileLoadError=false;
+  // Load profile — try twice before giving up
+  let p=null,pErr=null;
+  for(let i=0;i<2;i++){
+    ({data:p,error:pErr}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle());
+    if(p||!pErr)break;
+    await wait(1200);
+  }
+  if(!p&&!pErr&&!hasPendingSignupOnLoad){
+    // Nothing came back without an error: either the sign-in has lapsed (the server then
+    // shows nothing) or the account really has no profile yet. Ask the server which.
+    const {data:u,error:uErr}=await sb.auth.getUser();
+    if(uErr&&[401,403].includes(uErr.status)||(!uErr&&!(u&&u.user))){
+      console.warn('Saved sign-in has lapsed — signing out on this device');
+      await hardSignOut();return false;
+    }
+    if(uErr)pErr=uErr;
+  }
+  if(!p&&pErr){
+    console.warn('Profile could not be loaded:',pErr.message);
+    profileLoadError=true;
+    return true; // signed in, but the app must not carry on as if the profile were empty
+  }
   if(p){
+    profileLoaded=true;
     myProfile={name:p.name,dob:p.dob,dob_changes:p.dob_changes||0,location:p.location,sex:p.sex,photo:null,photo_ref:p.photo_url||null,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null,country:p.country||'GB',units:p.units||defaultUnitsFor(p.country||'GB')};
     // Your own photo is private too — open it through a short-lived signed link
     const ownPath=photoPathFromUrl(p.photo_url);
@@ -1779,7 +1868,7 @@ async function restoreSession(){
     myAgeStatus=p.age_check_status||'none';
     console.log('Profile restored:', p.name, 'sex:', p.sex, 'lat:', p.lat, 'lng:', p.lng);
   } else {
-    console.warn('No profile found for user:', currentUser.id, pErr?.message);
+    console.warn('No profile found for user:', currentUser.id);
   }
   await loadPermissions();
   await loadMyInteractions();
@@ -1788,6 +1877,11 @@ async function restoreSession(){
   subscribeToMyVerification();
   setTimeout(()=>{refreshUnreadCounts();},0); // after profiles load; doesn't hold up sign-in
   return true;
+}
+
+// Shown instead of carrying on with an empty profile
+function showProfileLoadError(){
+  showModal(`<i class="ti ti-wifi-off" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px;text-align:center"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">We couldn’t load your profile</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:20px;text-align:center">Please check your connection and try again. Nothing has been changed.</p><button class="btn-primary" onclick="location.reload()" style="margin-bottom:10px">Try again</button><button class="btn-ghost" onclick="executeLogout()">Log out</button>`);
 }
 
 // ─── Interactions & matches from Supabase ─────────────────────────────────────
@@ -2209,7 +2303,7 @@ function advanceToNextProfile(profileKey){
 }
 
 async function doDismissIncoming(profileKey){
-  await recordInteraction(profileKey,'dismissed_incoming');
+  if(!(await recordInteraction(profileKey,'dismissed_incoming'))){showToast('Couldn’t do that just now — please try again.',true);return;}
   dismissedIncoming.add(profileKey);
   incomingInterest.delete(profileKey);
   renderMatchesTab();
@@ -2325,11 +2419,12 @@ async function doMoveOn(profileKey){
 }
 
 async function doHideForever(profileKey){
+  // Saved first: only once the server has it do we tell the member they won't see this person again
+  if(!(await recordInteraction(profileKey,'hide_forever'))){showToast('Couldn’t remove them just now — please try again.',true);return;}
   hiddenForever.add(profileKey);
   passedProfiles.delete(profileKey);
   incomingInterest.delete(profileKey);
   mutualMatches.delete(profileKey);expressedInterest.delete(profileKey);
-  await recordInteraction(profileKey,'hide_forever');
   if(messageChannel){sb.removeChannel(messageChannel);messageChannel=null;}
   await loadBrowseProfiles();
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
@@ -2904,20 +2999,29 @@ const FEATURE_INFO={
   priority_support:{name:'Priority support',icon:'ti-headset'},
   ad_free:{name:'Ad-free',icon:'ti-ad-off'}
 };
+// If your plan can't be loaded: keep the last one we had; with none, only the free basics
+// work (the server enforces their limits) and paid features stay locked — never unlocked.
+let permsFailed=false;
 async function loadPermissions(){
-  if(!currentUser){PERMS=null;return;}
-  try{
-    const {data,error}=await sb.rpc('my_permissions');
-    if(error)throw error;
-    PERMS=data||null;
-    if(PERMS&&!TIER_RULES){const {data:rows}=await sb.from('feature_permissions').select('country,feature,tier,access,limit_value,limit_period');TIER_RULES=rows||[];}
-  }catch(e){console.warn('Permissions unavailable, using defaults:',e.message||e);PERMS=null;}
+  if(!currentUser){PERMS=null;permsFailed=false;return;}
+  let ok=false;
+  for(let i=0;i<2&&!ok;i++){
+    try{
+      const {data,error}=await sb.rpc('my_permissions');
+      if(error)throw error;
+      if(!data||!data.features)throw new Error('no plan returned');
+      PERMS=data;ok=true;
+      if(!TIER_RULES){const {data:rows,error:rErr}=await sb.from('feature_permissions').select('country,feature,tier,access,limit_value,limit_period');if(!rErr&&rows)TIER_RULES=rows;}
+    }catch(e){console.warn('Permissions unavailable:',e.message||e);if(i===0)await wait(1000);}
+  }
+  permsFailed=!ok&&!PERMS;
   if(PERMS)isPremium=PERMS.tier==='plus'||PERMS.tier==='gold';
   applyPermissions();
 }
-// Before the tier tables exist (or if the call fails) behave as before: 5 free views, everything else open
+const FREE_BASICS=new Set(['profile_views','express_interest','super_interest']);
 function perm(f){
   if(PERMS&&PERMS.features&&PERMS.features[f])return PERMS.features[f];
+  if(permsFailed)return FREE_BASICS.has(f)?{access:'allowed',limit:null}:{access:'locked',limit:null};
   if(f==='profile_views')return isPremium?{access:'allowed',limit:null}:{access:'allowed',limit:FREE_LIMIT,period:'total',used:viewedProfiles.size+freeViewsCarried};
   return {access:'allowed',limit:null};
 }
@@ -3047,6 +3151,7 @@ function myTierNow(){return (PERMS&&PERMS.tier)||'liveness';}
 // reason: 'locked' (default) or 'limit' (allowance used up)
 async function showUpgradePrompt(f,reason){
   removeModal();
+  if(permsFailed){showToast('We couldn’t load your plan just now — please try again in a moment.',true,3000);refreshPermissions(true);return;}
   if(!TIER_RULES){try{const {data:rows}=await sb.from('feature_permissions').select('country,feature,tier,access,limit_value,limit_period');TIER_RULES=rows||[];}catch(e){TIER_RULES=[];}}
   const p=perm(f),my=myTierNow();
   const isLimit=(reason==='limit'||p.access==='allowed')&&p.limit!=null;
@@ -3296,12 +3401,23 @@ const FN_BASE='https://okubbpsvaogqzdtajiqz.supabase.co/functions/v1/';
 
 let requireAgeCheck=false;            // app_config.require_age_check
 let myAgeStatus='none';               // none | pending | in_review | passed | failed
+// If the settings can't be read, use the last ones this device saw — and if it has never
+// seen them, assume the checks ARE required (fail safe, never skip a check by accident).
 async function loadAppConfig(){
-  try{
-    const {data}=await sb.from('app_config').select('key,value').in('key',['require_verification','require_age_check']);
-    const v=k=>{const r=(data||[]).find(x=>x.key===k);return !!(r&&r.value===true);};
-    requireVerification=v('require_verification');requireAgeCheck=v('require_age_check');
-  }catch(e){requireVerification=false;requireAgeCheck=false;}
+  for(let i=0;i<2;i++){
+    try{
+      const {data,error}=await sb.from('app_config').select('key,value').in('key',['require_verification','require_age_check']);
+      if(error)throw error;
+      if(!data||!data.length)throw new Error('no settings returned');
+      const v=k=>{const r=data.find(x=>x.key===k);return !!(r&&r.value===true);};
+      requireVerification=v('require_verification');requireAgeCheck=v('require_age_check');
+      try{localStorage.setItem('basedAppConfig',JSON.stringify({requireVerification,requireAgeCheck}));}catch(e){}
+      return;
+    }catch(e){console.warn('App settings unavailable:',e.message||e);if(i===0)await wait(1200);}
+  }
+  let last=null;try{last=JSON.parse(localStorage.getItem('basedAppConfig'));}catch(e){}
+  requireVerification=last?!!last.requireVerification:true;
+  requireAgeCheck=last?!!last.requireAgeCheck:true;
 }
 function needsAgeGate(){return requireAgeCheck&&!!currentUser&&myAgeStatus!=='passed'&&myVerificationStatus!=='approved';}
 // Header pill on the main screen — only for people who haven't verified yet
@@ -4194,12 +4310,13 @@ function countUnread(msgs,matchId){
 async function refreshUnreadCounts(){
   if(!currentUser)return;
   await loadChatReads();
+  const prevUnread=new Map(unreadFrom); // kept for any conversation that fails to load
   unreadFrom.clear();
   let count=0,oldest=0;const now=Date.now();
   for(const pid of mutualMatches){
     const matchId=getMatchId(currentUser.id,pid);
-    const {data:msgs}=await sb.rpc('get_decrypted_messages',{p_match_id:matchId});
-    const n=countUnread(msgs,matchId);if(n)unreadFrom.set(pid,n);
+    const {data:msgs,error:uErr}=await sb.rpc('get_decrypted_messages',{p_match_id:matchId});
+    const n=uErr?(prevUnread.get(pid)||0):countUnread(msgs,matchId);if(n)unreadFrom.set(pid,n); // failed load → keep the last known count
     const last=msgs&&msgs.length?msgs[msgs.length-1].created_at:matchCreatedAt[pid];
     const days=last?(now-new Date(last).getTime())/86400000:0;
     count++;if(days>oldest)oldest=days;
@@ -4368,7 +4485,14 @@ async function renderChatMessages(){
   const matchId=getMatchId(currentUser.id,activeChatPartnerId);
   const [{data:msgs,error:msgsErr},rx]=await Promise.all([sb.rpc('get_decrypted_messages',{p_match_id:matchId}),fetchReactions(matchId)]);
   if(getMatchId(currentUser.id,activeChatPartnerId)!==matchId)return; // switched chats while loading
-  if(msgsErr)console.warn('Failed to load messages:',msgsErr.message);
+  if(msgsErr){
+    console.warn('Failed to load messages:',msgsErr.message);
+    // Never show an empty chat when we simply couldn't load it
+    if(chatMsgsCache&&chatMsgsCache.length){showToast('Couldn’t refresh messages — check your connection.',true,2600);return;}
+    chatMsgsCache=null; // unknown, not empty
+    document.getElementById('chat-messages').innerHTML=`<div style="text-align:center;padding:32px 18px"><i class="ti ti-wifi-off" style="font-size:28px;color:var(--text-muted);display:block;margin-bottom:10px"></i><p style="font-size:14px;color:var(--text-on-dark);margin-bottom:6px">We couldn’t load this conversation</p><p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Your messages are safe — please check your connection.</p><button class="btn-ghost" onclick="renderChatMessages()" style="width:auto;padding:10px 20px;font-size:14px">Try again</button></div>`;
+    return;
+  }
   if(rx)chatReactions=rx;
   (msgs||[]).forEach(m=>pendingIncoming.delete(m.id)); // a delayed reply has now arrived
   const el=document.getElementById('chat-messages');
@@ -4583,15 +4707,16 @@ async function renderConversationsTab(){
   const now=Date.now();
   const entries=[];
   await loadChatReads();
+  const prevUnread=new Map(unreadFrom); // kept for any conversation that fails to load
   unreadFrom.clear();
   for(const pid of mutualMatches){
     const matchId=getMatchId(currentUser.id,pid);
-    const {data:matchMsgs}=await sb.rpc('get_decrypted_messages',{p_match_id:matchId});
-    const unreadN=countUnread(matchMsgs,matchId);if(unreadN)unreadFrom.set(pid,unreadN);
+    const {data:matchMsgs,error:mErr}=await sb.rpc('get_decrypted_messages',{p_match_id:matchId});
+    const unreadN=mErr?(prevUnread.get(pid)||0):countUnread(matchMsgs,matchId);if(unreadN)unreadFrom.set(pid,unreadN);
     const last=matchMsgs&&matchMsgs.length?matchMsgs[matchMsgs.length-1]:null;
     const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
     if(!p)continue;
-    const preview=last?(last.sender_id===currentUser.id?'You: ':'')+last.content:'Say hello!';
+    const preview=mErr?'Couldn’t load messages — tap to try again':last?(last.sender_id===currentUser.id?'You: ':'')+last.content:'Say hello!';
     // Activity status: based on time since last message, or since match formed if no messages yet
     const lastActivityAt=last?last.created_at:matchCreatedAt[pid];
     const daysSince=lastActivityAt?(now-new Date(lastActivityAt).getTime())/86400000:0;
@@ -4662,6 +4787,7 @@ async function changeEmail(){
 }
 
 function openEditProfile(){
+  if(!profileLoaded){showProfileLoadError();return;} // never show (and let anyone save) blank details
   document.getElementById('edit-name').value=myProfile.name||'';
   document.getElementById('edit-dob').value=isoToDobDisplay(myProfile.dob);
   {const verified=myVerificationStatus==='approved',used=(myProfile.dob_changes||0)>=1,locked=verified||used;
@@ -4728,6 +4854,7 @@ function confirmDobChange(iso){
     <div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1" onclick="removeModal();dobChangeConfirmed=true;saveProfile()">Change it</button></div>`);
 }
 async function saveProfile(){
+  if(!profileLoaded){showProfileLoadError();return;}
   {const nv=document.getElementById('edit-name').value.trim();if(nv&&!nameOk(nv)){showToast(NAME_RULE,true,4000);return;}}
   myProfile.name=document.getElementById('edit-name').value.trim()||myProfile.name;
   const editDobEl=document.getElementById('edit-dob'),editLocationEl=document.getElementById('edit-location');
@@ -4915,6 +5042,7 @@ function autosizeChatInput(){const t=document.getElementById('chat-input');if(!t
 function prefillIntro(){
   const input=document.getElementById('chat-input');
   if(!input||input.value||!savedIntro||!canUse('saved_intro'))return;
+  if(chatMsgsCache===null)return; // couldn't load the conversation, so we don't know whether you've said hello
   if((chatMsgsCache||[]).some(m=>m.sender_id===currentUser.id))return; // you've already said hello
   input.value=savedIntro;autosizeChatInput();
 }
@@ -5067,7 +5195,8 @@ document.head.appendChild(spinStyle);
   let restored=false;
   try{restored=await restoreSession();}finally{if(splash&&!restored)splash.remove();}
   await cfgReady;
-  if(restored){
+  if(restored&&profileLoadError){showProfileLoadError();}
+  else if(restored){
     restoreFilterPrefs(); // first — the server search uses the sliders
     await loadBrowseProfiles();
     const minPct=parseInt(document.getElementById('filter-min').value)||0;
