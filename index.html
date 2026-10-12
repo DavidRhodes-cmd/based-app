@@ -1327,6 +1327,10 @@ async function catchUpAfterBackground(){
   if(!currentUser||!profileLoaded||catchingUp)return;
   catchingUp=true;
   try{
+    // Suspended or closed while the app was in the background?
+    const {data:st}=await sb.from('profiles').select('account_status,suspended_until').eq('id',currentUser.id).maybeSingle();
+    if(st&&st.account_status&&st.account_status!=='active'){await hardSignOut();showAccountBlocked(st.account_status,st.suspended_until);return;}
+    checkNotices();
     subscribeToInteractions();subscribeToAllMessages();subscribeToMyVerification();
     await loadMyInteractions();
     await loadBrowseProfiles();
@@ -1584,7 +1588,9 @@ async function finishProfileCreation(userId,email){
   if(profileErr){
     console.error('Profile save error:', profileErr);
     removeModal();
-    showToast('Profile save error: '+profileErr.message,true);
+    if(/ACCOUNT_BANNED/.test(profileErr.message)){
+      await hardSignOut();showAccountBlocked('banned');
+    }else showToast('Profile save error: '+profileErr.message,true);
     return false;
   }
   removeModal();
@@ -1781,6 +1787,8 @@ async function trySignIn(){
     if(error.code==='email_not_confirmed'||/confirm/i.test(error.message)){
       err.style.display='block';
       err.innerHTML='Please confirm your email before signing in.<br><span style="color:var(--gold);text-decoration:underline;cursor:pointer;display:inline-block;margin-top:4px" onclick="resendConfirmationEmail(\''+email.replace(/'/g,"\\'")+'\')">Resend confirmation email</span>';
+    }else if(error.code==='user_banned'||/banned/i.test(error.message)){
+      err.style.display='block';err.textContent='This account is suspended or closed. We’ve emailed you the details — or contact support@baseddatingonline.com.';
     }else{
       err.style.display='block';err.textContent='Sign in failed: '+error.message;
       passwordEl.classList.add('input-error');
@@ -1790,7 +1798,8 @@ async function trySignIn(){
   currentUser=data.user;
   try{localStorage.removeItem(SIGNED_OUT_FLAG);}catch(e){}
   rememberEmail(email);
-  await restoreSession();
+  const restoredOk=await restoreSession();
+  if(!restoredOk){if(!accountBlockedShown)removeModal();return;}
   removeModal();
   if(profileLoadError){showProfileLoadError();return;}
   restoreFilterPrefs(); // first — the server search uses the sliders
@@ -1812,6 +1821,36 @@ async function resendConfirmationEmail(email){
   if(error&&error.status===429){showToast('Please wait a minute before asking for another email.',true);return;}
   err.style.color='var(--green)';err.style.display='block';err.textContent='If that address needs confirming, a new link is on its way.';
   showToast('If that address needs confirming, a new link is on its way.');
+}
+
+// ─── Account suspended or closed, and notices from the BASED team ───────────
+let accountBlockedShown=false;
+function showAccountBlocked(status,until){
+  accountBlockedShown=true;
+  const msg=status==='banned'
+    ?'Your BASED account has been closed because it broke our community guidelines. We’ve emailed you the details.'
+    :(until?`Your BASED account is suspended until ${esc(new Date(until).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}))}. We’ve emailed you the details.`:'Your BASED account is suspended. We’ve emailed you the details.');
+  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(235,87,87,0.1);border:0.5px solid rgba(235,87,87,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-lock" style="font-size:24px;color:var(--red)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;text-align:center">${status==='banned'?'Account closed':'Account suspended'}</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px;text-align:center">${msg} If you think this is a mistake, email support@baseddatingonline.com.</p><button onclick="window.location.replace(window.location.pathname)" class="btn-primary">OK</button>`);
+}
+let pendingNotices=[],noticeTries=0;
+async function checkNotices(){
+  if(!currentUser)return;
+  if(!pendingNotices.length){
+    const {data,error}=await sb.from('member_notices').select('id,title,body,created_at').is('read_at',null).order('created_at',{ascending:true}).limit(10);
+    if(error||!data||!data.length)return; // tried again on the next sign-in or return to the app
+    pendingNotices=data;
+  }
+  // Wait until nothing else is on screen (sign-in, a check, a match banner…)
+  if(document.getElementById('modal-bd')){if(++noticeTries<20)setTimeout(checkNotices,3000);return;}
+  noticeTries=0;
+  const n=pendingNotices[0];
+  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-info-circle" style="font-size:24px;color:var(--gold)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;text-align:center">${esc(n.title)}</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:8px;white-space:pre-wrap">${esc(n.body)}</p><p style="font-size:12px;color:var(--text-muted);margin-bottom:20px">From the BASED team · ${esc(new Date(n.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}))}</p><button onclick="ackNotice()" class="btn-primary">OK</button>`);
+}
+async function ackNotice(){
+  const n=pendingNotices.shift();
+  removeModal();
+  if(n){const {error}=await sb.rpc('mark_notice_read',{p_id:n.id});if(error){console.warn('Notice not marked read:',error.message);}}
+  if(pendingNotices.length)setTimeout(checkNotices,400);
 }
 
 // true once this member's own profile has actually been read from the server. Until then
@@ -1845,6 +1884,12 @@ async function restoreSession(){
     profileLoadError=true;
     return true; // signed in, but the app must not carry on as if the profile were empty
   }
+  if(p&&p.account_status&&p.account_status!=='active'){
+    // Suspended or banned since this device signed in: sign out here too, and say why
+    await hardSignOut();
+    showAccountBlocked(p.account_status,p.suspended_until);
+    return false;
+  }
   if(p){
     profileLoaded=true;
     myProfile={name:p.name,dob:p.dob,dob_changes:p.dob_changes||0,location:p.location,sex:p.sex,photo:null,photo_ref:p.photo_url||null,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null,country:p.country||'GB',units:p.units||defaultUnitsFor(p.country||'GB')};
@@ -1876,6 +1921,7 @@ async function restoreSession(){
   subscribeToAllMessages();
   subscribeToMyVerification();
   setTimeout(()=>{refreshUnreadCounts();},0); // after profiles load; doesn't hold up sign-in
+  setTimeout(()=>{checkNotices();},2500);    // warnings or removed content from the BASED team
   return true;
 }
 
@@ -4558,6 +4604,9 @@ async function sendMessage(){
     console.warn('Message send failed:',error.message);
     if(/PROFANITY_BLOCKED/.test(error.message)){
       showToast("Please keep messages respectful — that one wasn't sent.",true);
+    }else if(/ACCOUNT_SUSPENDED/.test(error.message)){
+      showToast('Your account is suspended, so messages can’t be sent.',true,5000);
+      input.value=text;return;
     }else if(/NOT_MATCHED/.test(error.message)){
       showToast('This conversation is no longer available.',true);
       mutualMatches.delete(activeChatPartnerId);
