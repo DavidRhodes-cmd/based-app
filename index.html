@@ -2715,20 +2715,35 @@ function openRightErase(){
     `<div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1;background:var(--red);color:#fff" onclick="executeDelete()">Delete my account</button></div>`);
 }
 
-// Subject Access Request: they email support@ from their registered address; the pack is
-// emailed back automatically, only ever to that registered address.
+// Subject Access Request from the app: one tap. The server works out who they are from their
+// sign-in and emails a 7-day download link ONLY to the address on the account. (Emailing
+// support@ with the subject "Subject Access Request" still works too.)
 function openDataRequest(){
   const addr=(currentUser&&currentUser.email)||myProfile.email||'';
-  const body=`Please send me a copy of the personal data BASED holds about me.\n\nRegistered email: ${addr}`;
-  const href=`mailto:support@baseddatingonline.com?subject=${encodeURIComponent('Subject Access Request')}&body=${encodeURIComponent(body)}`;
   showModal(`<i class="ti ti-file-download" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px">Request a copy of your data</p>
-    <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:12px;text-align:left">Send an email <b style="color:var(--text-on-dark)">from the email address registered to your BASED account</b>:</p>
-    <div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.3);border-radius:12px;padding:12px 14px;text-align:left;font-size:14px;line-height:1.7;margin-bottom:12px;word-break:break-word">
-      <div><span style="color:var(--text-muted)">From:</span> <span style="color:var(--text-on-dark)">${esc(addr)}</span></div>
-      <div><span style="color:var(--text-muted)">To:</span> <span style="color:var(--text-on-dark)">support@baseddatingonline.com</span></div>
-      <div><span style="color:var(--text-muted)">Subject:</span> <span style="color:var(--text-on-dark)">Subject Access Request</span></div></div>
-    <p style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:18px;text-align:left">We'll email your data as a zip file to that same address, usually within a few minutes and always within one month. It includes a machine-readable file you can take to another service. If your email app opens with a different “From” address, please change it before sending.</p>
-    <div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><a class="btn-primary" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none" href="${esc(href)}" onclick="setTimeout(removeModal,300)">Open email</a></div>`);
+    <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:12px;text-align:left">We'll email a link to download everything BASED holds about you to the address on your account:</p>
+    <div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.3);border-radius:12px;padding:12px 14px;text-align:left;font-size:15px;color:var(--text-on-dark);margin-bottom:12px;word-break:break-word">${esc(addr)}</div>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:18px;text-align:left">It usually arrives within a few minutes, and the link works for 7 days. It includes a readable summary, your conversations and photos, and a machine-readable file you can take to another service.</p>
+    <div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1" onclick="sendDataRequest()">Send me my data</button></div>`);
+}
+async function sendDataRequest(){
+  showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Preparing your data…</p></div>');
+  let out={ok:false,data:{}};
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session)throw new Error('signed out');
+    const r=await fetch(FN_BASE+'sar-inbound',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token},body:JSON.stringify({action:'request'})});
+    out={ok:r.ok,data:await r.json().catch(()=>({}))};
+  }catch(e){out={ok:false,data:{error:'We couldn’t send your request — please check your connection and try again.'}};}
+  const d=out.data||{},to=esc(d.email||(currentUser&&currentUser.email)||'your email address');
+  const card=(icon,colour,title,text)=>showModal(`<i class="ti ${icon}" style="font-size:30px;color:${colour};display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px">${title}</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">${text}</p><button class="btn-primary" onclick="removeModal()">OK</button>`);
+  if(!out.ok){card('ti-alert-circle','var(--red)','Request not sent',esc(d.error||'Something went wrong — please try again.'));return;}
+  const st=d.status;
+  if(st==='sent')card('ti-mail-check','var(--green)','On its way',`We've emailed a link to your data to <b style="color:var(--text-on-dark)">${to}</b>. If you can't see it in a few minutes, check your junk folder.`);
+  else if(st==='resent')card('ti-mail-check','var(--green)','On its way',`You asked for your data recently, so we've emailed a fresh link to that copy to <b style="color:var(--text-on-dark)">${to}</b>. If you can't see it, check your junk folder.`);
+  else if(st==='too_soon')card('ti-clock','var(--gold)','Already sent today',`We emailed a link to <b style="color:var(--text-on-dark)">${to}</b> in the last 24 hours. Please check your inbox and junk folder — you can ask again tomorrow.`);
+  else if(st==='held')card('ti-hourglass','var(--gold)','Request received',`We'll email your data to <b style="color:var(--text-on-dark)">${to}</b> as soon as possible, and within one month.`);
+  else card('ti-hourglass','var(--gold)','Request received',`Something held up preparing your data, so we've passed your request to our team. We'll email it to <b style="color:var(--text-on-dark)">${to}</b> within one month.`);
 }
 const WITHDRAW_TEXT={
   terms:'BASED needs your agreement to our Terms & Conditions in order to operate the service. If you withdraw your agreement we will delete your account and all your data and cancel any future subscription charges.',
