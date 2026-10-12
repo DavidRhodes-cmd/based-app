@@ -838,6 +838,11 @@ button.ins-tile:active{opacity:0.75;}
 // ─── Supabase ────────────────────────────────────────────────────────────────
 const { createClient } = supabase;
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rdWJicHN2YW9ncXpkdGFqaXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyOTYwMTQsImV4cCI6MjA5Njg3MjAxNH0.IpsSIU3C9JOJC5JDS7-WlzrOy1QnSxWiPEy6LMLYEoA';
+// After "Log out", nobody is signed in on this device until someone signs in again with
+// their password (or an email link) — even if a stray background token refresh managed to
+// save the old session back just before the page reloaded.
+const SIGNED_OUT_FLAG='basedSignedOut';
+try{if(localStorage.getItem(SIGNED_OUT_FLAG)==='1')Object.keys(localStorage).filter(k=>/^sb-.*-auth-token/.test(k)).forEach(k=>localStorage.removeItem(k));}catch(e){}
 const sb = createClient(
   'https://okubbpsvaogqzdtajiqz.supabase.co',
   SUPABASE_ANON_KEY
@@ -846,6 +851,7 @@ const sb = createClient(
 // Fires automatically when the library detects a magic-link / confirmation / recovery
 // token in the URL — this is how "click the link in the email" gets handled on return.
 sb.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='SIGNED_IN'&&session){try{localStorage.removeItem(SIGNED_OUT_FLAG);}catch(e){}} // a real sign-in
   if(event==='PASSWORD_RECOVERY'){
     goTo('screen-reset-password');
     return;
@@ -1719,6 +1725,7 @@ async function trySignIn(){
     return;
   }
   currentUser=data.user;
+  try{localStorage.removeItem(SIGNED_OUT_FLAG);}catch(e){}
   rememberEmail(email);
   await restoreSession();
   removeModal();
@@ -2398,17 +2405,11 @@ async function openSignIn(){
   if(emails.length)document.getElementById('signin-email').value=emails[0];
   renderEmailDatalist();
   goTo('screen-signin');
-  // Ask the browser for a saved credential (email + password) if it has one — this is
-  // what actually lets the password field pre-fill, securely, without us ever touching it.
-  if('credentials' in navigator&&navigator.credentials.get){
-    try{
-      const cred=await navigator.credentials.get({password:true,mediation:'optional'});
-      if(cred&&cred.type==='password'){
-        document.getElementById('signin-email').value=cred.id;
-        document.getElementById('signin-password').value=cred.password;
-      }
-    }catch(e){console.warn('Credential retrieval skipped:',e);}
-  }
+  // The password box always starts empty. (It used to be filled in automatically from the
+  // browser's saved passwords, which let anyone holding the phone sign straight in.) The
+  // phone's own password manager can still offer to fill it — on iPhone that asks for
+  // Face ID / Touch ID / the passcode first.
+  const pw=document.getElementById('signin-password');if(pw)pw.value='';
 }
 
 function handlePhotoUpload(input){
@@ -4976,7 +4977,9 @@ async function hardSignOut(){
     await Promise.race([sb.auth.signOut(),new Promise(r=>setTimeout(()=>r({error:{message:'timed out'}}),4000))])
       .then(r=>{if(r&&r.error)console.warn('Sign-out:',r.error.message);});
   }catch(e){console.warn('Sign-out error:',e);}
-  try{Object.keys(localStorage).filter(k=>/^sb-.*-auth-token/.test(k)).forEach(k=>localStorage.removeItem(k));}catch(e){}
+  try{localStorage.setItem(SIGNED_OUT_FLAG,'1');Object.keys(localStorage).filter(k=>/^sb-.*-auth-token/.test(k)).forEach(k=>localStorage.removeItem(k));}catch(e){}
+  // Tell the browser not to sign anyone back in silently with a saved password
+  try{if(navigator.credentials&&navigator.credentials.preventSilentAccess)await navigator.credentials.preventSilentAccess();}catch(e){}
   currentUser=null;
 }
 async function executeLogout(){
@@ -5043,7 +5046,17 @@ document.head.appendChild(spinStyle);
   browseProfiles=[];
   await loadDemoProfiles();
   renderProfiles(0);
-  const restored=await restoreSession();
+  let hasSaved=false;try{hasSaved=Object.keys(localStorage).some(k=>/^sb-.*-auth-token$/.test(k));}catch(e){}
+  let splash=null;
+  if(hasSaved&&!hasPendingSignupOnLoad){
+    splash=document.createElement('div');splash.id='boot-splash';
+    splash.style.cssText='position:fixed;inset:0;z-index:9000;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px';
+    splash.innerHTML='<i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);font-family:var(--sans)">Signing you in…</p>';
+    document.body.appendChild(splash);
+    setTimeout(()=>{if(splash)splash.remove();},15000); // never leave it stuck
+  }
+  let restored=false;
+  try{restored=await restoreSession();}finally{if(splash&&!restored)splash.remove();}
   await cfgReady;
   if(restored){
     restoreFilterPrefs(); // first — the server search uses the sliders
@@ -5063,6 +5076,7 @@ document.head.appendChild(spinStyle);
       afterCheckoutReturn(payReturn);
     }
   }
+  if(splash)splash.remove(); // signed in and on the right screen now
   if(authLinkError){
     try{await sb.auth.signOut();}catch(e){}
     currentUser=null;
