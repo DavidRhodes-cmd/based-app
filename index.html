@@ -5228,6 +5228,17 @@ async function executeDelete(){
   showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-check" style="font-size:24px;color:var(--green)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px">Account deleted</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Your profile and all data have been permanently removed.${wasPremium?' Your subscription has been cancelled.':''} We hope to see you again someday.</p><button onclick="window.location.replace(window.location.pathname)" class="btn-primary">Back to home</button>`);
 }
 
+// ─── Unsubscribe link from a "news and offers" email ─────────────────────────
+// Works without signing in: the link carries a signature only BASED can make.
+async function handleUnsubscribe(token){
+  let ok=false;
+  try{
+    const r=await fetch(FN_BASE+'admin-actions',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},body:JSON.stringify({action:'unsubscribe',token})});
+    ok=r.ok;
+  }catch(e){}
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;text-align:center">${ok?'You’re unsubscribed':'That link didn’t work'}</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px;text-align:center">${ok?'You won’t get news and offers emails from BASED any more. You’ll still get emails about your account. You can change this in ⋯ → Support.':'Please try the link again, or email support@baseddatingonline.com and we’ll unsubscribe you.'}</p><button onclick="removeModal()" class="btn-primary">OK</button>`);
+}
+
 // ─── Spinner CSS (for loading states) ────────────────────────────────────────
 const spinStyle=document.createElement('style');
 spinStyle.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.ti[style*="spin"]{display:inline-block;transform-origin:50% 50%;line-height:1}'; // icons are inline by default, and inline elements can't rotate
@@ -5244,6 +5255,8 @@ document.head.appendChild(spinStyle);
   const qs=new URLSearchParams(location.search);
   const payReturn=qs.get('checkout')==='success'?'success':qs.get('checkout')==='cancel'?'cancel':qs.get('billing')==='done'?'billing':null;
   if(verifyReturn||payReturn){try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}}
+  const unsubToken=qs.get('unsubscribe');
+  if(unsubToken){try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}handleUnsubscribe(unsubToken);}
   browseProfiles=[];
   await loadDemoProfiles();
   renderProfiles(0);
