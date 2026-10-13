@@ -1245,31 +1245,8 @@ async function signedPhotoUrls(paths){
   const map={};data.forEach(d=>{if(d.signedUrl)map[d.path]=d.signedUrl;});
   return map;
 }
-// Makes the small blurred copy other people see before a match (16x16 — unrecognisable by design)
-async function uploadBlurCopy(userId,file){
-  try{
-    const url=URL.createObjectURL(file);
-    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
-    const s=Math.min(img.naturalWidth,img.naturalHeight),cv=document.createElement('canvas');
-    cv.width=16;cv.height=16;
-    cv.getContext('2d').drawImage(img,(img.naturalWidth-s)/2,(img.naturalHeight-s)/2,s,s,0,0,16,16);
-    URL.revokeObjectURL(url);
-    const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.7));
-    const {error}=await sb.storage.from('avatars-blur').upload(`${userId}/blur.jpg`,blob,{upsert:true,contentType:'image/jpeg'});
-    if(error)console.warn('Blurred copy upload failed:',error.message);
-  }catch(e){console.warn('Blurred copy exception:',e);}
-}
-
-// If this account has a photo but no blurred copy yet, make one quietly in the background
-async function ensureBlurCopy(userId,signedUrl){
-  try{
-    if(!signedUrl)return;
-    const {data}=await sb.storage.from('avatars-blur').list(userId,{limit:1});
-    if(data&&data.length)return;
-    const blob=await (await fetch(signedUrl)).blob();
-    await uploadBlurCopy(userId,blob);
-  }catch(e){console.warn('ensureBlurCopy:',e);}
-}
+// The small blurred copy other people see before a match (16x16) is made on the server by the
+// process-photo function whenever photos change, which also removes hidden metadata (EXIF, GPS).
 
 // ─── Multiple photos (up to five; the first is the main photo) ─────────────────
 // All photos sit in the owner's private folder, so only they and their mutual
@@ -1285,7 +1262,6 @@ async function uploadPhotoFile(uid,file){
   if(error)throw error;
   return path;
 }
-async function blurFromUrl(uid,url){try{const blob=await (await fetch(url)).blob();await uploadBlurCopy(uid,blob);}catch(e){console.warn('Blur from photo failed:',e);}}
 async function loadMyPhotos(p){
   const paths=(Array.isArray(p.photo_paths)&&p.photo_paths.length)?p.photo_paths:[photoPathFromUrl(p.photo_url)].filter(Boolean);
   const signed=await signedPhotoUrls(paths);
@@ -1549,7 +1525,7 @@ async function finishProfileCreation(userId,email){
       const path=`${userId}/avatar.${ext}`;
       const {error:upErr}=await sb.storage.from('avatars').upload(path,myProfile.photo_file,{upsert:true});
       if(upErr){console.warn('Photo upload failed:',upErr.message);photosFailed++;mainPhotoFailed=true;}
-      else{const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;myProfile.photo_ref=photo_url;photo_paths.push(path);savedPhotos.push({path,url:myProfile.photo});await uploadBlurCopy(userId,myProfile.photo_file);}
+      else{const {data:urlData}=sb.storage.from('avatars').getPublicUrl(path);photo_url=urlData.publicUrl;myProfile.photo_ref=photo_url;photo_paths.push(path);savedPhotos.push({path,url:myProfile.photo});}
     }
   }catch(e){console.warn('Photo upload exception:',e);if(!photo_paths.length){photosFailed++;mainPhotoFailed=true;}}
   // Optional extra photos (up to 4 more)
@@ -1894,9 +1870,7 @@ async function restoreSession(){
     profileLoaded=true;
     myProfile={name:p.name,dob:p.dob,dob_changes:p.dob_changes||0,location:p.location,sex:p.sex,photo:null,photo_ref:p.photo_url||null,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null,country:p.country||'GB',units:p.units||defaultUnitsFor(p.country||'GB')};
     // Your own photo is private too — open it through a short-lived signed link
-    const ownPath=photoPathFromUrl(p.photo_url);
     await loadMyPhotos(p);myProfile.photo=myPhotos[0]?myPhotos[0].url:null;
-    if(ownPath)ensureBlurCopy(currentUser.id,myProfile.photo);
     myAnswers=p.answers||new Array(NUM_Q).fill(0);
     isPremium=p.is_premium||false;
     loadReligionFilter(p);
@@ -4984,7 +4958,6 @@ async function saveProfile(){
     if(dobChanged)myProfile.dob_changes=(myProfile.dob_changes||0)+1;
     if(photoPlan){
       myPhotos=photoPlan.saving;myProfile.photo=myPhotos[0].url;myProfile.photo_ref=photoUpdate.photo_url;myProfile.photo_file=null;
-      if(photoPlan.mainChanged){if(photoPlan.mainFile)await uploadBlurCopy(currentUser.id,photoPlan.mainFile);else await blurFromUrl(currentUser.id,myPhotos[0].url);}
       if(photoPlan.removed.length)sb.storage.from('avatars').remove(photoPlan.removed).then(({error})=>{if(error)console.warn('Removing old photos failed:',error.message);});
     }
     editPhotos=null;
