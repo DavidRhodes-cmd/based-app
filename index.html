@@ -1663,11 +1663,15 @@ async function retryStaging(){
   document.getElementById('check-email-address').textContent=email;
   resetSignupForm();
 }
+// Answers are stored encrypted: the server decrypts an unfinished sign-up for its owner only
 async function getPendingSignup(userId){
   try{
-    const {data,error}=await sb.from('pending_signups').select('*').eq('user_id',userId).maybeSingle();
-    if(error||!data)return null;
-    return data;
+    const {data,error}=await sb.rpc('my_pending_signup');
+    if(!error)return data&&data.user_id===userId?data:null;
+    if(error.code!=='PGRST202')return null;
+    // Before the server was updated: read it directly
+    const {data:row,error:e2}=await sb.from('pending_signups').select('*').eq('user_id',userId).maybeSingle();
+    return e2||!row?null:row;
   }catch(e){return null;}
 }
 async function clearPendingSignup(userId){
@@ -1884,6 +1888,17 @@ async function restoreSession(){
     profileLoadError=true;
     return true; // signed in, but the app must not carry on as if the profile were empty
   }
+  // Your answers are stored encrypted: the server decrypts them for you alone
+  let myStoredAnswers=p?p.answers:null;
+  if(p&&!myStoredAnswers&&!(p.account_status&&p.account_status!=='active')){
+    const {data:ans,error:aErr}=await sb.rpc('my_answers');
+    if(aErr){
+      console.warn('Answers could not be loaded:',aErr.message);
+      profileLoadError=true;
+      return true; // as above: never carry on with blank answers that could then be saved over yours
+    }
+    myStoredAnswers=Array.isArray(ans)&&ans.length?ans:null;
+  }
   if(p&&p.account_status&&p.account_status!=='active'){
     // Suspended or banned since this device signed in: sign out here too, and say why
     await hardSignOut();
@@ -1895,7 +1910,7 @@ async function restoreSession(){
     myProfile={name:p.name,dob:p.dob,dob_changes:p.dob_changes||0,location:p.location,sex:p.sex,photo:null,photo_ref:p.photo_url||null,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null,country:p.country||'GB',units:p.units||defaultUnitsFor(p.country||'GB')};
     // Your own photo is private too — open it through a short-lived signed link
     await loadMyPhotos(p);myProfile.photo=myPhotos[0]?myPhotos[0].url:null;
-    myAnswers=p.answers||new Array(NUM_Q).fill(0);
+    myAnswers=myStoredAnswers||new Array(NUM_Q).fill(0);
     isPremium=p.is_premium||false;
     loadReligionFilter(p);
     loadPlanets(p);
