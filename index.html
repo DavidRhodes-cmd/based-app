@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="BASED" />
 <meta name="theme-color" content="#1a1f2e" />
+<!-- Never tell other sites which page you came from: sign-in links carry tokens in the address -->
+<meta name="referrer" content="no-referrer" />
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <link rel="icon" type="image/png" href="icon-192.png" />
@@ -970,6 +972,9 @@ try{
     history.replaceState(null,'',window.location.pathname);
   }
 }catch(e){}
+// Once Supabase has read a sign-in, confirmation or reset link, take its tokens out of the
+// address bar, so they can't end up in history, a bookmark, a screenshot or a shared link
+sb.auth.getSession().finally(()=>{try{if(/access_token|refresh_token|token_hash|[?&#]code=/.test(location.hash+location.search))history.replaceState(null,'',location.pathname);}catch(e){}});
 let pendingEmail='',pendingPassword=''; // stored when user moves from details to questions
 let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null,extra_photos:[]};
 let myAnswers=new Array(NUM_Q).fill(0);
@@ -1019,10 +1024,10 @@ function showInviteFallback(message,url){
   const row=(icon,label,onclick)=>`<button onclick="${onclick}" style="width:100%;display:flex;align-items:center;gap:13px;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);border-radius:13px;padding:13px 15px;margin-bottom:9px;cursor:pointer;font-family:var(--sans)"><i class="${icon}" style="font-size:19px;color:var(--gold);flex-shrink:0"></i><span style="font-size:14px;color:var(--text-on-dark)">${label}</span></button>`;
   showModal(`
     <p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:16px">Invite friends</p>
-    ${row('ti ti-brand-whatsapp','WhatsApp',`window.open('https://wa.me/?text=${encodeURIComponent(full)}','_blank');removeModal();`)}
-    ${row('ti ti-message','Text message',`window.open('sms:?body=${encodeURIComponent(full)}','_blank');removeModal();`)}
-    ${row('ti ti-mail','Email',`window.open('mailto:?subject=${encodeURIComponent('Join me on BASED')}&body=${encodeURIComponent(full)}','_blank');removeModal();`)}
-    ${row('ti ti-brand-x','X',`window.open('https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(url)}','_blank');removeModal();`)}
+    ${row('ti ti-brand-whatsapp','WhatsApp',`window.open('https://wa.me/?text=${encodeURIComponent(full)}','_blank','noopener,noreferrer');removeModal();`)}
+    ${row('ti ti-message','Text message',`window.open('sms:?body=${encodeURIComponent(full)}','_blank','noopener,noreferrer');removeModal();`)}
+    ${row('ti ti-mail','Email',`window.open('mailto:?subject=${encodeURIComponent('Join me on BASED')}&body=${encodeURIComponent(full)}','_blank','noopener,noreferrer');removeModal();`)}
+    ${row('ti ti-brand-x','X',`window.open('https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(url)}','_blank','noopener,noreferrer');removeModal();`)}
     ${row('ti ti-brand-instagram','Instagram (copy link first)',`copyInviteLink('${full.replace(/'/g,"\\'")}');`)}
     ${row('ti ti-link','Copy link',`copyInviteLink('${full.replace(/'/g,"\\'")}');`)}
     <button onclick="removeModal()" style="width:100%;background:transparent;border:none;color:var(--text-muted);font-size:14px;padding:10px;cursor:pointer;font-family:var(--sans);margin-top:4px">Cancel</button>
