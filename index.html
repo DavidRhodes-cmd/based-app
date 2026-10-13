@@ -110,6 +110,9 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .read-mark i{color:var(--gold);font-size:14px;}
 .msg-bubble.mine{background:rgba(201,168,76,0.18);color:var(--text-on-dark);align-self:flex-end;border-bottom-right-radius:4px;}
 .msg-bubble.theirs{background:rgba(255,255,255,0.07);color:var(--text-on-dark);align-self:flex-start;border-bottom-left-radius:4px;}
+/* Their messages: tap or press and hold for reactions (and Copy), so the phone's own text menu mustn't take over */
+.msg-bubble.theirs[data-mid]{cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;}
+.react-picker .react-copy{font-size:19px;color:var(--text-muted);border-left:0.5px solid rgba(255,255,255,0.15);border-radius:0 50% 50% 0;margin-left:2px;padding-left:9px;}
 .msg-row{display:flex;position:relative;}
 .chat-day{display:flex;justify-content:center;margin:14px 0 6px;}
 .chat-day span{font-size:12px;color:var(--text-muted);background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.08);border-radius:20px;padding:3px 11px;}
@@ -4749,11 +4752,13 @@ async function fetchReactions(matchId){
 }
 function openReactPicker(bubble){
   if(!bubble||!bubble.dataset||!bubble.dataset.mid)return;
+  if(Date.now()-pressOpenedAt<700&&document.getElementById('react-picker'))return; // the tap that ends a press-and-hold
   try{if(String(window.getSelection&&getSelection()||'').length)return;}catch(e){} // they're selecting text to copy
   closeReactPicker();
   const id=bubble.dataset.mid,cur=(chatReactions[id]||{}).mine;
   const p=document.createElement('div');p.id='react-picker';p.className='react-picker';
-  p.innerHTML=REACTIONS.map(e=>`<button class="${e===cur?'on':''}" aria-label="React ${e}" onclick="event.stopPropagation();setReaction('${ja(id)}','${e}')">${e}</button>`).join('');
+  p.innerHTML=REACTIONS.map(e=>`<button class="${e===cur?'on':''}" aria-label="React ${e}" onclick="event.stopPropagation();setReaction('${ja(id)}','${e}')">${e}</button>`).join('')
+    +`<button class="react-copy" aria-label="Copy message" onclick="event.stopPropagation();copyMessage('${ja(id)}')"><i class="ti ti-copy"></i></button>`;
   document.body.appendChild(p);
   const r=bubble.getBoundingClientRect(),w=p.offsetWidth,h=p.offsetHeight;
   let top=r.top-h-8;if(top<70)top=r.bottom+8;
@@ -4761,6 +4766,33 @@ function openReactPicker(bubble){
   try{if(navigator.vibrate)navigator.vibrate(15);}catch(e){}
 }
 function closeReactPicker(){const p=document.getElementById('react-picker');if(p)p.remove();}
+async function copyMessage(id){
+  closeReactPicker();
+  const m=(chatMsgsCache||[]).find(x=>String(x.id)===String(id));if(!m)return;
+  try{await navigator.clipboard.writeText(m.content);showToast('Copied');}
+  catch(e){
+    const t=document.createElement('textarea');t.value=m.content;t.style.cssText='position:fixed;opacity:0';document.body.appendChild(t);t.select();
+    try{document.execCommand('copy');showToast('Copied');}catch(e2){showToast('Couldn’t copy that message',true);}
+    t.remove();
+  }
+}
+// Press and hold one of their messages (as in other messaging apps) opens the same reactions.
+// A plain tap still works too.
+let pressTimer=null,pressStart=null,pressOpenedAt=0;
+document.addEventListener('touchstart',e=>{
+  const b=e.target.closest&&e.target.closest('#chat-messages .msg-bubble.theirs[data-mid]');if(!b)return;
+  const t=e.touches[0];pressStart={x:t.clientX,y:t.clientY};
+  clearTimeout(pressTimer);
+  pressTimer=setTimeout(()=>{pressTimer=null;pressOpenedAt=Date.now();openReactPicker(b);},420);
+},{passive:true});
+document.addEventListener('touchmove',e=>{
+  if(!pressTimer||!pressStart)return;const t=e.touches[0];
+  if(Math.abs(t.clientX-pressStart.x)>10||Math.abs(t.clientY-pressStart.y)>10){clearTimeout(pressTimer);pressTimer=null;} // scrolling, not pressing
+},{passive:true});
+document.addEventListener('touchend',()=>{clearTimeout(pressTimer);pressTimer=null;},{passive:true});
+document.addEventListener('touchcancel',()=>{clearTimeout(pressTimer);pressTimer=null;},{passive:true});
+// No browser menu on a long press of their message
+document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('#chat-messages .msg-bubble.theirs[data-mid]'))e.preventDefault();});
 document.addEventListener('click',e=>{if(!e.target.closest('#react-picker')&&!e.target.closest('[data-mid]')&&!e.target.closest('.msg-react'))closeReactPicker();});
 document.addEventListener('scroll',e=>{if(e.target&&e.target.id==='chat-messages')closeReactPicker();},true);
 async function setReaction(id,emoji){
