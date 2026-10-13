@@ -4674,6 +4674,7 @@ async function sendMessage(){
     console.warn('Message send failed:',error.message);
     if(/PROFANITY_BLOCKED/.test(error.message)){
       showToast("Please keep messages respectful — that one wasn't sent.",true);
+      return; // the box stays empty: the blocked message isn't put back
     }else if(/ACCOUNT_SUSPENDED/.test(error.message)){
       showToast('Your account is suspended, so messages can’t be sent.',true,5000);
       input.value=text;return;
