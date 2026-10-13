@@ -2059,7 +2059,12 @@ async function mapBrowseRows(profiles){
     name:p.name,
     age:p.age,
     basedScore:p.based_score,
-    answers:p.answers||new Array(NUM_Q).fill(0),
+    // Answers and faith only arrive once you've opened someone's profile (the server counts
+    // the view first) — until then Search has the server's compatibility figure instead
+    answers:p.answers||(p.withheld?null:new Array(NUM_Q).fill(0)),
+    withheld:!!p.withheld,
+    locked:!!p.locked,
+    serverCompat:p.compat,
     // Mutual match → real photo (signed link); everyone else → blurred copy only
     photo_url:(p.planet&&p.planet!=='earth')?planetPhoto(p.planet):((p.is_mutual&&signed[p.photo_path])||(p.blur_path?BLUR_BASE+p.blur_path:null)),
     planet:p.planet||'earth',
@@ -2156,7 +2161,7 @@ function renderProfiles(minPct){
   const minAge=parseInt(document.getElementById('filter-age-min').value)||18;
   const maxAge=parseInt(document.getElementById('filter-age-max').value)||100;
   const list=browseProfiles
-    .map(p=>({...p,compat:calcCompat(p.answers)}))
+    .map(p=>({...p,compat:p.answers?calcCompat(p.answers):(p.serverCompat||0)}))
     .filter(p=>{
       if(p.related)return false; // only here for the Interest / Messages tabs
       if(p.compat<minPct)return false;
@@ -2167,10 +2172,11 @@ function renderProfiles(minPct){
       if(p.isMutual||expressedInterest.has(pk)||mutualMatches.has(pk))return false;
       if(incomingInterest.has(pk)&&!dismissedIncoming.has(pk))return false;
       if(p.age!=null&&(p.age<minAge||p.age>maxAge))return false;
-      if(canUse('religion_filter')&&excludedReligions.has(p.religion||NONE_STATED))return false;
+      // (for people whose details haven't been sent yet, the server has already applied these)
+      if(!p.withheld&&canUse('religion_filter')&&excludedReligions.has(p.religion||NONE_STATED))return false;
       if(!passesPlanets(p))return false;
       if(verifiedOnly&&canUse('verified_only_filter')&&!p.verified)return false;
-      if(!passesDealbreakers(p))return false;
+      if(!p.withheld&&!passesDealbreakers(p))return false;
       // Distance filter — profiles with no known distance are never filtered out
       const dist=distanceFor(p);
       if(dist!=null&&maxDist<distMax()&&dist>distBand(maxDist))return false; // distances come in bands, so compare band to band
@@ -2184,7 +2190,7 @@ function renderProfiles(minPct){
   let html='';
   list.forEach(p=>{
     const profileKey=p.id||p.name;
-    const isLocked=!viewedProfiles.has(profileKey)&&outOfFreeViews();
+    const isLocked=p.locked||(!viewedProfiles.has(profileKey)&&outOfFreeViews());
     const isMutual=mutualMatches.has(profileKey);
     const theyLiked=false; // determined server-side now
     const hasInterest=expressedInterest.has(profileKey);
@@ -2199,10 +2205,27 @@ function renderProfiles(minPct){
   container.innerHTML=html;
 }
 
-function handleProfileTap(aStr,compat,basedScore,inits,name,age,location,photoUrl,profileKey,religion){
+// Search doesn't hold anyone's answers or faith until you open their profile: opening it asks the
+// server, which records the view first and refuses once your allowance is used up.
+async function fetchProfileDetails(key){
+  const p=browseProfiles.find(x=>(x.id||x.name)===key);
+  if(!p)return null;
+  if(p.answers)return p;
+  const {data,error}=await sb.rpc('view_profile',{p_id:key});
+  if(error){
+    if(/LIMIT_REACHED/.test(error.message)){loadPermissions().then(()=>renderProfiles(parseInt(document.getElementById('filter-min').value)||0));showUpgradePrompt('profile_views','limit');}
+    else showToast(/VIEW_NOT_ALLOWED/.test(error.message)?'This profile is no longer available.':'Couldn’t open this profile — please try again.',true);
+    return null;
+  }
+  p.answers=(data&&data.answers)||new Array(NUM_Q).fill(0);p.religion=(data&&data.religion)||null;p.withheld=false;
+  if(!viewedProfiles.has(key)){viewedProfiles.add(key);if(data&&data.new)bumpUsed('profile_views');}
+  return p;
+}
+async function handleProfileTap(aStr,compat,basedScore,inits,name,age,location,photoUrl,profileKey,religion){
   if(!viewedProfiles.has(profileKey)&&outOfFreeViews()){showUpgradePrompt('profile_views','limit');return;}
-  let answers;try{answers=JSON.parse(aStr.replace(/&quot;/g,'"'));}catch(e){answers=new Array(NUM_Q).fill(0);}
-  recordProfileView(profileKey);
+  let answers=null;try{answers=JSON.parse(aStr.replace(/&quot;/g,'"'));}catch(e){answers=null;}
+  if(!answers){const d=await fetchProfileDetails(profileKey);if(!d)return;answers=d.answers;religion=d.religion;}
+  else recordProfileView(profileKey);
   openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,'search',religion||null);
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
 }
@@ -2300,7 +2323,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   document.getElementById('profile-detail-body').scrollTop=0;
 }
 
-function advanceToNextProfile(profileKey){
+async function advanceToNextProfile(profileKey){
   const snapshot=lastProfileList;
   const idx=snapshot.findIndex(p=>(p.id||p.name)===profileKey);
   let next=null;
@@ -2314,8 +2337,9 @@ function advanceToNextProfile(profileKey){
   if(next){
     const key=next.id||next.name;
     const isLocked=!viewedProfiles.has(key)&&outOfFreeViews();
-    if(isLocked){showUpgradePrompt('profile_views','limit');return;}
-    recordProfileView(key);
+    if(isLocked||next.locked){showUpgradePrompt('profile_views','limit');return;}
+    if(!next.answers){const d=await fetchProfileDetails(key);if(!d)return;next={...next,answers:d.answers,religion:d.religion};}
+    else recordProfileView(key);
     openProfile(next.answers,next.compat,next.basedScore,next.initials,next.name,next.age,next.location,next.photo_url,key,'search',next.religion||null);
   }else{
     goTo('screen-main');
@@ -4727,9 +4751,10 @@ function celebrateNewSupers(){
   fresh.forEach(markSuperSeen);
   setTimeout(()=>launchConfetti(),250);
 }
-function openIncomingProfile(pid){
-  const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
+async function openIncomingProfile(pid){
+  let p=browseProfiles.find(x=>x.id===pid||x.name===pid);
   if(!p)return;
+  if(!p.answers){p=await fetchProfileDetails(pid);if(!p)return;}
   const compat=calcCompat(p.answers);
   // Opening someone from the Interest tab doesn't use a free view — you've either
   // seen them already or they came to you.
@@ -5042,6 +5067,7 @@ async function openInsightPerson(id,k){
   }
   if(!p){showToast('This profile isn’t available right now.',false,2200);return;}
   if(mutualMatches.has(id)&&k.startsWith('msgs')){openChat(id,p.initials,p.name,p.photo_url||'');return;}
+  if(!p.answers){p=await fetchProfileDetails(id);if(!p)return;}
   openProfile(p.answers,calcCompat(p.answers),p.basedScore,p.initials,p.name,p.age,p.location,p.photo_url,id,'incoming',p.religion||null);
   document.getElementById('profile-back-btn').onclick=()=>goTo('screen-insight-list');
 }
