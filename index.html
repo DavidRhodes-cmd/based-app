@@ -813,7 +813,7 @@ button.ins-tile:active{opacity:0.75;}
     <div id="forgot-sent-state" style="display:none;text-align:center;padding-top:20px">
       <i class="ti ti-mail-opened" style="font-size:44px;color:var(--gold);margin-bottom:20px;display:block"></i>
       <p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px">Check your email</p>
-      <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:26px">Please click the password reset link in the email we've sent you.</p>
+      <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:26px">If there’s a BASED account for that address, we’ve sent it a link to reset your password. It works once, for a short time.</p>
       <button class="btn-ghost" style="width:100%" onclick="goTo('screen-welcome')">Back to home</button>
     </div>
   </div>
@@ -846,9 +846,24 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 // save the old session back just before the page reloaded.
 const SIGNED_OUT_FLAG='basedSignedOut';
 try{if(localStorage.getItem(SIGNED_OUT_FLAG)==='1')Object.keys(localStorage).filter(k=>/^sb-.*-auth-token/.test(k)).forEach(k=>localStorage.removeItem(k));}catch(e){}
+// If this sign-in has been ended elsewhere (password reset, "sign out everywhere", a suspension),
+// the server answers SESSION_ENDED to every request: sign out on this device straight away.
+let sessionEndedHandled=false;
+function watchForEndedSession(res){
+  if(res&&res.status===401&&!sessionEndedHandled){
+    res.clone().json().then(j=>{
+      if(!sessionEndedHandled&&/SESSION_ENDED/.test((j&&(j.message||j.msg))||'')){
+        sessionEndedHandled=true;
+        hardSignOut().finally(()=>showModal('<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;text-align:center">You’ve been signed out</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px;text-align:center">Your password was changed, or you signed out of all your devices. Please sign in again.</p><button onclick="window.location.replace(window.location.pathname)" class="btn-primary">OK</button>'));
+      }
+    }).catch(()=>{});
+  }
+  return res;
+}
 const sb = createClient(
   'https://okubbpsvaogqzdtajiqz.supabase.co',
-  SUPABASE_ANON_KEY
+  SUPABASE_ANON_KEY,
+  {global:{fetch:(...a)=>fetch(...a).then(watchForEndedSession)}}
 );
 
 // Fires automatically when the library detects a magic-link / confirmation / recovery
@@ -1667,7 +1682,8 @@ async function signUpAndSave(){
   if(signUpErr){
     removeModal();
     if(signUpErr.status===429){showToast('Too many attempts — please wait a few minutes and try again.',true);}
-    else{showToast('Sign up error: '+signUpErr.message,true);}
+    else if(signUpErr.code==='weak_password'){showToast(signUpErr.message,true,6000);}
+    else{console.warn('Sign up error:',signUpErr.message);showToast('Couldn’t create your account just now — please try again.',true);}
     return;
   }
   // Supabase returns a "success-looking" response with no error when the email is already
@@ -1720,7 +1736,9 @@ async function sendPasswordReset(){
   showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Sending…</p></div>');
   const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
   removeModal();
-  if(error){err.style.display='block';err.textContent=error.message;emailEl.classList.add('input-error');return;}
+  // Same result whether or not the address has an account; only a rate limit is reported
+  if(error&&error.status===429){err.style.display='block';err.textContent='Please wait a minute before asking for another email.';return;}
+  if(error)console.warn('Password reset email:',error.message);
   document.getElementById('forgot-form-state').style.display='none';
   document.getElementById('forgot-sent-state').style.display='block';
 }
@@ -1771,7 +1789,8 @@ async function trySignIn(){
     }else if(error.code==='user_banned'||/banned/i.test(error.message)){
       err.style.display='block';err.textContent='This account is suspended or closed. We’ve emailed you the details — or contact support@baseddatingonline.com.';
     }else{
-      err.style.display='block';err.textContent='Sign in failed: '+error.message;
+      // The same message whether the email or the password is wrong, so nobody can find out who has an account
+      err.style.display='block';err.textContent=error.status===429?'Too many attempts — please wait a few minutes and try again.':'Email or password is incorrect.';
       passwordEl.classList.add('input-error');
     }
     return;
