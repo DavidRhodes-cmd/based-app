@@ -111,6 +111,8 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .msg-bubble.mine{background:rgba(201,168,76,0.18);color:var(--text-on-dark);align-self:flex-end;border-bottom-right-radius:4px;}
 .msg-bubble.theirs{background:rgba(255,255,255,0.07);color:var(--text-on-dark);align-self:flex-start;border-bottom-left-radius:4px;}
 .msg-row{display:flex;position:relative;}
+.chat-day{display:flex;justify-content:center;margin:14px 0 6px;}
+.chat-day span{font-size:12px;color:var(--text-muted);background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.08);border-radius:20px;padding:3px 11px;}
 .msg-row.has-react{margin-bottom:10px;}
 .msg-bubble[data-mid]{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s;}
 .msg-bubble[data-mid]:active{transform:scale(0.98);}
@@ -4633,8 +4635,13 @@ function drawChatMessages(scroll){
   let readIdx=-1;
   if(partnerReadAt){const t=new Date(partnerReadAt).getTime();msgs.forEach((m,i)=>{if(m.sender_id===currentUser.id&&new Date(m.created_at).getTime()<=t)readIdx=i;});}
   // Reactions: under their messages you see yours; under yours you see theirs. Tap one of theirs to react.
+  // A heading wherever the day changes: Today, Yesterday, then the date
+  let lastDay='';
   el.innerHTML=msgs.map((m,i)=>{const mine=m.sender_id===currentUser.id;const rx=chatReactions[m.id]||{};const shown=mine?rx.theirs:rx.mine;
-    return `<div class="msg-row${shown?' has-react':''}" style="justify-content:${mine?'flex-end':'flex-start'}"><div class="msg-bubble ${mine?'mine':'theirs'}"${mine?'':` data-mid="${esc(m.id)}" onclick="openReactPicker(this)"`}>${esc(m.content)}</div>${shown?`<span class="msg-react" style="${mine?'right':'left'}:10px"${mine?'':` onclick="openReactPicker(this.previousElementSibling)"`}>${esc(shown)}</span>`:''}</div>${i===readIdx?`<div style="display:flex;justify-content:flex-end">${readMarkHtml(partnerReadAt)}</div>`:''}`;}).join('')
+    const d=msgDate(m),dayKey=d?d.toDateString():'';
+    const heading=dayKey&&dayKey!==lastDay?`<div class="chat-day"><span>${esc(chatDayLabel(d))}</span></div>`:'';
+    if(dayKey)lastDay=dayKey;
+    return heading+`<div class="msg-row${shown?' has-react':''}" style="justify-content:${mine?'flex-end':'flex-start'}"><div class="msg-bubble ${mine?'mine':'theirs'}"${mine?'':` data-mid="${esc(m.id)}" onclick="openReactPicker(this)"`}>${esc(m.content)}</div>${shown?`<span class="msg-react" style="${mine?'right':'left'}:10px"${mine?'':` onclick="openReactPicker(this.previousElementSibling)"`}>${esc(shown)}</span>`:''}</div>${i===readIdx?`<div style="display:flex;justify-content:flex-end">${readMarkHtml(partnerReadAt)}</div>`:''}`;}).join('')
     +(pendingIncoming.size?`<div class="msg-row" id="typing-row"><div class="msg-bubble theirs typing-bubble" aria-label="${esc(activeChatName||'They')} is typing"><span></span><span></span><span></span></div></div>`:'');
   void el.offsetHeight; // make Safari lay out the new messages before scrolling
   if(scroll||nearBottom)scrollChatToBottom();
@@ -4712,6 +4719,18 @@ function subscribeToMessages(partnerId){
 // Some replies are dated a few seconds ahead (the aliens take 5 seconds to answer);
 // the server won't hand them out before then. How long until this one is due (ms)?
 let pendingIncoming=new Set();
+// Message times come from the server in UTC without a zone marker
+function msgDate(m){
+  const s=String((m&&m.created_at)||'').replace(' ','T');if(!s)return null;
+  const t=Date.parse(/[zZ]$|[+-]\d\d:?\d\d$/.test(s)?s:s+'Z');
+  return isNaN(t)?null:new Date(t);
+}
+function chatDayLabel(d){
+  const today=new Date(),y=new Date();y.setDate(today.getDate()-1);
+  if(d.toDateString()===today.toDateString())return 'Today';
+  if(d.toDateString()===y.toDateString())return 'Yesterday';
+  return d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:d.getFullYear()===today.getFullYear()?undefined:'numeric'});
+}
 function msgDueIn(m){
   const s=String((m&&m.created_at)||'').replace(' ','T');if(!s)return 0;
   const t=Date.parse(/[zZ]$|[+-]\d\d:?\d\d$/.test(s)?s:s+'Z'); // stored as UTC
