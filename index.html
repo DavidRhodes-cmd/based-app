@@ -57,6 +57,10 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .logo-mark{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:6px 12px;}
 .logo-text{font-family:var(--serif);font-size:16px;color:var(--text-on-dark);letter-spacing:0.5px;}
 .logo-icon,.logo-mic{color:var(--text-muted);font-size:13px;}
+.brand-lockup{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:5px 11px;}
+.brand-words{display:flex;flex-direction:column;align-items:flex-start;gap:1px;}
+.brand-name{font-family:var(--serif);font-size:16px;line-height:1;color:var(--text-on-dark);letter-spacing:2px;}
+.brand-tag{font-family:var(--serif);font-size:10.5px;line-height:1.1;color:var(--gold);font-style:italic;letter-spacing:.4px;padding-left:1px;}
 .btn-back{background:transparent;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;line-height:1;}
 .btn-primary{background:var(--gold);color:var(--navy);border:none;border-radius:13px;padding:14px 20px;font-size:16px;font-weight:600;cursor:pointer;width:100%;font-family:var(--sans);}
 .btn-primary:active{opacity:0.85;}
@@ -269,13 +273,15 @@ button.ins-tile:active{opacity:0.75;}
 <!-- WELCOME -->
 <div id="screen-welcome" class="screen active">
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 16px;text-align:center">
-    <svg width="108" height="104" viewBox="200 215 620 600" aria-hidden="true" style="flex-shrink:0;margin-bottom:22px"><defs><linearGradient id="wh-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient><linearGradient id="wh-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5e3ad"/><stop offset=".5" stop-color="#d9bb66"/><stop offset="1" stop-color="#b08d3c"/></linearGradient></defs><g transform="translate(232 275) rotate(-14 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#wh-g1)"/></g><g transform="translate(352 335) rotate(12 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#wh-g2)" stroke="var(--navy)" stroke-width="4.5" paint-order="stroke"/></g></svg>
-    <div id="welcome-based-box" style="background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);border-radius:17px;padding:14px 26px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
-      <span style="color:var(--text-muted);font-size:22px"><i class="ti ti-search"></i></span>
-      <span style="font-family:var(--serif);font-size:30px;color:var(--text-on-dark);letter-spacing:2px">BASED</span>
-      <span style="color:var(--text-muted);font-size:18px"><i class="ti ti-microphone"></i></span>
+    <!-- Logo: two hearts, BASED / on values, gold magnifying glass, in a bordered box -->
+    <div id="welcome-logo" role="img" aria-label="BASED on values" style="display:flex;align-items:center;gap:16px;padding:16px 24px;border-radius:18px;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);margin-bottom:28px">
+      <svg width="60" height="58" viewBox="200 215 620 600" aria-hidden="true" style="flex-shrink:0"><defs><linearGradient id="wh-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient><linearGradient id="wh-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5e3ad"/><stop offset=".5" stop-color="#d9bb66"/><stop offset="1" stop-color="#b08d3c"/></linearGradient></defs><g transform="translate(232 275) rotate(-14 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#wh-g1)"/></g><g transform="translate(352 335) rotate(12 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#wh-g2)" stroke="#232838" stroke-width="4.5" paint-order="stroke"/></g></svg>
+      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left">
+        <span style="font-family:var(--serif);font-size:36px;line-height:1;color:var(--text-on-dark);letter-spacing:4px">BASED</span>
+        <span style="font-family:var(--serif);font-size:19px;line-height:1.1;color:var(--gold);font-style:italic;letter-spacing:1px;padding-left:2px">on values</span>
+      </div>
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.4" stroke-linecap="round" aria-hidden="true" style="flex-shrink:0"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.4" y1="15.4" x2="21" y2="21"/></svg>
     </div>
-    <p style="font-size:15px;color:var(--text-on-dark);margin-top:-10px;margin-bottom:24px">on values</p>
     <p style="color:var(--text-muted);font-size:15px;line-height:1.5;margin-bottom:24px">Find someone<br>who shares what matters</p>
     <p style="color:var(--text-on-dark);font-size:15px;line-height:1.6;max-width:270px;margin-bottom:24px">Honest answers to real questions</p>
     <div style="display:flex;flex-direction:column;gap:12px;width:100%">
@@ -502,7 +508,7 @@ button.ins-tile:active{opacity:0.75;}
 <!-- MAIN (tabbed) -->
 <div id="screen-main" class="screen">
   <div class="app-header">
-    <div style="display:flex;align-items:center;gap:9px"><div class="logo-mark"><span class="logo-icon"><i class="ti ti-search"></i></span><span class="logo-text">BASED</span><span class="logo-mic"><i class="ti ti-microphone"></i></span></div><i id="header-verified-tick" class="ti ti-discount-check-filled" title="You’re verified" style="display:none;font-size:22px;line-height:22px;color:var(--verified)"></i></div>
+    <div style="display:flex;align-items:center;gap:9px"><div class="brand-lockup" role="img" aria-label="BASED on values"><svg width="26" height="25" viewBox="200 215 620 600" aria-hidden="true" style="flex-shrink:0"><defs><linearGradient id="hd-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient><linearGradient id="hd-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5e3ad"/><stop offset=".5" stop-color="#d9bb66"/><stop offset="1" stop-color="#b08d3c"/></linearGradient></defs><g transform="translate(232 275) rotate(-14 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#hd-g1)"/></g><g transform="translate(352 335) rotate(12 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#hd-g2)" stroke="#232838" stroke-width="4.5" paint-order="stroke"/></g></svg><span class="brand-words"><span class="brand-name">BASED</span><span class="brand-tag">on values</span></span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.6" stroke-linecap="round" aria-hidden="true" style="flex-shrink:0"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.4" y1="15.4" x2="21" y2="21"/></svg></div><i id="header-verified-tick" class="ti ti-discount-check-filled" title="You’re verified" style="display:none;font-size:22px;line-height:22px;color:var(--verified)"></i></div>
     <button id="get-verified-btn" onclick="openVerifyScreen('header')" style="display:none;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:10px;padding:6px 10px;color:var(--verified);font-size:14px;font-weight:600;font-family:var(--sans);line-height:20px;cursor:pointer;white-space:nowrap;margin-left:auto;margin-right:10px"><i class="ti ti-discount-check" style="font-size:16px"></i>Get verified</button>
     <div style="position:relative"><button id="settings-btn" aria-label="Menu" aria-haspopup="true" onclick="toggleMainMenu(event)" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:24px;padding:4px;line-height:1"><i class="ti ti-dots"></i></button>
       <div id="main-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" onclick="closeMainMenu();openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="closeMainMenu();openSupport()"><i class="ti ti-lifebuoy"></i>Support</button><button role="menuitem" onclick="closeMainMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button></div></div>
@@ -3562,8 +3568,8 @@ function updateGetVerifiedBtn(){
   b.innerHTML=reviewing?'<i class="ti ti-clock" style="font-size:16px"></i>Under review':'<i class="ti ti-discount-check" style="font-size:16px"></i>Get verified';
   b.style.opacity=reviewing?'0.85':'1';
   const tick=document.getElementById('header-verified-tick');if(tick)tick.style.display=(currentUser&&myVerificationStatus==='approved')?'inline-block':'none';
-  if(show){ // match the BASED logo box exactly
-    const logo=document.querySelector('#screen-main .logo-mark');
+  if(show){ // match the BASED logo's size
+    const logo=document.querySelector('#screen-main .brand-lockup');
     const fit=()=>{if(logo&&logo.offsetWidth){b.style.minWidth=logo.offsetWidth+'px';b.style.height=logo.offsetHeight+'px';}};
     fit();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit); // re-fit once the icon font has loaded
   }
