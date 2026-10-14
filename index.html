@@ -8,6 +8,8 @@
 if(location.hostname==='based-app.pages.dev')location.replace('https://baseddatingonline.com'+location.pathname+location.search+location.hash);
 </script>
 <link rel="canonical" href="https://baseddatingonline.com/" />
+<!-- Not yet launched: ask search engines not to list BASED (remove at launch, with robots.txt and the X-Robots-Tag in _headers) -->
+<meta name="robots" content="noindex, nofollow" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -1734,6 +1736,10 @@ async function signUpAndSave(){
     removeModal();
     if(signUpErr.status===429){showToast('Too many attempts — please wait a few minutes and try again.',true);}
     else if(signUpErr.code==='weak_password'){showToast(signUpErr.message,true,6000);}
+    else if(/SIGNUPS_CLOSED|Database error saving new user/i.test(signUpErr.message||'')){
+      // Sign-ups are closed until launch (only invited test addresses can join)
+      showModal('<i class="ti ti-calendar-time" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px;text-align:center"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">BASED isn’t open yet</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:20px;text-align:center">We’re not taking new members just yet. Please come back soon.</p><button class="btn-primary" onclick="removeModal()">OK</button>');
+    }
     else{console.warn('Sign up error:',signUpErr.message);showToast('Couldn’t create your account just now — please try again.',true);}
     return;
   }
