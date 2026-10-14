@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<script>
+// BASED lives at baseddatingonline.com. Anyone arriving at the old Cloudflare address is sent there
+// straight away, keeping the rest of the address (so links in older emails still work).
+if(location.hostname==='based-app.pages.dev')location.replace('https://baseddatingonline.com'+location.pathname+location.search+location.hash);
+</script>
+<link rel="canonical" href="https://baseddatingonline.com/" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
