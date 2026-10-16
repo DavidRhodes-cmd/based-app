@@ -2442,7 +2442,24 @@ async function doDismissIncoming(profileKey){
 function confirmWithdrawInterest(profileKey){
   const p=browseProfiles.find(x=>(x.id||x.name)===profileKey);
   const nm=p?p.name:'this person';
-  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Withdraw interest in ${nm}?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">They’ll go back into your Search list.</p><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1;font-size:15px" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1;font-size:15px" onclick="removeModal();doWithdrawInterest('${profileKey}')">Withdraw</button></div>`);
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Withdraw interest in ${nm}?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">You can put them back into your Search list, or remove them so you won’t see them again.</p><div style="display:flex;flex-direction:column;gap:10px"><button class="btn-primary" style="width:100%;font-size:15px" onclick="removeModal();doWithdrawInterest('${profileKey}')">Withdraw interest</button><button class="btn-ghost" style="width:100%;font-size:15px" onclick="removeModal();doWithdrawAndHide('${profileKey}')">Withdraw interest and don’t show again</button><button class="btn-ghost" style="width:100%;font-size:15px;border:none" onclick="removeModal()">Cancel</button></div>`);
+}
+async function doWithdrawAndHide(profileKey){
+  // One write: replacing 'interested' with 'hide_forever' withdraws the interest and hides them together
+  if(!(await recordInteraction(profileKey,'hide_forever'))){
+    showToast('Couldn’t withdraw just now — please try again.',true);
+    await loadMyInteractions();renderMatchesTab();
+    return;
+  }
+  hiddenForever.add(profileKey);
+  passedProfiles.delete(profileKey);
+  incomingInterest.delete(profileKey);
+  mutualMatches.delete(profileKey);expressedInterest.delete(profileKey);
+  delete myInterestedAt[profileKey];
+  await loadBrowseProfiles();
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  renderMatchesTab();
+  showToast('Interest withdrawn — you won’t see them again');
 }
 async function doWithdrawInterest(profileKey){
   // .select() returns the rows actually changed, so a withdrawal that didn't stick can't look like it worked
@@ -3095,6 +3112,16 @@ function renderModifyAnswers(){
   }).join('');
 }
 function cancelModifyAnswers(){goTo('screen-edit-profile');}
+function modifyAnswersChanged(){
+  if(modifyTempAnswers.some((v,i)=>v!==myAnswers[i]))return true;
+  const newRel=modifyTempAnswers[FAITH_Q_INDEX]>0?(modifyTempReligion||null):null;
+  return newRel!==(myProfile.religion||null);
+}
+// Swiping out of Modify my answers works like Settings: straight back if nothing changed, otherwise ask
+function leaveModifyAnswers(){
+  if(!modifyAnswersChanged()){cancelModifyAnswers();return;}
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Save your changes?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">You’ve changed some answers that haven’t been saved.</p><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();saveModifyAnswers()">Save changes</button><button class="btn-ghost" style="font-size:15px" onclick="removeModal();cancelModifyAnswers()">Discard changes</button><button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Keep editing</button></div>`);
+}
 async function saveModifyAnswers(){
   myAnswers=[...modifyTempAnswers];
   myProfile.religion=myAnswers[FAITH_Q_INDEX]>0?modifyTempReligion:null;
@@ -4345,6 +4372,25 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
     const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
     if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.5)return; // a clear, mostly-horizontal swipe only
     leaveEditProfile();
+  },{passive:true});
+})();
+
+// ─── Swipe on Modify my answers to go back to Settings ───────────────────────
+(function initModifyAnswersSwipeBack(){
+  const container=document.getElementById('screen-modify-answers');
+  let startX=0,startY=0,tracking=false;
+  container.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1)return;
+    if(e.target.closest('input,select,textarea'))return; // dragging a slider isn't a swipe
+    startX=e.touches[0].clientX;startY=e.touches[0].clientY;tracking=true;
+  },{passive:true});
+  container.addEventListener('touchend',e=>{
+    if(!tracking)return;
+    tracking=false;
+    if(document.getElementById('modal-bd'))return;
+    const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
+    if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.5)return;
+    leaveModifyAnswers();
   },{passive:true});
 })();
 
