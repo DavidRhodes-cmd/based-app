@@ -418,16 +418,16 @@ button.ins-tile:active{opacity:0.75;}
 </div>
 <div id="screen-questions" class="screen">
   <div class="app-header">
-    <button class="btn-back" id="q-back-btn" onclick="goTo('screen-details')"><i class="ti ti-arrow-left"></i></button>
-    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <button class="btn-back" id="q-back-btn" onclick="signupBack()" aria-label="Back"><i class="ti ti-arrow-left"></i></button>
+    <div id="q-progress-text" style="font-size:13px;color:var(--text-muted);letter-spacing:0.3px">Question 1</div>
     <div style="width:28px"></div>
   </div>
-  <div class="scrollable" style="padding:18px 16px" id="signup-questions-list-wrap">
-    <div class="banner-note" style="margin-bottom:20px">Don't answer what you think others will want to hear. Your authenticity matters.</div>
+  <div style="height:3px;border-radius:3px;background:rgba(255,255,255,0.1);margin:0 16px;overflow:hidden;flex-shrink:0"><div id="q-progress-bar" style="height:3px;background:var(--gold);width:0;transition:width .2s"></div></div>
+  <div class="scrollable" style="padding:24px 20px 18px" id="signup-questions-list-wrap">
     <div id="signup-questions-list"></div>
   </div>
   <div style="padding:14px 16px;flex-shrink:0" class="bottom-safe">
-    <button class="btn-primary" style="width:100%" id="q-next-btn" onclick="finishQuestions()">See my score</button>
+    <button class="btn-primary" style="width:100%" id="q-next-btn" onclick="signupNext()">Next</button>
   </div>
 </div>
 
@@ -3056,8 +3056,12 @@ function saveRepositionPhoto(){
 }
 initRepositionDrag();
 renderSignupExtras();
-function startQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();document.getElementById('q-next-btn').textContent='Create my account';goTo('screen-questions');}
-function resetQuestions(){myAnswers=new Array(NUM_Q).fill(0);renderSignupQuestions();document.getElementById('q-next-btn').textContent='See my score';}
+// Sign-up asks one question per screen; the last screen's button finishes
+let signupIdx=0,signupFinishLabel='See my score';
+function startQuestions(){myAnswers=new Array(NUM_Q).fill(0);signupIdx=0;signupFinishLabel='Create my account';renderSignupQuestions();goTo('screen-questions');}
+function resetQuestions(){myAnswers=new Array(NUM_Q).fill(0);signupIdx=0;signupFinishLabel='See my score';renderSignupQuestions();}
+function signupBack(){if(signupIdx>0){signupIdx--;renderSignupQuestions();}else goTo('screen-details');}
+function signupNext(){if(signupIdx<SIGNUP_QUESTIONS.length-1){signupIdx++;renderSignupQuestions();}else finishQuestions();}
 function religionPickerHtml(pickerId,selected,show){
   // "Leave blank" lets someone say they have a faith without naming it (selected until they pick one)
   const box=(r,label,extra='')=>`<button type="button" class="religion-box ${(selected||'')===r?'selected':''}" data-r="${r}"${extra} onclick="selectReligion('${r}','${pickerId}')">${label}</button>`;
@@ -3070,26 +3074,55 @@ function selectReligion(r,pickerId){
   document.querySelectorAll('#'+pickerId+' .religion-box').forEach(b=>b.classList.toggle('selected',(b.dataset.r||null)===r));
 }
 function renderSignupQuestions(){
-  document.getElementById('signup-questions-list').innerHTML=SIGNUP_QUESTIONS.map((q,i)=>{
-    const s=q.slot,v=myAnswers[s]||0;
-    const sectionDivider=(!q.scoring&&SIGNUP_QUESTIONS[i-1]&&SIGNUP_QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:22px">Visible to others, not counted in your Based Score</p>':'';
-    const isFaithQ=s===FAITH_Q_INDEX;
-    const extraOninput=isFaithQ?`document.getElementById('signup-religion-picker').style.display=this.value>0?'grid':'none';`:'';
-    const picker=isFaithQ?religionPickerHtml('signup-religion-picker',v>0?myProfile.religion:null,v>0):'';
-    return `${sectionDivider}<div style="margin-bottom:26px">
-      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
-        <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${esc(q.text)}</p>
-        <span id="signup-val-${i}" style="font-size:13px;color:var(--gold);font-weight:600;flex-shrink:0;margin-top:1px">${v>0?'+'+v:v}</span>
-        <button class="info-icon-btn" onclick="showInfoPopup(${i},SIGNUP_QUESTIONS)" aria-label="What does this mean?">i</button>
-      </div>
-      ${stmtPairHtml(q)}
-      <input type="range" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" oninput="myAnswers[${s}]=parseInt(this.value);document.getElementById('signup-val-${i}').textContent=this.value>0?'+'+this.value:this.value;${extraOninput}" />
-      ${picker}
-    </div>`;
-  }).join('');
+  const qs=SIGNUP_QUESTIONS;if(!qs.length)return;
+  if(signupIdx>=qs.length)signupIdx=qs.length-1;
+  const i=signupIdx,q=qs[i],n=qs.length,v=myAnswers[q.slot]||0;
+  const isFaithQ=q.slot===FAITH_Q_INDEX;
+  const card=(id,text,right)=>`<div id="${id}" style="box-sizing:border-box;min-height:150px;border-radius:16px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);transition:background .15s,border-color .15s"><p class="sq-text" style="margin:0;flex:1;font-family:var(--serif);font-size:16px;line-height:1.4;color:var(--text-on-dark)">${esc(text)}</p><div class="sq-tag" style="font-size:11.5px;font-weight:600;color:var(--gold-light);min-height:15px;${right?'text-align:right':''}"></div></div>`;
+  const tick=(h,o)=>`<div style="width:1px;height:${h}px;background:rgba(255,255,255,${o})"></div>`;
+  document.getElementById('signup-questions-list').innerHTML=`
+    ${i===0?`<div class="banner-note" style="margin-bottom:20px">Don't answer what you think others will want to hear. Your authenticity matters.</div>`:''}
+    <div style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:${q.scoring?'var(--gold)':'var(--text-muted)'};margin-bottom:10px">${q.scoring?'Your values':'On your profile · not part of matching'}</div>
+    <h2 style="margin:0 0 20px;font-family:var(--serif);font-weight:normal;font-size:28px;line-height:1.15;color:var(--text-on-dark)">${esc(q.text)}</h2>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${card('sq-left',q.left,false)}${card('sq-right',q.right,true)}</div>
+    <div style="margin-top:28px">
+      <input type="range" id="sq-slider" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" aria-label="Where you sit between the two statements" oninput="signupSlide(this.value)" />
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 13px 0" aria-hidden="true">${tick(6,0.25)}${tick(6,0.25)}${tick(12,0.45)}${tick(6,0.25)}${tick(6,0.25)}</div>
+      <div id="sq-middle" style="text-align:center;font-size:13px;color:var(--text-muted);margin-top:6px;min-height:18px"></div>
+    </div>
+    ${isFaithQ?religionPickerHtml('signup-religion-picker',v>0?myProfile.religion:null,v>0):''}
+    ${q.info?`<div style="margin-top:18px">
+      <button type="button" onclick="toggleSignupInfo(this)" aria-expanded="false" style="min-height:44px;background:transparent;border:none;padding:0;color:var(--gold);font-size:14px;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;gap:8px"><span class="info-icon-btn" style="pointer-events:none;border-color:var(--gold);color:var(--gold)">i</span><span>What does this mean?</span></button>
+      <p id="sq-info" hidden style="margin:4px 0 0;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.12);font-size:14px;line-height:1.55;color:#c9c6c0">${esc(q.info)}</p>
+    </div>`:''}
+    ${i===0?`<p style="margin:22px 0 0;font-size:12.5px;line-height:1.5;color:var(--text-muted);text-align:center">Slide towards whichever statement is closer to your view. The middle is a fine answer too.</p>`:''}`;
+  document.getElementById('q-progress-text').textContent=`Question ${i+1} of ${n}`;
+  document.getElementById('q-progress-bar').style.width=Math.round((i+1)/n*100)+'%';
+  document.getElementById('q-next-btn').textContent=i===n-1?signupFinishLabel:'Next';
+  const wrap=document.getElementById('signup-questions-list-wrap');if(wrap)wrap.scrollTop=0;
+  signupPaint();
+}
+function toggleSignupInfo(btn){const p=document.getElementById('sq-info');if(!p)return;p.hidden=!p.hidden;btn.setAttribute('aria-expanded',String(!p.hidden));btn.lastElementChild.textContent=p.hidden?'What does this mean?':'Hide explanation';}
+function signupSlide(val){const q=SIGNUP_QUESTIONS[signupIdx];myAnswers[q.slot]=parseInt(val,10)||0;signupPaint();}
+// Lights up the statement the slider is closer to (more strongly the further it goes)
+function signupPaint(){
+  const q=SIGNUP_QUESTIONS[signupIdx];if(!q)return;
+  const v=myAnswers[q.slot]||0,t=Math.abs(v)/10;
+  const tag=t>=1?'This, fully':t>=0.7?'Much closer to this':t>=0.4?'Closer to this':'Slightly closer to this';
+  [['sq-left',-1],['sq-right',1]].forEach(([id,side])=>{
+    const el=document.getElementById(id);if(!el)return;
+    const on=v!==0&&Math.sign(v)===side;
+    el.style.borderColor=on?`rgba(201,168,76,${(0.35+0.65*t).toFixed(2)})`:'rgba(255,255,255,0.12)';
+    el.style.background=on?`rgba(201,168,76,${(0.05+0.13*t).toFixed(2)})`:'rgba(255,255,255,0.04)';
+    el.querySelector('.sq-text').style.color=on||v===0?'var(--text-on-dark)':'#a9acbd';
+    el.querySelector('.sq-tag').textContent=on?tag:'';
+  });
+  const mid=document.getElementById('sq-middle');if(mid)mid.textContent=v===0?'In the middle':'';
+  const sl=document.getElementById('sq-slider');if(sl)sl.setAttribute('aria-valuetext',v===0?'In the middle':`${tag}: ${v<0?q.left:q.right}`);
+  if(q.slot===FAITH_Q_INDEX){const pk=document.getElementById('signup-religion-picker');if(pk)pk.style.display=v>0?'grid':'none';}
 }
 // The statement at each end of a question's slider
-function stmtPairHtml(q){return `<div style="display:flex;gap:16px;font-size:12.5px;line-height:1.4;color:var(--text-muted);margin:8px 0 10px"><span style="flex:1;text-align:left">${esc(q.left)}</span><span style="flex:1;text-align:right">${esc(q.right)}</span></div>`;}
+function stmtPairHtml(q){return `<div style="display:flex;gap:10px;font-size:12.5px;line-height:1.4;color:var(--text-muted);margin:8px 0 8px"><span style="flex:1;text-align:left">${esc(q.left)}</span><span style="align-self:flex-end;font-size:11px;line-height:1;color:rgba(255,255,255,0.2)" aria-hidden="true">|</span><span style="flex:1;text-align:right">${esc(q.right)}</span></div>`;}
 function showInfoPopup(idx,qSet=QUESTIONS){const q=qSet[idx];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${esc(q.text)}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${esc(q.info)}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
 const SCORE_INFO={
   compat:{title:'Compatibility',text:'Calculates your compatibility with the person based on how you each scored the first 15 statements. The faith/abortion/euthanasia scores are excluded from the calculation.'},
