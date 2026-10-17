@@ -4089,6 +4089,8 @@ function renderPlanRow(){
   const t=myTierNow(),paid=t==='plus'||t==='gold';
   const name=paid?TIER_LABEL[t]:'Free';
   const ending=paid&&myCancelAt?new Date(myCancelAt):null;
+  // A free plan given by BASED: say until when (the end time is midnight, so show the day before)
+  const gift=PERMS&&PERMS.gift&&PERMS.gift.tier===t?new Date(new Date(PERMS.gift.until).getTime()-1000):null;
   const bs='border-radius:11px;padding:9px 13px;font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap';
   const up=t==='gold'||ending?'':`<button onclick="openPlanUpgrade()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Upgrade</button>`;
   // Manage = Stripe's page to change card, see receipts or cancel (only once you've paid through Stripe)
@@ -4096,7 +4098,7 @@ function renderPlanRow(){
   // Cancelled but still paid up: offer to carry on instead of upgrading
   const resume=ending&&myStripeCustomer?`<button onclick="resumePlan()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Resume</button>`:'';
   const btn=`<div style="display:flex;gap:8px">${manage}${resume}${up}</div>`;
-  row.innerHTML=`<i class="ti ti-crown" style="font-size:24px;color:${paid?'var(--gold)':'var(--text-muted)'}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Current plan</p><p style="font-size:13px;color:${paid?'var(--gold-light)':'var(--text-muted)'}">${name}</p>${ending?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">Cancels ${ending.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p>`:''}</div>${btn}`;
+  row.innerHTML=`<i class="ti ti-crown" style="font-size:24px;color:${paid?'var(--gold)':'var(--text-muted)'}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Current plan</p><p style="font-size:13px;color:${paid?'var(--gold-light)':'var(--text-muted)'}">${name}</p>${gift?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">Free until ${gift.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p>`:ending?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">Cancels ${ending.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p>`:''}</div>${btn}`;
 }
 // The upgrade screen without a particular feature in mind: both paid plans from Free,
 // just Gold from BASED+
