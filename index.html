@@ -440,7 +440,7 @@ button.ins-tile:active{opacity:0.75;}
     <div style="width:28px"></div>
   </div>
   <div style="padding:28px 16px;flex:1;display:flex;flex-direction:column;align-items:center">
-    <p style="font-family:var(--serif);font-size:24px;color:var(--text-on-dark);text-align:center;margin-bottom:6px">Your Based Score</p>
+    <p style="font-family:var(--serif);font-size:24px;color:var(--text-on-dark);text-align:center;margin-bottom:6px">Your Score</p>
     <p style="font-size:14px;color:var(--text-muted);text-align:center;margin-bottom:30px" id="results-answer-count">Calculated from your 15 answers</p>
     <div style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:340px;margin:0 auto 26px">
       <div style="width:64px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center" id="score-end-left"></div>
@@ -985,9 +985,11 @@ const SCALE_CACHE_KEY='based_scale_ends_v1';
 let SCALE=DEFAULT_SCALE_ENDS;
 try{const c=JSON.parse(localStorage.getItem(SCALE_CACHE_KEY)||'null');if(c&&c.left&&c.right)SCALE=c;}catch(e){}
 function leanOf(score){const s=Number(score);if(!Number.isFinite(s))return null;return {pct:Math.min(100,Math.round(Math.abs(s-50)*2)),side:s>50?'right':s<50?'left':null};}
+// Shown on the score screen when someone is exactly in the middle
+const FENCE_SVG=`<svg width="64" height="38" viewBox="0 0 64 38" role="img" aria-label="A white picket fence"><g fill="#f4f1ea">${[10,21,32,43,54].map(x=>`<path d="M${x-4} 37V9l4-6 4 6v28z"/>`).join('')}<rect x="0" y="13" width="64" height="4" rx="1"/><rect x="0" y="27" width="64" height="4" rx="1"/></g></svg>`;
 function endImg(side,size){const e=SCALE[side];return e&&e.image?`<img src="${esc(e.image)}" alt="" style="width:${size}px;height:${size}px;object-fit:contain;flex-shrink:0">`:'';}
 // "62%" with the picture of the end someone leans towards (or "Middle")
-function leanBadgeHtml(score,size=14){const l=leanOf(score);if(!l)return'';if(!l.side||!l.pct)return'<span>Middle</span>';return `${endImg(l.side,size)}<span>${l.pct}%</span><span class="visually-hidden">towards ${esc(SCALE[l.side].name)}</span>`;}
+function leanBadgeHtml(score,size=14){const l=leanOf(score);if(!l)return'';if(!l.side||!l.pct)return'<span>Middle</span>';return `${l.side==='left'?endImg('left',size):''}<span>${l.pct}%</span>${l.side==='right'?endImg('right',size):''}<span class="visually-hidden">towards ${esc(SCALE[l.side].name)}</span>`;}
 function fullAnswers(a){const out=new Array(NUM_Q).fill(0);if(Array.isArray(a))a.forEach((v,i)=>{if(i<NUM_Q)out[i]=Number(v)||0;});return out;}
 const RELIGIONS=["Atheist","Agnostic","Christian","Hindu","Jewish","Sikh","Muslim","Other"];
 
@@ -2388,8 +2390,9 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     const my=myAnswers[s]||0,them=answers[s]||0;
     const diff=Math.abs(my-them);
     const sameSign=(my===0&&them===0)||(my>0&&them>0)||(my<0&&them<0);
-    const col=!sameSign?'var(--red)':diff>=5?'var(--gold)':'var(--green)';
-    const label=!sameSign?'Differs':diff>=5?'Close':'Aligned';
+    // Differs: opposite sides, or one of you in the centre and the other not. Matched: same side, 0–3 apart. Aligned: same side, 4+ apart.
+    const col=!sameSign?'var(--red)':diff>=4?'var(--gold)':'var(--green)';
+    const label=!sameSign?'Differs':diff>=4?'Aligned':'Matched';
     const mySex=myProfile.sex||'male',theirSex=mySex==='male'?'female':'male';
     const genderIcon=(sex,color)=>sex==='male'
       ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:${color}"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>`
@@ -2401,7 +2404,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     const myP=toP(my),themP=toP(them);
     const lineLeft=Math.min(myP,themP),lineWidth=Math.abs(myP-themP);
     const myLabel=my>0?'+'+my:String(my),themLabel=them>0?'+'+them:String(them);
-    const sectionDivider=(!qObj.scoring&&QUESTIONS[i-1]&&QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:16px">Not counted in your Based Score</p>':'';
+    const sectionDivider=(!qObj.scoring&&QUESTIONS[i-1]&&QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:16px">Not counted in your score</p>':'';
     const religionTag=(s===FAITH_Q_INDEX&&them>0&&theirReligion)?`<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(201,168,76,0.12);color:var(--gold);border:0.5px solid rgba(201,168,76,0.3);white-space:nowrap;flex-shrink:0;margin-top:1px">${esc(theirReligion)}</span>`:'';
     return `${sectionDivider}<div style="margin-bottom:18px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
@@ -2454,7 +2457,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   if(isRealProfile&&!isMutual)actionRow+=`<div style="text-align:center;margin-top:18px"><button onclick="openReport('${profileKey}','${ja(name)}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${esc(name)}</button></div>`;
   const canGallery=isMutual&&/^[0-9a-f-]{36}$/.test(String(profileKey));
   const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden${canGallery?';cursor:pointer':''}"${canGallery?` role="button" aria-label="View ${esc(name)}’s photos" onclick="openMatchGallery('${profileKey}',0,'${ja(photoUrl)}')"`:''}><img src="${esc(photoUrl)}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${esc(name)}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4);color:var(--text-on-dark)">${esc(inits)}</div>`;
-  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${esc(name)}, ${age}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);return pp&&pp.verified?VERIFIED_TICK:'';})()}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);const t=pp?distanceText(pp):'';return t?` <span style="font-family:var(--sans);font-size:14px;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';})()}</div></div></div>${canGallery?'<div id="profile-photo-strip"></div>':''}${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div>${(()=>{const l=leanOf(basedScore);return l&&l.side&&l.pct?`<div style="display:flex;align-items:center;justify-content:center;gap:8px">${endImg(l.side,28)}<span style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${l.pct}%</span></div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">towards ${esc(SCALE[l.side].name)}</div>`:`<div style="font-size:22px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif);line-height:34px">Middle</div>`;})()}</div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
+  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${esc(name)}, ${age}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);return pp&&pp.verified?VERIFIED_TICK:'';})()}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);const t=pp?distanceText(pp):'';return t?` <span style="font-family:var(--sans);font-size:14px;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';})()}</div></div></div>${canGallery?'<div id="profile-photo-strip"></div>':''}${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How the score is worked out">i</button></div>${(()=>{const l=leanOf(basedScore);return l&&l.side&&l.pct?`<div style="display:flex;align-items:center;justify-content:center;gap:8px">${l.side==='left'?endImg('left',28):''}<span style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${l.pct}%</span>${l.side==='right'?endImg('right',28):''}</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">towards ${esc(SCALE[l.side].name)}</div>`:`<div style="font-size:22px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif);line-height:34px">Middle</div>`;})()}</div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
   goTo('screen-profile');
   if(canGallery)matchPhotos(profileKey).then(urls=>{
     const strip=document.getElementById('profile-photo-strip');
@@ -3187,7 +3190,7 @@ function stmtPairHtml(q){return `<div style="display:flex;gap:10px;font-size:12.
 function showInfoPopup(idx,qSet=QUESTIONS){const q=qSet[idx];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${esc(q.text)}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${esc(q.info)}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
 const SCORE_INFO={
   compat:{title:'Compatibility',text:'Calculates your compatibility with the person based on how you each scored the first 15 statements. The faith/abortion/euthanasia scores are excluded from the calculation.'},
-  based:{title:'Based Score',text:"Where this person sits overall across the questions that count towards matching: which end of the sliders they lean towards, and how far. 0% is right in the middle; 100% is fully at that end. The questions shown on the profile but not counted (such as faith) aren't included."}
+  based:{title:'Score',text:"Where this person sits overall across the questions that count towards matching: which end of the sliders they lean towards, and how far. 0% is right in the middle; 100% is fully at that end. The questions shown on the profile but not counted (such as faith) aren't included."}
 };
 function showScoreInfoPopup(type){const info=SCORE_INFO[type];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${info.title}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${info.text}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
 function finishQuestions(){if(currentUser){updateProfileAnswers();}else{signUpAndSave();}}
@@ -3209,7 +3212,7 @@ function openModifyAnswers(){
 function renderModifyAnswers(){
   document.getElementById('modify-answers-list').innerHTML=QUESTIONS.map((q,i)=>{
     const s=q.slot,v=modifyTempAnswers[s]||0;
-    const sectionDivider=(!q.scoring&&QUESTIONS[i-1]&&QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:22px">Visible to others, not counted in your Based Score</p>':'';
+    const sectionDivider=(!q.scoring&&QUESTIONS[i-1]&&QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:22px">Visible to others, not counted in your score</p>':'';
     const isFaithQ=s===FAITH_Q_INDEX;
     const extraOninput=isFaithQ?`document.getElementById('modify-religion-picker').style.display=this.value>0?'grid':'none';`:'';
     const picker=isFaithQ?religionPickerHtml('modify-religion-picker',v>0?modifyTempReligion:null,v>0):'';
@@ -3255,8 +3258,8 @@ function showResults(){
   arc.setAttribute('stroke-dasharray',`0 ${C}`);
   requestAnimationFrame(()=>requestAnimationFrame(()=>arc.setAttribute('stroke-dasharray',`${(l.pct/100)*(C/2)} ${C}`)));
   document.getElementById('score-pct-display').textContent=l.pct+'%';
-  document.getElementById('score-end-img').innerHTML=l.side&&l.pct?endImg(l.side,38):'';
-  document.getElementById('score-end-name').textContent=l.side&&l.pct?'towards '+SCALE[l.side].name:'In the middle';
+  document.getElementById('score-end-img').innerHTML=l.side&&l.pct?endImg(l.side,38):FENCE_SVG;
+  document.getElementById('score-end-name').textContent=l.side&&l.pct?'towards '+SCALE[l.side].name:'You’re on the fence!';
   for(const side of ['left','right']){
     const on=l.side===side&&l.pct;
     document.getElementById('score-end-'+side).innerHTML=`<div style="opacity:${on?1:0.45}">${endImg(side,30)}</div><div style="font-size:11px;line-height:1.3;color:${on?'var(--gold)':'var(--text-muted)'}">${esc(SCALE[side].name)}</div>`;
@@ -4240,7 +4243,7 @@ function loadReligionFilter(p){
 // ─── Dealbreaker filters (BASED Gold) ─────────────────────────────────────────
 // Questions where someone must be on the same side as you to appear in Search.
 // "Aligned" here means they don't Differ from you (same side of the question,
-// the Aligned/Close labels on a profile). Saved on the account from its own
+// the Matched/Aligned labels on a profile). Saved on the account from its own
 // screen (Settings → Dealbreaker filters).
 let dealbreakers=new Set(),pendingDealbreakers=null;
 function sameSide(mine,theirs){mine=mine||0;theirs=theirs||0;return (mine===0&&theirs===0)||(mine>0&&theirs>0)||(mine<0&&theirs<0);}
