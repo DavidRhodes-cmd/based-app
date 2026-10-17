@@ -97,7 +97,8 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .profile-card.locked{opacity:0.4;pointer-events:none;filter:blur(2px);}
 .compat-track{flex:1;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;}
 .compat-fill{height:3px;border-radius:2px;background:var(--gold);}
-.based-badge{position:absolute;top:11px;right:13px;font-size:10px;color:var(--text-on-dark);border:0.5px solid rgba(201,168,76,0.3);border-radius:6px;padding:2px 7px;}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.based-badge{position:absolute;top:11px;right:13px;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--text-on-dark);border:0.5px solid rgba(201,168,76,0.3);border-radius:6px;padding:2px 7px;}
 .tab-bar{display:flex;border-bottom:0.5px solid rgba(255,255,255,0.08);flex-shrink:0;background:var(--navy);}
 .tab-btn{flex:1;background:transparent;border:none;padding:13px 8px;font-size:12px;color:var(--text-muted);cursor:pointer;font-family:var(--sans);border-bottom:2px solid transparent;display:flex;align-items:center;justify-content:center;gap:5px;position:relative;}
 .tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
@@ -441,15 +442,22 @@ button.ins-tile:active{opacity:0.75;}
   <div style="padding:28px 16px;flex:1;display:flex;flex-direction:column;align-items:center">
     <p style="font-family:var(--serif);font-size:24px;color:var(--text-on-dark);text-align:center;margin-bottom:6px">Your Based Score</p>
     <p style="font-size:14px;color:var(--text-muted);text-align:center;margin-bottom:30px" id="results-answer-count">Calculated from your 15 answers</p>
-    <div style="position:relative;width:160px;height:160px;margin:0 auto 30px">
-      <svg width="160" height="160" viewBox="0 0 160 160" style="transform:rotate(-90deg)">
-        <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="9"/>
-        <circle cx="80" cy="80" r="68" fill="none" stroke="#c9a84c" stroke-width="9" stroke-linecap="round" stroke-dasharray="427" id="score-arc" stroke-dashoffset="427"/>
-      </svg>
-      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
-        <div style="font-size:36px;font-weight:700;color:var(--gold);font-family:var(--serif)" id="score-pct-display">—</div>
-        <div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:340px;margin:0 auto 26px">
+      <div style="width:64px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center" id="score-end-left"></div>
+      <div style="position:relative;width:180px;height:180px;flex-shrink:0">
+        <svg width="180" height="180" viewBox="0 0 160 160" aria-hidden="true">
+          <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="9"/>
+          <line x1="80" y1="141" x2="80" y2="156" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+          <line x1="80" y1="4" x2="80" y2="19" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+          <circle cx="80" cy="80" r="68" fill="none" stroke="#c9a84c" stroke-width="9" stroke-linecap="round" id="score-arc" stroke-dasharray="0 428" transform="rotate(90 80 80)" style="transition:stroke-dasharray .9s ease"/>
+        </svg>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;width:120px">
+          <div id="score-end-img" style="height:38px;display:flex;align-items:center"></div>
+          <div style="font-size:34px;line-height:1.1;font-weight:700;color:var(--gold);font-family:var(--serif)" id="score-pct-display">—</div>
+          <div style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px" id="score-end-name"></div>
+        </div>
       </div>
+      <div style="width:64px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center" id="score-end-right"></div>
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;width:100%" class="bottom-safe">
       <button class="btn-primary" onclick="afterResults()">Find my matches</button>
@@ -970,6 +978,16 @@ const QUESTIONS_CACHE_KEY='based_questions_v1';
   setQuestions(rows||DEFAULT_QUESTIONS);
 })();
 // A member's answers, one place per question (any the list doesn't have yet are 0, the middle)
+// The two ends of the slider: a name and a picture each, set in the admin console (public.scale_ends).
+// The Based Score (0–100, 50 in the middle) is shown as how far someone leans towards one end.
+const DEFAULT_SCALE_ENDS={left:{name:'Left',image:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAFb0lEQVR4nOydXWwUVRTH/2d22wYFRQ2iMcaYCH4Ro5KljUGtT9J2QTBa24QHfeLBJ01UoiT2ScFE3/DBFxOj2aUg+LEtmqgFqbhtI/ggbVJ84cGYhohikELbneOZ1ppldxuzZu6cmc35Jd2dnb2dj/u7596Ze2+naRiqpGGoYgKUMQHKmABlTIAyJkCZRAsYy3VtYUK6qaXpmwe2ffJHPb9b/LDjGi/tbd/QM/AuFEm0gBJRnoBlM5dm94zkul4EEcvqCWYc9Tz/48zE4DD1wV9MPzTUnl4xtfy+OeBpMO+QxL/KalUBhARTzGcvBgKYeYKI7q5KwPhNzvC4ZPa4RMp6SfuwnHJLWYLx1p6Be6FIQ7QBUpKpZkki3CCvm+XbzbW+ZyYPylgjrIwJUMYEKGMClDEBypgAZRpCAM1fiZbD47KmKF/8CN8/RZQiJn6CQR2S9g65/pyV5RHyfNWbsIDGiADCe5LhK+Vm60yTN3tsffeXP9dI9TViSGMI8HCstbvwAxKItQHKmABlTIAyJkAZE6CMCVDGBCiTuBGxYn92Y6q0UHB84i+CES4C75Bb3clSCnNt3YVhJIhECZBx390yuvXKwif+t/+Byl6lm2FPa+/ATiSERAgYzXU95BOelCH3zdLdsJaWOOxAiaSZlDSfe4yDG3oHjiPmxFbA6L7OR3zf65Yc3SoZfgv+ByLkFznBQ0S8f8Mzg98ihsROwPe5zlYib7ccWDtCRGR8JX1GO9u6B2LVZxQbAcX+jnvIT+2RxSycwUGzcUDed7X2DE4iBsRCQDGXfZ4I78hiM6JhRq6cXtCeFRegKuCn/vblf5WWvy9H8RQ0YBy4OnXhuXXdRy5ACTUBY/mudSWmg1Ly10ARqZRON6VmO5cYxHGOioDiR9k1lOLvZPerEAv4rPxs1GgXIp+aN/zplhWS+YX4ZH5AcCzeZ8GMaURMpAIk3KlpurRfTngt4sedSKfywTEiQiIVMJrvelMy/3HEFMn5joVjjHSf0TDa33k/+3RiqYnM8YHZY399pvfwSURAZBHg+9QX/8wPICqR9zoiIpIMSU7pXyS6KIgkApJT+heJLgqcZ0rySv8i0USB+wjwsSl5mR8wHwWPwjHOBfhMW5FQpNRsgmOclszgrlduvM4nMwLmmeG50qq27Yf/hCOcRkB6utSV4MwPaEba64RDHFdB1IbE4/Yc3Apg3ISk4/gcnE7Mkron8QJcn4PbmXHUABFASRYAnP7ngRgJhs/BIYl+WEcjYJNzlQlVQDGfPSBXDaqPf3EO4VRbTyG0WRxhR8Dtctt1FxoYadMuIkSsClLGBCgTrgDmvVJH3oxGhsO9rLbLUGWcV0EjuWwfEkxrb6EPDnHfBhAim2HgiD44xBphZTQFjHmMlytX+oShxWVmPpMCPVuZpgTsk/uNG8vXMWMqBfRUbQ/4QKLw1sXPss/HauzzLXnLQAFFAXwu0ztwpHLtSL78D2RoOtNbqE6Ty16uXCdCLmd6CrW2d8WNU83t5bO/QwmrgpQxAcqYAGVMgDImQBkToIwJUMYEKGMClFEUQNeP5bLtlWv9Kz7xslpppCuipbIfXboiWmpuj3FVeaf7Evu8DkpoRkCmvN+nFkR0m2ROVRqqmRara6Wt5L/2GTVWBSnjXgDjKIwlsSFJZUKNAOkm3sbEMXoGRPgQ01kZpjyEkAhVABN2EehBNDByjifkLZ4CjPoxAcqEKoAYb8uV9mo0MARvCiFS91XQyUNbV7I/cy2MKshrPl/vv9WtOwJmLs2+JHt6FUY1PPuGvL5Wz69YG6CMCVDGBChTt4AmpPbOeKWDMKpoLqXqnrpufUHKWBWkjAlQxgQo8zcAAAD//9F0yHAAAAAGSURBVAMAf5aOCNd7IhEAAAAASUVORK5CYII='},right:{name:'Right',image:'data:image/png;base64,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'}};
+const SCALE_CACHE_KEY='based_scale_ends_v1';
+let SCALE=DEFAULT_SCALE_ENDS;
+try{const c=JSON.parse(localStorage.getItem(SCALE_CACHE_KEY)||'null');if(c&&c.left&&c.right)SCALE=c;}catch(e){}
+function leanOf(score){const s=Number(score);if(!Number.isFinite(s))return null;return {pct:Math.min(100,Math.round(Math.abs(s-50)*2)),side:s>50?'right':s<50?'left':null};}
+function endImg(side,size){const e=SCALE[side];return e&&e.image?`<img src="${esc(e.image)}" alt="" style="width:${size}px;height:${size}px;object-fit:contain;flex-shrink:0">`:'';}
+// "62%" with the picture of the end someone leans towards (or "Middle")
+function leanBadgeHtml(score,size=14){const l=leanOf(score);if(!l)return'';if(!l.side||!l.pct)return'<span>Middle</span>';return `${endImg(l.side,size)}<span>${l.pct}%</span><span class="visually-hidden">towards ${esc(SCALE[l.side].name)}</span>`;}
 function fullAnswers(a){const out=new Array(NUM_Q).fill(0);if(Array.isArray(a))a.forEach((v,i)=>{if(i<NUM_Q)out[i]=Number(v)||0;});return out;}
 const RELIGIONS=["Atheist","Agnostic","Christian","Hindu","Jewish","Sikh","Muslim","Other"];
 
@@ -1039,6 +1057,19 @@ async function loadQuestions(){
   }catch(e){return false;}
 }
 const questionsReady=loadQuestions();
+async function loadScaleEnds(){
+  try{
+    const {data,error}=await sb.from('scale_ends').select('side,name,image');
+    if(error||!Array.isArray(data))return false;
+    const next={left:SCALE.left,right:SCALE.right};
+    for(const r of data)if((r.side==='left'||r.side==='right')&&r.name&&r.image)next[r.side]={name:r.name,image:r.image};
+    SCALE=next;
+    try{localStorage.setItem(SCALE_CACHE_KEY,JSON.stringify(SCALE));}catch(e){}
+    if(document.getElementById('screen-results')?.classList.contains('active'))showResults();
+    return true;
+  }catch(e){return false;}
+}
+const scaleReady=loadScaleEnds();
 let pendingEmail='',pendingPassword=''; // stored when user moves from details to questions
 let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null,extra_photos:[]};
 let myAnswers=new Array(NUM_Q).fill(0);
@@ -2314,7 +2345,7 @@ function renderProfiles(minPct){
     const avatarContent=p.photo_url?`<img src="${esc(p.photo_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" />`:`<span style="color:var(--text-on-dark)">${esc(p.initials)}</span>`;
     const aStr=JSON.stringify(p.answers).replace(/"/g,'&quot;');
     if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="showUpgradePrompt('profile_views','limit')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:7px">${perm('profile_views').period==='day'?'More views tomorrow, or upgrade':'Upgrade to view'}</div><div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div></div>`;}
-    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${ja(aStr)}',${p.compat},${p.basedScore},'${ja(p.initials)}','${ja(p.name)}',${p.age},'','${ja(p.photo_url||'')}','${profileKey}','${ja(p.religion||'')}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px;padding-right:72px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</div>${badge?`<div style="margin-bottom:6px">${badge}</div>`:'<div style="margin-bottom:6px"></div>'}<div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">BASED ${p.basedScore}%</div></div>`;}
+    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${ja(aStr)}',${p.compat},${p.basedScore},'${ja(p.initials)}','${ja(p.name)}',${p.age},'','${ja(p.photo_url||'')}','${profileKey}','${ja(p.religion||'')}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px;padding-right:72px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</div>${badge?`<div style="margin-bottom:6px">${badge}</div>`:'<div style="margin-bottom:6px"></div>'}<div style="display:flex;align-items:center;gap:9px"><div class="compat-track"><div class="compat-fill" style="width:${p.compat}%;background:${compatColor}"></div></div><span style="font-size:13px;font-weight:600;color:${compatColor};min-width:38px;text-align:right">${p.compat}%</span></div></div><div class="based-badge">${leanBadgeHtml(p.basedScore)}</div></div>`;}
   });
   if(outOfFreeViews()){const pv=perm('profile_views');html+=`<div style="background:rgba(15,18,30,0.95);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;padding:22px;margin-top:6px;text-align:center"><i class="ti ti-crown" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:8px">${pv.period==='day'?`You’ve used today’s ${pv.limit} profile views`:`You’ve seen your ${pv.limit} free profiles`}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">${pv.period==='day'?'More tomorrow — or upgrade for unlimited browsing.':'Verify your ID for 5 a day, or upgrade for unlimited browsing.'}</p><button class="btn-primary" onclick="showUpgradePrompt('profile_views','limit')" style="font-size:15px;padding:14px">See options</button></div>`;}
   container.innerHTML=html;
@@ -2423,7 +2454,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   if(isRealProfile&&!isMutual)actionRow+=`<div style="text-align:center;margin-top:18px"><button onclick="openReport('${profileKey}','${ja(name)}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${esc(name)}</button></div>`;
   const canGallery=isMutual&&/^[0-9a-f-]{36}$/.test(String(profileKey));
   const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden${canGallery?';cursor:pointer':''}"${canGallery?` role="button" aria-label="View ${esc(name)}’s photos" onclick="openMatchGallery('${profileKey}',0,'${ja(photoUrl)}')"`:''}><img src="${esc(photoUrl)}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${esc(name)}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4);color:var(--text-on-dark)">${esc(inits)}</div>`;
-  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${esc(name)}, ${age}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);return pp&&pp.verified?VERIFIED_TICK:'';})()}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);const t=pp?distanceText(pp):'';return t?` <span style="font-family:var(--sans);font-size:14px;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';})()}</div></div></div>${canGallery?'<div id="profile-photo-strip"></div>':''}${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${basedScore}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
+  document.getElementById('profile-detail-body').innerHTML=`<div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${esc(name)}, ${age}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);return pp&&pp.verified?VERIFIED_TICK:'';})()}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);const t=pp?distanceText(pp):'';return t?` <span style="font-family:var(--sans);font-size:14px;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';})()}</div></div></div>${canGallery?'<div id="profile-photo-strip"></div>':''}${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">BASED SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How Based Score is calculated">i</button></div>${(()=>{const l=leanOf(basedScore);return l&&l.side&&l.pct?`<div style="display:flex;align-items:center;justify-content:center;gap:8px">${endImg(l.side,28)}<span style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${l.pct}%</span></div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">towards ${esc(SCALE[l.side].name)}</div>`:`<div style="font-size:22px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif);line-height:34px">Middle</div>`;})()}</div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div>${qRows}${actionRow}`;
   goTo('screen-profile');
   if(canGallery)matchPhotos(profileKey).then(urls=>{
     const strip=document.getElementById('profile-photo-strip');
@@ -3058,7 +3089,7 @@ initRepositionDrag();
 renderSignupExtras();
 // Sign-up asks one question per screen; the last screen's button finishes
 let signupIdx=0,signupFinishLabel='See my score';
-function startQuestions(){myAnswers=new Array(NUM_Q).fill(0);signupIdx=0;signupFinishLabel='Create my account';renderSignupQuestions();goTo('screen-questions');}
+function startQuestions(){myAnswers=new Array(NUM_Q).fill(0);signupIdx=0;signupFinishLabel='Create my account';goTo('screen-questions');renderSignupQuestions();}
 function resetQuestions(){myAnswers=new Array(NUM_Q).fill(0);signupIdx=0;signupFinishLabel='See my score';renderSignupQuestions();}
 function signupBack(){if(signupIdx>0){signupIdx--;renderSignupQuestions();}else goTo('screen-details');}
 function signupNext(){if(signupIdx<SIGNUP_QUESTIONS.length-1){signupIdx++;renderSignupQuestions();}else finishQuestions();}
@@ -3078,12 +3109,11 @@ function renderSignupQuestions(){
   if(signupIdx>=qs.length)signupIdx=qs.length-1;
   const i=signupIdx,q=qs[i],n=qs.length,v=myAnswers[q.slot]||0;
   const isFaithQ=q.slot===FAITH_Q_INDEX;
-  const card=(id,text,right)=>`<div id="${id}" style="box-sizing:border-box;min-height:150px;border-radius:16px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);transition:background .15s,border-color .15s"><p class="sq-text" style="margin:0;flex:1;font-family:var(--serif);font-size:16px;line-height:1.4;color:var(--text-on-dark)">${esc(text)}</p><div class="sq-tag" style="font-size:11.5px;font-weight:600;color:var(--gold-light);min-height:15px;${right?'text-align:right':''}"></div></div>`;
+  const card=(id,text,right)=>`<div id="${id}" style="box-sizing:border-box;min-height:150px;border-radius:16px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);transition:background .15s,border-color .15s"><p class="sq-text" style="margin:0;flex:1;font-family:var(--serif);font-size:16px;line-height:1.4;color:var(--text-on-dark);overflow-wrap:break-word">${sqText(text)}</p><div class="sq-tag" style="font-size:11.5px;font-weight:600;color:var(--gold-light);min-height:15px;${right?'text-align:right':''}"></div></div>`;
   const tick=(h,o)=>`<div style="width:1px;height:${h}px;background:rgba(255,255,255,${o})"></div>`;
   document.getElementById('signup-questions-list').innerHTML=`
-    ${i===0?`<div class="banner-note" style="margin-bottom:20px">Don't answer what you think others will want to hear. Your authenticity matters.</div>`:''}
     <div style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:${q.scoring?'var(--gold)':'var(--text-muted)'};margin-bottom:10px">${q.scoring?'Your values':'On your profile · not part of matching'}</div>
-    <h2 style="margin:0 0 20px;font-family:var(--serif);font-weight:normal;font-size:28px;line-height:1.15;color:var(--text-on-dark)">${esc(q.text)}</h2>
+    <h2 id="sq-heading" style="margin:0 0 20px;font-family:var(--serif);font-weight:normal;font-size:28px;line-height:1.15;color:var(--text-on-dark);display:flex;align-items:flex-end">${esc(q.text)}</h2>
     <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${card('sq-left',q.left,false)}${card('sq-right',q.right,true)}</div>
     <div style="margin-top:28px">
       <input type="range" id="sq-slider" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" aria-label="Where you sit between the two statements" oninput="signupSlide(this.value)" />
@@ -3095,13 +3125,44 @@ function renderSignupQuestions(){
       <button type="button" onclick="toggleSignupInfo(this)" aria-expanded="false" style="min-height:44px;background:transparent;border:none;padding:0;color:var(--gold);font-size:14px;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;gap:8px"><span class="info-icon-btn" style="pointer-events:none;border-color:var(--gold);color:var(--gold)">i</span><span>What does this mean?</span></button>
       <p id="sq-info" hidden style="margin:4px 0 0;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.12);font-size:14px;line-height:1.55;color:#c9c6c0">${esc(q.info)}</p>
     </div>`:''}
-    ${i===0?`<p style="margin:22px 0 0;font-size:12.5px;line-height:1.5;color:var(--text-muted);text-align:center">Slide towards whichever statement is closer to your view. The middle is a fine answer too.</p>`:''}`;
+    ${i===0?`<p style="margin:22px 0 0;font-size:12.5px;line-height:1.5;color:var(--text-muted);text-align:center">Slide towards whichever statement is closer to your view. The middle is a fine answer too.</p>
+      <div class="banner-note" style="margin-top:16px">Don't answer what you think others will want to hear. Your authenticity matters.</div>`:''}`;
   document.getElementById('q-progress-text').textContent=`Question ${i+1} of ${n}`;
   document.getElementById('q-progress-bar').style.width=Math.round((i+1)/n*100)+'%';
   document.getElementById('q-next-btn').textContent=i===n-1?signupFinishLabel:'Next';
   const wrap=document.getElementById('signup-questions-list-wrap');if(wrap)wrap.scrollTop=0;
+  sizeSignupLayout();
   signupPaint();
 }
+// Every question screen gets the same heading space and the same size boxes (big enough for the
+// longest heading and statement in the set), so the slider is always in the same place
+let sqSizeCache=null;
+function sizeSignupLayout(retried){
+  const l=document.getElementById('sq-left'),h=document.getElementById('sq-heading');if(!l||!h)return;
+  const w=l.getBoundingClientRect().width,hw=h.getBoundingClientRect().width;
+  if(!w||!hw){if(!retried)requestAnimationFrame(()=>sizeSignupLayout(true));return;}
+  const key=w+'|'+hw+'|'+SIGNUP_QUESTIONS.map(q=>q.text+q.left+q.right).join('|');
+  if(!sqSizeCache||sqSizeCache.key!==key){
+    const m=document.createElement('div');m.style.cssText='position:absolute;visibility:hidden;left:-9999px;top:0';
+    document.body.appendChild(m);
+    m.innerHTML=l.outerHTML.replace(/ id="sq-left"/,'')+h.outerHTML.replace(/ id="sq-heading"/,'');
+    const c=m.children[0],hh=m.children[1];
+    c.style.width=w+'px';c.style.height='auto';c.style.minHeight='0';hh.style.width=hw+'px';hh.style.minHeight='0';
+    c.querySelector('.sq-tag').textContent='Slightly closer to this';
+    let card=0,head=0;
+    for(const q of SIGNUP_QUESTIONS){
+      for(const t of [q.left,q.right]){c.querySelector('.sq-text').innerHTML=sqText(t);card=Math.max(card,c.getBoundingClientRect().height);}
+      hh.textContent=q.text;head=Math.max(head,hh.getBoundingClientRect().height);
+    }
+    m.remove();
+    sqSizeCache={key,card:Math.ceil(card),head:Math.ceil(head)};
+  }
+  l.style.height=sqSizeCache.card+'px';document.getElementById('sq-right').style.height=sqSizeCache.card+'px';
+  h.style.minHeight=sqSizeCache.head+'px';
+}
+window.addEventListener('resize',()=>{if(document.getElementById('screen-questions')?.classList.contains('active'))sizeSignupLayout();});
+// Statement text, allowed to wrap after a slash ("provider/protector")
+function sqText(t){return esc(t).replace(/\//g,'/<wbr>');}
 function toggleSignupInfo(btn){const p=document.getElementById('sq-info');if(!p)return;p.hidden=!p.hidden;btn.setAttribute('aria-expanded',String(!p.hidden));btn.lastElementChild.textContent=p.hidden?'What does this mean?':'Hide explanation';}
 function signupSlide(val){const q=SIGNUP_QUESTIONS[signupIdx];myAnswers[q.slot]=parseInt(val,10)||0;signupPaint();}
 // Lights up the statement the slider is closer to (more strongly the further it goes)
@@ -3126,7 +3187,7 @@ function stmtPairHtml(q){return `<div style="display:flex;gap:10px;font-size:12.
 function showInfoPopup(idx,qSet=QUESTIONS){const q=qSet[idx];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${esc(q.text)}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${esc(q.info)}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
 const SCORE_INFO={
   compat:{title:'Compatibility',text:'Calculates your compatibility with the person based on how you each scored the first 15 statements. The faith/abortion/euthanasia scores are excluded from the calculation.'},
-  based:{title:'Based Score',text:"Calculates this person's own Based Score from how they answered the first 15 statements. The faith/abortion/euthanasia scores are excluded from the calculation."}
+  based:{title:'Based Score',text:"Where this person sits overall across the questions that count towards matching: which end of the sliders they lean towards, and how far. 0% is right in the middle; 100% is fully at that end. The questions shown on the profile but not counted (such as faith) aren't included."}
 };
 function showScoreInfoPopup(type){const info=SCORE_INFO[type];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${info.title}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${info.text}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
 function finishQuestions(){if(currentUser){updateProfileAnswers();}else{signUpAndSave();}}
@@ -3185,12 +3246,21 @@ async function saveModifyAnswers(){
 }
 
 function showResults(){
-  const pct=calcBasedScore(myAnswers);
-  document.getElementById('score-pct-display').textContent=pct+'%';
+  const score=calcBasedScore(myAnswers),l=leanOf(score)||{pct:0,side:null};
   document.getElementById('results-answer-count').textContent='Calculated from your '+NUM_SCORING+' answers';
-  const circ=2*Math.PI*68;
-  document.getElementById('score-arc').style.strokeDashoffset=circ*(1-pct/100);
-  document.getElementById('score-arc').style.strokeDasharray=circ;
+  // The ring fills from the bottom, up the side of the end you lean towards: 100% reaches the top
+  const C=2*Math.PI*68,arc=document.getElementById('score-arc');
+  arc.setAttribute('transform',l.side==='right'?'translate(160 0) scale(-1 1) rotate(90 80 80)':'rotate(90 80 80)');
+  arc.style.opacity=l.pct?'1':'0';
+  arc.setAttribute('stroke-dasharray',`0 ${C}`);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>arc.setAttribute('stroke-dasharray',`${(l.pct/100)*(C/2)} ${C}`)));
+  document.getElementById('score-pct-display').textContent=l.pct+'%';
+  document.getElementById('score-end-img').innerHTML=l.side&&l.pct?endImg(l.side,38):'';
+  document.getElementById('score-end-name').textContent=l.side&&l.pct?'towards '+SCALE[l.side].name:'In the middle';
+  for(const side of ['left','right']){
+    const on=l.side===side&&l.pct;
+    document.getElementById('score-end-'+side).innerHTML=`<div style="opacity:${on?1:0.45}">${endImg(side,30)}</div><div style="font-size:11px;line-height:1.3;color:${on?'var(--gold)':'var(--text-muted)'}">${esc(SCALE[side].name)}</div>`;
+  }
   goTo('screen-results');
   renderProfiles(0);
 }
