@@ -435,9 +435,7 @@ button.ins-tile:active{opacity:0.75;}
 <!-- RESULTS -->
 <div id="screen-results" class="screen">
   <div class="app-header">
-    <div style="width:28px"></div>
-    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
-    <div style="width:28px"></div>
+    <div class="brand-lockup" role="img" aria-label="BASED on values"><svg width="26" height="25" viewBox="200 215 620 600" aria-hidden="true" style="flex-shrink:0"><defs><linearGradient id="rs-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient><linearGradient id="rs-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5e3ad"/><stop offset=".5" stop-color="#d9bb66"/><stop offset="1" stop-color="#b08d3c"/></linearGradient></defs><g transform="translate(232 275) rotate(-14 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#rs-g1)"/></g><g transform="translate(352 335) rotate(12 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#rs-g2)" stroke="#232838" stroke-width="4.5" paint-order="stroke"/></g></svg><span class="brand-words"><span class="brand-name">BASED</span><span class="brand-tag">on values</span></span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.6" stroke-linecap="round" aria-hidden="true" style="flex-shrink:0"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.4" y1="15.4" x2="21" y2="21"/></svg></div>
   </div>
   <div style="padding:28px 16px;flex:1;display:flex;flex-direction:column;align-items:center">
     <p style="font-family:var(--serif);font-size:24px;color:var(--text-on-dark);text-align:center;margin-bottom:6px">Your Score</p>
@@ -3258,8 +3256,10 @@ function showResults(){
   arc.setAttribute('stroke-dasharray',`0 ${C}`);
   requestAnimationFrame(()=>requestAnimationFrame(()=>arc.setAttribute('stroke-dasharray',`${(l.pct/100)*(C/2)} ${C}`)));
   document.getElementById('score-pct-display').textContent=l.pct+'%';
-  document.getElementById('score-end-img').innerHTML=l.side&&l.pct?endImg(l.side,38):FENCE_SVG;
-  document.getElementById('score-end-name').textContent=l.side&&l.pct?'towards '+SCALE[l.side].name:'You’re on the fence!';
+  // The fence only goes up when every answer was 0, not when answers on both sides balance out
+  const allZero=QUESTIONS.every(q=>(myAnswers[q.slot]||0)===0);
+  document.getElementById('score-end-img').innerHTML=l.side&&l.pct?endImg(l.side,38):allZero?FENCE_SVG:'';
+  document.getElementById('score-end-name').textContent=l.side&&l.pct?'towards '+SCALE[l.side].name:allZero?'You’re on the fence!':'In the middle';
   for(const side of ['left','right']){
     const on=l.side===side&&l.pct;
     document.getElementById('score-end-'+side).innerHTML=`<div style="opacity:${on?1:0.45}">${endImg(side,30)}</div><div style="font-size:11px;line-height:1.3;color:${on?'var(--gold)':'var(--text-muted)'}">${esc(SCALE[side].name)}</div>`;
