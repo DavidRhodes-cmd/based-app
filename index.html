@@ -1073,6 +1073,8 @@ async function loadScaleEnds(){
   }catch(e){return false;}
 }
 const scaleReady=loadScaleEnds();
+// Coming back to the app picks up any change made in the admin console (ends of the slider, questions)
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){loadScaleEnds();loadQuestions();}});
 let pendingEmail='',pendingPassword=''; // stored when user moves from details to questions
 let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null,extra_photos:[]};
 let myAnswers=new Array(NUM_Q).fill(0);
@@ -2407,7 +2409,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     const myLabel=my>0?'+'+my:String(my),themLabel=them>0?'+'+them:String(them);
     const sectionDivider=(!qObj.scoring&&QUESTIONS[i-1]&&QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:16px">Not counted in your score</p>':'';
     const religionTag=(s===FAITH_Q_INDEX&&them>0&&theirReligion)?`<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(201,168,76,0.12);color:var(--gold);border:0.5px solid rgba(201,168,76,0.3);white-space:nowrap;flex-shrink:0;margin-top:1px">${esc(theirReligion)}</span>`:'';
-    return `${sectionDivider}<div style="margin-bottom:18px">
+    return `${sectionDivider}<div class="q-card" style="margin-bottom:12px;padding:14px 14px 10px;background:rgba(255,255,255,0.035);border:0.5px solid rgba(255,255,255,0.08);border-radius:14px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
         <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${esc(q.text)}</p>
         <span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${col}22;color:${col};border:0.5px solid ${col}55;white-space:nowrap;flex-shrink:0;margin-top:1px">${label}</span>
@@ -3217,14 +3219,15 @@ function renderModifyAnswers(){
     const isFaithQ=s===FAITH_Q_INDEX;
     const extraOninput=isFaithQ?`document.getElementById('modify-religion-picker').style.display=this.value>0?'grid':'none';`:'';
     const picker=isFaithQ?religionPickerHtml('modify-religion-picker',v>0?modifyTempReligion:null,v>0):'';
-    return `${sectionDivider}<div style="margin-bottom:26px">
+    return `${sectionDivider}<div class="q-card" style="margin-bottom:12px;padding:14px 14px 10px;background:rgba(255,255,255,0.035);border:0.5px solid rgba(255,255,255,0.08);border-radius:14px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
         <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${esc(q.text)}</p>
         <span id="modify-val-${i}" style="font-size:13px;color:var(--gold);font-weight:600;flex-shrink:0;margin-top:1px">${v>0?'+'+v:v}</span>
         <button class="info-icon-btn" onclick="showInfoPopup(${i})" aria-label="What does this mean?">i</button>
       </div>
       ${stmtPairHtml(q)}
-      <input type="range" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${s}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=this.value>0?'+'+this.value:this.value;${extraOninput}" />
+      <div style="position:relative"><div aria-hidden="true" style="position:absolute;left:50%;top:50%;width:1px;height:16px;background:rgba(255,255,255,0.35);transform:translate(-50%,-50%);pointer-events:none"></div>
+      <input type="range" class="q-slider" style="width:100%;position:relative;display:block;background:transparent;background-image:linear-gradient(rgba(255,255,255,0.12),rgba(255,255,255,0.12));background-size:100% 5px;background-repeat:no-repeat;background-position:center;height:26px" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${s}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=this.value>0?'+'+this.value:this.value;${extraOninput}" /></div>
       ${picker}
     </div>`;
   }).join('');
