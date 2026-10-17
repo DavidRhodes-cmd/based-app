@@ -370,7 +370,7 @@ button.ins-tile:active{opacity:0.75;}
 <!-- SUPPORT -->
 <div id="screen-support" class="screen">
   <div class="app-header">
-    <button class="btn-back" onclick="goTo('screen-main')"><i class="ti ti-arrow-left"></i></button>
+    <button class="btn-back" onclick="menuBack()"><i class="ti ti-arrow-left"></i></button>
     <span style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark)">Support</span>
     <div style="width:28px"></div>
   </div>
@@ -519,7 +519,7 @@ button.ins-tile:active{opacity:0.75;}
     <div style="display:flex;align-items:center;gap:9px"><div class="brand-lockup" role="img" aria-label="BASED on values"><svg width="26" height="25" viewBox="200 215 620 600" aria-hidden="true" style="flex-shrink:0"><defs><linearGradient id="hd-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient><linearGradient id="hd-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5e3ad"/><stop offset=".5" stop-color="#d9bb66"/><stop offset="1" stop-color="#b08d3c"/></linearGradient></defs><g transform="translate(232 275) rotate(-14 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#hd-g1)"/></g><g transform="translate(352 335) rotate(12 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#hd-g2)" stroke="#232838" stroke-width="4.5" paint-order="stroke"/></g></svg><span class="brand-words"><span class="brand-name">BASED</span><span class="brand-tag">on values</span></span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.6" stroke-linecap="round" aria-hidden="true" style="flex-shrink:0"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.4" y1="15.4" x2="21" y2="21"/></svg></div><i id="header-verified-tick" class="ti ti-discount-check-filled" title="You’re verified" style="display:none;font-size:22px;line-height:22px;color:var(--verified)"></i></div>
     <button id="get-verified-btn" onclick="openVerifyScreen('header')" style="display:none;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:10px;padding:6px 10px;color:var(--verified);font-size:14px;font-weight:600;font-family:var(--sans);line-height:20px;cursor:pointer;white-space:nowrap;margin-left:auto;margin-right:10px"><i class="ti ti-discount-check" style="font-size:16px"></i>Get verified</button>
     <div style="position:relative"><button id="settings-btn" aria-label="Menu" aria-haspopup="true" onclick="toggleMainMenu(event)" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:24px;padding:4px;line-height:1"><i class="ti ti-dots"></i></button>
-      <div id="main-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" onclick="closeMainMenu();openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="closeMainMenu();openSupport()"><i class="ti ti-lifebuoy"></i>Support</button><button role="menuitem" onclick="closeMainMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button></div></div>
+      <div id="main-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openSupport()"><i class="ti ti-lifebuoy"></i>Support</button><button role="menuitem" onclick="closeMainMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button></div></div>
   </div>
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-browse" onclick="switchTab('browse')"><i class="ti ti-search" style="font-size:15px"></i> Search</button>
@@ -587,7 +587,11 @@ button.ins-tile:active{opacity:0.75;}
     </div>
     <div style="position:relative">
       <button id="chat-menu-btn" onclick="toggleChatMenu(event)" aria-label="More options" aria-haspopup="true" style="background:transparent;border:none;color:var(--text-on-dark);font-size:22px;cursor:pointer;width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center"><i class="ti ti-dots"></i></button>
-      <div id="chat-menu" class="chat-menu" role="menu">
+      <div id="chat-menu" class="chat-menu" role="menu" style="min-width:190px">
+        <button role="menuitem" onclick="closeChatMenu();menuReturn='screen-chat';openEditProfile()"><i class="ti ti-settings"></i>Settings</button>
+        <button role="menuitem" onclick="closeChatMenu();menuReturn='screen-chat';openSupport()"><i class="ti ti-lifebuoy"></i>Support</button>
+        <button role="menuitem" onclick="closeChatMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button>
+        <div role="separator" style="height:0.5px;background:rgba(255,255,255,0.12);margin:4px 0"></div>
         <button role="menuitem" onclick="closeChatMenu();confirmBlock()"><i class="ti ti-ban"></i>Block this user</button>
         <button role="menuitem" class="danger" onclick="closeChatMenu();openReport(activeChatPartnerId,activeChatName)"><i class="ti ti-flag"></i>Report this user</button>
       </div>
@@ -4530,7 +4534,7 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
 })();
 
 // ─── Swipe on Support, or on a Terms / privacy page opened from it, to go back ─
-[['screen-support',()=>goTo('screen-main')],['screen-terms',()=>goTo(termsReturn)]].forEach(([id,back])=>{
+[['screen-support',()=>menuBack()],['screen-terms',()=>goTo(termsReturn)]].forEach(([id,back])=>{
   const container=document.getElementById(id);
   let startX=0,startY=0,tracking=false;
   container.addEventListener('touchstart',e=>{
@@ -4675,6 +4679,9 @@ async function executeUnmatch(pid,name){
 }
 
 // ─── Chat ⋯ menu: Block / Report ─────────────────────────────────────────────
+// Settings and Support opened from a chat's menu go back to that chat
+let menuReturn='screen-main';
+function menuBack(){const r=menuReturn;menuReturn='screen-main';goTo(r);}
 function toggleChatMenu(e){e.stopPropagation();document.getElementById('chat-menu').classList.toggle('open');}
 function closeChatMenu(){const m=document.getElementById('chat-menu');if(m)m.classList.remove('open');}
 document.addEventListener('click',e=>{if(!e.target.closest('#chat-menu'))closeChatMenu();});
@@ -5217,7 +5224,7 @@ function discardEditChanges(){
   }
   editPhotos=null;
   editSnapshot=null;editBefore=null;
-  goTo('screen-main');
+  menuBack();
 }
 
 // Date of birth can be corrected once (unless it's been confirmed by ID); after that, re-join
@@ -5305,7 +5312,7 @@ async function saveProfile(){
   }
   editSnapshot=null;editBefore=null;
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
-  goTo('screen-main');
+  menuBack();
 }
 
 // ─── Profile insights (BASED Gold) ───────────────────────────────────────────
