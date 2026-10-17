@@ -925,35 +925,53 @@ sb.auth.onAuthStateChange(async(event,session)=>{
   }
 });
 
-// ─── Questions & short labels ───────────────────────────────────────────────
-// scoring:false = shown on profile but excluded from Based Score / compatibility calc (items 16-18)
-const QUESTIONS=[
-{text:"I believe in total freedom of speech",info:"This asks whether you support people being allowed to say anything they want (even unpopular or offensive opinions) without being censored or punished by government or institutions, OR believe the government and/or others should decide what can and cannot be said.",scoring:true},
-{text:"I am happy to discuss controversial subjects",info:"This asks whether you are comfortable talking about sensitive, controversial, or polarizing topics OR whether you prefer to avoid such topics.",scoring:true},
-{text:"I want smaller government",info:"This asks whether you believe the government should have limited power and stay out of most areas of people's lives, leaving more freedom to individuals, OR think it is important for the government to have significant oversight and/or control of most aspects of society and individual's lives.",scoring:true},
-{text:"I want to keep more of my earnings.",info:"This asks whether you believe in lower taxes (e.g. because government is inefficient and wasteful in its use of your money) OR believe government should raise taxes to support the programmes and services they provide.",scoring:true},
-{text:"I believe open borders damage our country.",info:"This asks whether you believe allowing people to enter a country with very few or no restrictions causes harm (e.g. to culture, economy, safety etc.), OR believe large scale immigration makes a positive contribution to a nation.",scoring:true},
-{text:"I believe in democracy.",info:"This asks whether you believe it is the people's right and responsibility to vote in elections to choose the people who govern them OR believe a system other than democracy would be better.",scoring:true},
-{text:"I believe in the sovereignty of the nation state.",info:"This asks whether you believe the nation's government and courts should have the final say on all matters OR you believe other bodies should have power or influence (e.g. international courts, supranational bodies (European Union, World Health Authority, World Economic Forum)).",scoring:true},
-{text:"I believe there are only two sexes.",info:"This asks whether you believe humans are biologically male or female only (based on chromosomes, reproductive systems, etc.), OR believe sex can be more than those two categories.",scoring:true},
-{text:"Family is a core part of my life.",info:"This asks whether your parents, siblings, or children are important in how you live and make decisions OR whether other influences (e.g. friends, colleagues or online communities) are more important.",scoring:true},
-{text:"Starting a family is in my future plan.",info:"This asks whether you plan or hope to have children and build a family of your own someday OR prefer not to have children.",scoring:true},
-{text:"I believe in working and self-reliance.",info:"This asks whether you value people supporting themselves through their own efforts and hard work OR do not see these attributes as particularly important.",scoring:true},
-{text:"I believe in giving back.",info:"This asks whether you believe it is important to give back to the society or community of which you are a part (e.g. volunteering, donating money, visiting the elderly etc.) OR see meeting the needs of others in society as the responsibility of the government and/or other institutions.",scoring:true},
-{text:"I believe in traditional gender roles.",info:"This asks whether you think men and women should generally follow traditional expectations (for example, men as providers/protectors and women as caregivers/homemakers) OR think men and women are the same and interchangeable in terms of their roles within society.",scoring:true},
-{text:"Physical fitness and nutrition are important.",info:"This asks whether you consider exercise and nutrition to be an essential part of your daily life and a key part of maintaining your health OR do not see these as priorities.",scoring:true},
-{text:"I am good with personal finances",info:"This asks whether you manage money well (budgeting, saving, avoiding debt, living within your means etc.) OR take on debt to ensure you have the things you want or need.",scoring:true},
-{text:"I have a personal faith",info:"This asks whether you personally believe in a religion, God, or some other spiritual belief system OR not.",scoring:false},
-{text:"I am against abortion",info:"This asks whether you oppose ending the life of an unborn child for any reason OR believe abortion is the choice of the pregnant woman.",scoring:false},
-{text:"I am against euthanasia",info:"This asks whether you oppose ending a person's life at their request (e.g. to relieve their suffering) OR believe this should be their choice.",scoring:false}
+// ─── Questions ───────────────────────────────────────────────────────────────
+// The questions live in the database (public.questions) and can be changed from the admin console.
+// Every question has a permanent ID: a member's answer to question ID n is always number n in their
+// list of answers (answers[n-1] here), wherever the question appears on screen. This built-in copy
+// is used until the latest set has loaded (and if it can't load).
+const DEFAULT_QUESTIONS=[
+{"id": 1, "position": 1, "heading": "Free speech", "left_text": "Some limits on speech are needed to protect people from harm.", "right_text": "People should be free to say anything, however unpopular or offensive.", "explanation": "Where do you draw the line on what people can say? At one end, some speech (such as hate speech or harmful misinformation) should be restricted. At the other, all opinions should be allowed and offence is the price of freedom.", "counts": true, "faith_picker": false},
+{"id": 2, "position": 2, "heading": "Discussing controversial topics", "left_text": "I prefer to steer clear of controversial topics.", "right_text": "I am happy to discuss controversial topics with people who hold different views.", "explanation": "In a world where social and political discourse is increasingly polarised and the quality of debate has deteriorated, some people relish a debate while others would rather avoid any confrontation.", "counts": true, "faith_picker": false},
+{"id": 3, "position": 3, "heading": "Role of government", "left_text": "It is important the Government have significant oversight and control over society.", "right_text": "Government should have limited power leaving more freedom to individuals.", "explanation": "How much should the state do? It could run and fund a wide range of services and laws, or do the minimum and leave the rest to people, businesses and communities.", "counts": true, "faith_picker": false},
+{"id": 4, "position": 4, "heading": "My earnings", "left_text": "Higher taxes are worth it to fund public services.", "right_text": "People should keep more of what they earn, through lower taxes.", "explanation": "Are higher taxes justified to provide better public services or should people be allowed to keep more of their earnings, it's their money?", "counts": true, "faith_picker": false},
+{"id": 5, "position": 5, "heading": "Immigration", "left_text": "Immigration benefits the economy and culture of the country.", "right_text": "Immigration damages social cohesion and is a drain on resources.", "explanation": "Is large-scale immigration a positive (for the economy, skills and culture) or something that damages the country (impacting public services, housing supply and social cohesion)?", "counts": true, "faith_picker": false},
+{"id": 6, "position": 6, "heading": "Democracy", "left_text": "There are other systems of government that work better than democracy.", "right_text": "Democracy, though imperfect, is the best system of government.", "explanation": "Should politicians be elected to serve the people or are there other systems of government that work better?", "counts": true, "faith_picker": false},
+{"id": 7, "position": 7, "heading": "National sovereignty", "left_text": "International bodies, laws and agreements should be the final authority in our country.", "right_text": "Our own government and courts should have the final say in all matters.", "explanation": "Should organisations such as international courts, the UN, WHO or the EU have influence over the country’s laws, or should final decisions always rest at home?", "counts": true, "faith_picker": false},
+{"id": 8, "position": 8, "heading": "Sex", "left_text": "Sex is more complex than two categories.", "right_text": "There are two sexes, male and female.", "explanation": "Is human sex strictly binary (based on biology such as chromosomes and reproductive anatomy), or more varied than those two categories?", "counts": true, "faith_picker": false},
+{"id": 9, "position": 9, "heading": "Family in your life", "left_text": "My friends, colleagues or online/other communities are the main influences on how I live.", "right_text": "My parents, siblings or children are the main influences on how I live.", "explanation": "Who shapes how you live and make decisions most?", "counts": true, "faith_picker": false},
+{"id": 10, "position": 10, "heading": "Children", "left_text": "I don’t want to have children.", "right_text": "I hope to have children and a family of my own someday.", "explanation": "Do you hope to have children of your own one day?", "counts": true, "faith_picker": false},
+{"id": 11, "position": 11, "heading": "Self-reliance", "left_text": "Those who are struggling should be able to rely on the government for support.", "right_text": "People should support themselves through their own work efforts wherever possible.", "explanation": "When someone is struggling (financially, physically or mentally), should the government provide support, or should provision of government support be a last resort and only available for a small number of cases?", "counts": true, "faith_picker": false},
+{"id": 12, "position": 12, "heading": "Helping others", "left_text": "Meeting the needs of others is best done through the government and other institutions.", "right_text": "It is important to 'give back' to the society or community of which I am a part (e.g. through volunteering, donating,...).", "explanation": "Who is best placed to help people in need: the state, or individuals through volunteering, giving and local action?", "counts": true, "faith_picker": false},
+{"id": 13, "position": 13, "heading": "Roles of men and women", "left_text": "Men and women are the same and equally equipped to take on any role in society.", "right_text": "Men and women are of equal value but different, and naturally suited to different roles, (for example men as provider/protector and women as homemakers/caregivers).", "explanation": "Do traditional roles for men and women still make sense, or should couples divide responsibilities however works best for them?", "counts": true, "faith_picker": false},
+{"id": 14, "position": 14, "heading": "Fitness and diet", "left_text": "Fitness and nutrition aren’t a big focus for me.", "right_text": "Fitness and nutrition are a big part of my life.", "explanation": "How much do exercise and eating well feature in your day-to-day life?", "counts": true, "faith_picker": false},
+{"id": 15, "position": 15, "heading": "Money", "left_text": "I’m relaxed about money and happy to borrow for things I want or need now.", "right_text": "I budget carefully and avoid debt.", "explanation": "Do you manage your money carefully (budgeting, saving, avoiding debt and living within your means), or take a more relaxed approach and borrow money to ensure you have the things you want and need?", "counts": true, "faith_picker": false},
+{"id": 19, "position": 16, "heading": "Intention", "left_text": "I am in a phase where I am looking for something casual.", "right_text": "I am looking for something which may lead to a committed relationship.", "explanation": "Are you open to something casual for now, or hoping to meet someone you could build a lasting relationship with?", "counts": true, "faith_picker": false},
+{"id": 16, "position": 17, "heading": "Faith", "left_text": "I don’t have a religious or spiritual faith.", "right_text": "I have a religious or spiritual faith.", "explanation": "Do you personally believe in a religion, God or another spiritual belief system?", "counts": false, "faith_picker": true},
+{"id": 17, "position": 18, "heading": "Abortion", "left_text": "Abortion should be the pregnant woman’s choice.", "right_text": "Abortion is wrong because it ends life of an unborn child.", "explanation": "At one end, the decision belongs to the woman. At the other, the unborn child has a right to life that should be protected.", "counts": false, "faith_picker": false},
+{"id": 18, "position": 19, "heading": "Assisted dying", "left_text": "People should be able to ask a doctor to end their life.", "right_text": "Assisted dying should not be allowed.", "explanation": "Should a person who is suffering be able to choose to end their life with medical help, or should the law protect life in every case, because of the risks of the system being abused (or some other reason)?", "counts": false, "faith_picker": false}
 ];
-// Sign-up now shares the same wording/source as Modify Answers and the profile card
-const SIGNUP_QUESTIONS=QUESTIONS;
-const NUM_Q=QUESTIONS.length; // 18
-const FAITH_Q_INDEX=15; // "I have a personal faith" — reveals the religion picker when answered positively
+let QUESTIONS=[],SIGNUP_QUESTIONS=[],NUM_Q=19,FAITH_Q_INDEX=-1,SCORING_IDX=[],NUM_SCORING=0,LIVE_SLOTS=new Set();
+// rows: from the questions table (retired ones included, so the number of answer places is right)
+function setQuestions(rows){
+  const live=rows.filter(r=>!r.retired).sort((a,b)=>a.position-b.position||a.id-b.id);
+  QUESTIONS=live.map(r=>({id:r.id,slot:r.id-1,text:r.heading,left:r.left_text,right:r.right_text,info:r.explanation||'',scoring:!!r.counts,faith:!!r.faith_picker}));
+  SIGNUP_QUESTIONS=QUESTIONS;
+  NUM_Q=Math.max(18,...rows.map(r=>r.id));
+  const f=QUESTIONS.find(q=>q.faith);FAITH_Q_INDEX=f?f.slot:-1;
+  SCORING_IDX=QUESTIONS.filter(q=>q.scoring).map(q=>q.slot).sort((a,b)=>a-b);
+  NUM_SCORING=SCORING_IDX.length;
+  LIVE_SLOTS=new Set(QUESTIONS.map(q=>q.slot));
+}
+const QUESTIONS_CACHE_KEY='based_questions_v1';
+(function(){
+  let rows=null;
+  try{const c=JSON.parse(localStorage.getItem(QUESTIONS_CACHE_KEY)||'null');if(Array.isArray(c)&&c.length)rows=c;}catch(e){}
+  setQuestions(rows||DEFAULT_QUESTIONS);
+})();
+// A member's answers, one place per question (any the list doesn't have yet are 0, the middle)
+function fullAnswers(a){const out=new Array(NUM_Q).fill(0);if(Array.isArray(a))a.forEach((v,i)=>{if(i<NUM_Q)out[i]=Number(v)||0;});return out;}
 const RELIGIONS=["Atheist","Agnostic","Christian","Hindu","Jewish","Sikh","Muslim","Other"];
-const SCORING_IDX=QUESTIONS.map((q,i)=>q.scoring?i:-1).filter(i=>i!==-1); // indices 0-14
-const NUM_SCORING=SCORING_IDX.length; // 15
 
 // ─── Demo profiles (kept for testing while real users are few) ────────────────
 let DEMO_PROFILES=[]; // loaded at startup from demo-profiles.json (600 profiles: 300 male / 300 female across Leeds, Manchester, Sheffield, York)
@@ -1009,6 +1027,18 @@ try{
 // Once Supabase has read a sign-in, confirmation or reset link, take its tokens out of the
 // address bar, so they can't end up in history, a bookmark, a screenshot or a shared link
 sb.auth.getSession().finally(()=>{try{if(/access_token|refresh_token|token_hash|[?&#]code=/.test(location.hash+location.search))history.replaceState(null,'',location.pathname);}catch(e){}});
+// Load the latest questions (anyone can read them, signed in or not); the built-in copy is used until then
+async function loadQuestions(){
+  try{
+    const {data,error}=await sb.from('questions').select('id,position,heading,left_text,right_text,explanation,counts,faith_picker,retired');
+    if(error||!Array.isArray(data)||!data.length)return false;
+    setQuestions(data);
+    try{localStorage.setItem(QUESTIONS_CACHE_KEY,JSON.stringify(data));}catch(e){}
+    if(typeof myAnswers!=='undefined'&&Array.isArray(myAnswers))myAnswers=fullAnswers(myAnswers);
+    return true;
+  }catch(e){return false;}
+}
+const questionsReady=loadQuestions();
 let pendingEmail='',pendingPassword=''; // stored when user moves from details to questions
 let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null,extra_photos:[]};
 let myAnswers=new Array(NUM_Q).fill(0);
@@ -1963,7 +1993,7 @@ async function restoreSession(){
     myProfile={name:p.name,dob:p.dob,dob_changes:p.dob_changes||0,location:p.location,sex:p.sex,photo:null,photo_ref:p.photo_url||null,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null,country:p.country||'GB',units:p.units||defaultUnitsFor(p.country||'GB')};
     // Your own photo is private too — open it through a short-lived signed link
     await loadMyPhotos(p);myProfile.photo=myPhotos[0]?myPhotos[0].url:null;
-    myAnswers=myStoredAnswers||new Array(NUM_Q).fill(0);
+    myAnswers=fullAnswers(myStoredAnswers);
     isPremium=p.is_premium||false;
     loadReligionFilter(p);
     loadPlanets(p);
@@ -2323,8 +2353,8 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   const isMutual=mutualMatches.has(profileKey);
   const scoreColor=compat>=80?'var(--green)':compat>=60?'var(--gold)':'var(--red)';
   const qRows=QUESTIONS.map((qObj,i)=>{
-    const q=qObj.text;
-    const my=myAnswers[i],them=answers[i]||0;
+    const q=qObj,s=qObj.slot;
+    const my=myAnswers[s]||0,them=answers[s]||0;
     const diff=Math.abs(my-them);
     const sameSign=(my===0&&them===0)||(my>0&&them>0)||(my<0&&them<0);
     const col=!sameSign?'var(--red)':diff>=5?'var(--gold)':'var(--green)';
@@ -2341,19 +2371,15 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     const lineLeft=Math.min(myP,themP),lineWidth=Math.abs(myP-themP);
     const myLabel=my>0?'+'+my:String(my),themLabel=them>0?'+'+them:String(them);
     const sectionDivider=(!qObj.scoring&&QUESTIONS[i-1]&&QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:16px">Not counted in your Based Score</p>':'';
-    const religionTag=(i===FAITH_Q_INDEX&&them>0&&theirReligion)?`<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(201,168,76,0.12);color:var(--gold);border:0.5px solid rgba(201,168,76,0.3);white-space:nowrap;flex-shrink:0;margin-top:1px">${esc(theirReligion)}</span>`:'';
+    const religionTag=(s===FAITH_Q_INDEX&&them>0&&theirReligion)?`<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(201,168,76,0.12);color:var(--gold);border:0.5px solid rgba(201,168,76,0.3);white-space:nowrap;flex-shrink:0;margin-top:1px">${esc(theirReligion)}</span>`:'';
     return `${sectionDivider}<div style="margin-bottom:18px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
-        <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${q}</p>
+        <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${esc(q.text)}</p>
         <span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${col}22;color:${col};border:0.5px solid ${col}55;white-space:nowrap;flex-shrink:0;margin-top:1px">${label}</span>
         ${religionTag}
         <button class="info-icon-btn" onclick="showInfoPopup(${i})" aria-label="What does this mean?">i</button>
       </div>
-      <div style="display:flex;font-size:12px;color:var(--text-muted);margin:8px 0 8px">
-        <span style="flex:1;text-align:left">Disagree</span>
-        <span style="flex:1;text-align:center;font-size:11px;color:rgba(255,255,255,0.2)">|</span>
-        <span style="flex:1;text-align:right">Agree</span>
-      </div>
+      ${stmtPairHtml(q)}
       <div style="position:relative;height:20px;margin:0 4px">
         <div style="position:absolute;top:50%;left:0;right:0;height:3px;background:rgba(255,255,255,0.08);border-radius:3px;transform:translateY(-50%)"></div>
         <div style="position:absolute;top:50%;left:50%;width:1px;height:10px;background:rgba(255,255,255,0.2);transform:translate(-50%,-50%)"></div>
@@ -3045,28 +3071,26 @@ function selectReligion(r,pickerId){
 }
 function renderSignupQuestions(){
   document.getElementById('signup-questions-list').innerHTML=SIGNUP_QUESTIONS.map((q,i)=>{
-    const v=myAnswers[i];
+    const s=q.slot,v=myAnswers[s]||0;
     const sectionDivider=(!q.scoring&&SIGNUP_QUESTIONS[i-1]&&SIGNUP_QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:22px">Visible to others, not counted in your Based Score</p>':'';
-    const isFaithQ=i===FAITH_Q_INDEX;
+    const isFaithQ=s===FAITH_Q_INDEX;
     const extraOninput=isFaithQ?`document.getElementById('signup-religion-picker').style.display=this.value>0?'grid':'none';`:'';
     const picker=isFaithQ?religionPickerHtml('signup-religion-picker',v>0?myProfile.religion:null,v>0):'';
     return `${sectionDivider}<div style="margin-bottom:26px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
-        <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${q.text}</p>
+        <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${esc(q.text)}</p>
         <span id="signup-val-${i}" style="font-size:13px;color:var(--gold);font-weight:600;flex-shrink:0;margin-top:1px">${v>0?'+'+v:v}</span>
         <button class="info-icon-btn" onclick="showInfoPopup(${i},SIGNUP_QUESTIONS)" aria-label="What does this mean?">i</button>
       </div>
-      <div style="display:flex;font-size:12px;color:var(--text-muted);margin:8px 0 8px">
-        <span style="flex:1;text-align:left">Disagree</span>
-        <span style="flex:1;text-align:center;font-size:11px;color:rgba(255,255,255,0.2)">|</span>
-        <span style="flex:1;text-align:right">Agree</span>
-      </div>
-      <input type="range" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" oninput="myAnswers[${i}]=parseInt(this.value);document.getElementById('signup-val-${i}').textContent=this.value>0?'+'+this.value:this.value;${extraOninput}" />
+      ${stmtPairHtml(q)}
+      <input type="range" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" oninput="myAnswers[${s}]=parseInt(this.value);document.getElementById('signup-val-${i}').textContent=this.value>0?'+'+this.value:this.value;${extraOninput}" />
       ${picker}
     </div>`;
   }).join('');
 }
-function showInfoPopup(idx,qSet=QUESTIONS){const q=qSet[idx];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${q.text}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${q.info}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
+// The statement at each end of a question's slider
+function stmtPairHtml(q){return `<div style="display:flex;gap:16px;font-size:12.5px;line-height:1.4;color:var(--text-muted);margin:8px 0 10px"><span style="flex:1;text-align:left">${esc(q.left)}</span><span style="flex:1;text-align:right">${esc(q.right)}</span></div>`;}
+function showInfoPopup(idx,qSet=QUESTIONS){const q=qSet[idx];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${esc(q.text)}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${esc(q.info)}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
 const SCORE_INFO={
   compat:{title:'Compatibility',text:'Calculates your compatibility with the person based on how you each scored the first 15 statements. The faith/abortion/euthanasia scores are excluded from the calculation.'},
   based:{title:'Based Score',text:"Calculates this person's own Based Score from how they answered the first 15 statements. The faith/abortion/euthanasia scores are excluded from the calculation."}
@@ -3083,37 +3107,33 @@ async function updateProfileAnswers(){
 
 let modifyTempAnswers=[],modifyTempReligion=null;
 function openModifyAnswers(){
-  modifyTempAnswers=[...myAnswers];
+  modifyTempAnswers=fullAnswers(myAnswers);
   modifyTempReligion=myProfile.religion;
   renderModifyAnswers();
   goTo('screen-modify-answers');
 }
 function renderModifyAnswers(){
   document.getElementById('modify-answers-list').innerHTML=QUESTIONS.map((q,i)=>{
-    const v=modifyTempAnswers[i];
+    const s=q.slot,v=modifyTempAnswers[s]||0;
     const sectionDivider=(!q.scoring&&QUESTIONS[i-1]&&QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:22px">Visible to others, not counted in your Based Score</p>':'';
-    const isFaithQ=i===FAITH_Q_INDEX;
+    const isFaithQ=s===FAITH_Q_INDEX;
     const extraOninput=isFaithQ?`document.getElementById('modify-religion-picker').style.display=this.value>0?'grid':'none';`:'';
     const picker=isFaithQ?religionPickerHtml('modify-religion-picker',v>0?modifyTempReligion:null,v>0):'';
     return `${sectionDivider}<div style="margin-bottom:26px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
-        <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${q.text}</p>
+        <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${esc(q.text)}</p>
         <span id="modify-val-${i}" style="font-size:13px;color:var(--gold);font-weight:600;flex-shrink:0;margin-top:1px">${v>0?'+'+v:v}</span>
         <button class="info-icon-btn" onclick="showInfoPopup(${i})" aria-label="What does this mean?">i</button>
       </div>
-      <div style="display:flex;font-size:12px;color:var(--text-muted);margin:8px 0 8px">
-        <span style="flex:1;text-align:left">Disagree</span>
-        <span style="flex:1;text-align:center;font-size:11px;color:rgba(255,255,255,0.2)">|</span>
-        <span style="flex:1;text-align:right">Agree</span>
-      </div>
-      <input type="range" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${i}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=this.value>0?'+'+this.value:this.value;${extraOninput}" />
+      ${stmtPairHtml(q)}
+      <input type="range" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${s}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=this.value>0?'+'+this.value:this.value;${extraOninput}" />
       ${picker}
     </div>`;
   }).join('');
 }
 function cancelModifyAnswers(){goTo('screen-edit-profile');}
 function modifyAnswersChanged(){
-  if(modifyTempAnswers.some((v,i)=>v!==myAnswers[i]))return true;
+  if(modifyTempAnswers.some((v,i)=>v!==(myAnswers[i]||0)))return true;
   const newRel=modifyTempAnswers[FAITH_Q_INDEX]>0?(modifyTempReligion||null):null;
   return newRel!==(myProfile.religion||null);
 }
@@ -4123,15 +4143,15 @@ let dealbreakers=new Set(),pendingDealbreakers=null;
 function sameSide(mine,theirs){mine=mine||0;theirs=theirs||0;return (mine===0&&theirs===0)||(mine>0&&theirs>0)||(mine<0&&theirs<0);}
 function passesDealbreakers(p){
   if(!dealbreakers.size||!canUse('dealbreakers'))return true;
-  for(const i of dealbreakers){if(!sameSide(myAnswers[i],(p.answers||[])[i]))return false;}
+  for(const i of dealbreakers){if(!LIVE_SLOTS.has(i))continue;if(!sameSide(myAnswers[i],(p.answers||[])[i]))return false;}
   return true;
 }
 function renderDealbreakers(){
   const el=document.getElementById('dealbreaker-list');if(!el)return;
   const set=pendingDealbreakers||dealbreakers;
-  el.innerHTML=QUESTIONS.map((q,i)=>{
-    const neutral=(myAnswers[i]||0)===0,on=set.has(i)&&!neutral;
-    return `<button type="button" class="db-row${on?' on':''}" ${neutral?'disabled':''} onclick="toggleDealbreaker(${i})" aria-pressed="${on}"><span class="db-box">${on?'<i class="ti ti-check"></i>':''}</span><span>${q.text.replace(/\.$/,'')}${neutral?'<span class="db-sub">You answered 0 here, so it can’t be a dealbreaker</span>':''}</span></button>`;
+  el.innerHTML=QUESTIONS.map(q=>{
+    const i=q.slot,neutral=(myAnswers[i]||0)===0,on=set.has(i)&&!neutral;
+    return `<button type="button" class="db-row${on?' on':''}" ${neutral?'disabled':''} onclick="toggleDealbreaker(${i})" aria-pressed="${on}"><span class="db-box">${on?'<i class="ti ti-check"></i>':''}</span><span>${esc(q.text)}${neutral?'<span class="db-sub">You answered 0 here, so it can’t be a dealbreaker</span>':''}</span></button>`;
   }).join('');
 }
 function toggleDealbreaker(i){
