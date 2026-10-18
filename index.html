@@ -889,7 +889,7 @@ function watchForEndedSession(res){
     res.clone().json().then(j=>{
       if(!sessionEndedHandled&&/SESSION_ENDED/.test((j&&(j.message||j.msg))||'')){
         sessionEndedHandled=true;
-        hardSignOut().finally(()=>showModal('<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;text-align:center">You’ve been signed out</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px;text-align:center">Your password was changed, or you signed out of all your devices. Please sign in again.</p><button onclick="window.location.replace(window.location.pathname)" class="btn-primary">OK</button>'));
+        hardSignOut().finally(()=>showModal('<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;text-align:center">You’ve been signed out</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px;text-align:center">Your password changed, you signed out of all your devices or BASED signed you out. Please sign in again.</p><button onclick="window.location.replace(window.location.pathname)" class="btn-primary">OK</button>'));
       }
     }).catch(()=>{});
   }
