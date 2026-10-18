@@ -3201,9 +3201,19 @@ function signupPaint(){
 // The statement at each end of a question's slider
 function stmtPairHtml(q){return `<div style="display:flex;gap:10px;font-size:12.5px;line-height:1.4;color:var(--text-muted);margin:8px 0 8px"><span style="flex:1;text-align:left">${esc(q.left)}</span><span style="align-self:flex-end;font-size:11px;line-height:1;color:rgba(255,255,255,0.2)" aria-hidden="true">|</span><span style="flex:1;text-align:right">${esc(q.right)}</span></div>`;}
 function showInfoPopup(idx,qSet=QUESTIONS){const q=qSet[idx];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${esc(q.text)}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${esc(q.info)}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
+// How many questions come before the first one that doesn't count
+function leadingScored(){const i=QUESTIONS.findIndex(q=>!q.scoring);return i<0?QUESTIONS.length:i;}
 const SCORE_INFO={
-  compat:{title:'Compatibility',text:'Calculates your compatibility with the person based on how you each scored the first 15 statements. The faith/abortion/euthanasia scores are excluded from the calculation.'},
-  based:{title:'Score',text:"Where this person sits overall across the questions that count towards matching: which end of the sliders they lean towards, and how far. 0% is right in the middle; 100% is fully at that end. The questions shown on the profile but not counted (such as faith) aren't included."}
+  // The count is the statements before the first one that doesn't count, so it follows the questions table
+  compat:{title:'Compatibility',get text(){
+    const n=leadingScored();
+    const out=QUESTIONS.filter(q=>!q.scoring).map(q=>esc(q.text.toLowerCase()));
+    return `Calculates your compatibility with the person based on how you each scored the first ${n} statements.`+(out.length?` The ${out.join('/')} scores are excluded from the calculation.`:'');
+  }},
+  based:{title:'Score',get text(){
+    const n=leadingScored();
+    return `Where this person sits overall across the first ${n} questions. Which end of the sliders do they lean towards, and how far. 0% is in the middle. 100% at either end. The questions after the first ${n} are shown on the profile but not included in the score.`;
+  }}
 };
 function showScoreInfoPopup(type){const info=SCORE_INFO[type];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${info.title}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${info.text}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
 function finishQuestions(){if(currentUser){updateProfileAnswers();}else{signUpAndSave();}}
