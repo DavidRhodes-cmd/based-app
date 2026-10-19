@@ -537,7 +537,7 @@ button.ins-tile:active{opacity:0.75;}
     <div style="display:flex;align-items:center;gap:9px"><div class="brand-lockup" role="img" aria-label="BASED on values"><svg width="23" height="22" viewBox="190 205 640 620" aria-hidden="true" style="flex-shrink:0"><defs><linearGradient id="hd-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient><linearGradient id="hd-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5e3ad"/><stop offset=".5" stop-color="#d9bb66"/><stop offset="1" stop-color="#b08d3c"/></linearGradient></defs><g transform="translate(232 275) rotate(-14 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="none" stroke="url(#hd-g1)" stroke-width="11" stroke-linejoin="round"/></g><g transform="translate(352 335) rotate(12 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="#252a38" stroke="url(#hd-g2)" stroke-width="11" stroke-linejoin="round"/></g></svg><span class="brand-words"><span class="brand-name">BASED</span><span class="brand-tag">on values</span></span></div><i id="header-verified-tick" class="ti ti-discount-check-filled" title="You’re verified" style="display:none;font-size:22px;line-height:22px;color:var(--verified)"></i><span id="hdr-tier-icon" style="display:none;flex-shrink:0;line-height:0"></span></div>
     <button id="get-verified-btn" onclick="openVerifyScreen('header')" style="display:none;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:10px;padding:6px 10px;color:var(--verified);font-size:14px;font-weight:600;font-family:var(--sans);line-height:20px;cursor:pointer;white-space:nowrap;margin-left:auto;margin-right:10px"><i class="ti ti-discount-check" style="font-size:16px"></i>Get verified</button>
     <div style="position:relative"><button id="settings-btn" aria-label="Menu" aria-haspopup="true" onclick="toggleMainMenu(event)" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:24px;padding:4px;line-height:1"><i class="ti ti-dots"></i></button>
-      <div id="main-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openSupport()"><i class="ti ti-lifebuoy"></i>Support</button><button role="menuitem" onclick="closeMainMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button></div></div>
+      <div id="main-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" data-menu="verify" onclick="closeMainMenu();openVerifyScreen('header')"><i class="ti ti-discount-check"></i>Get verified</button><button role="menuitem" data-menu="upgrade" onclick="closeMainMenu();upgradeState=null;openPlans()"><i class="ti ti-sparkles"></i>Upgrade</button><button role="menuitem" data-menu="topup" onclick="closeMainMenu();openTopUp()"><i class="ti ti-circle-plus"></i>Top up</button><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openSupport()"><i class="ti ti-lifebuoy"></i>Support</button><button role="menuitem" onclick="closeMainMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button></div></div>
   </div>
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-browse" onclick="switchTab('browse')"><i class="ti ti-search" style="font-size:15px"></i> Search</button>
@@ -606,12 +606,16 @@ button.ins-tile:active{opacity:0.75;}
     <div style="position:relative">
       <button id="chat-menu-btn" onclick="toggleChatMenu(event)" aria-label="More options" aria-haspopup="true" style="background:transparent;border:none;color:var(--text-on-dark);font-size:22px;cursor:pointer;width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center"><i class="ti ti-dots"></i></button>
       <div id="chat-menu" class="chat-menu" role="menu" style="min-width:190px">
+        <button role="menuitem" data-menu="verify" onclick="closeChatMenu();menuReturn='screen-chat';openVerifyScreen('header')"><i class="ti ti-discount-check"></i>Get verified</button>
+        <button role="menuitem" data-menu="upgrade" onclick="closeChatMenu();upgradeState=null;openPlans()"><i class="ti ti-sparkles"></i>Upgrade</button>
+        <button role="menuitem" data-menu="topup" onclick="closeChatMenu();openTopUp()"><i class="ti ti-circle-plus"></i>Top up</button>
         <button role="menuitem" onclick="closeChatMenu();menuReturn='screen-chat';openEditProfile()"><i class="ti ti-settings"></i>Settings</button>
         <button role="menuitem" onclick="closeChatMenu();menuReturn='screen-chat';openSupport()"><i class="ti ti-lifebuoy"></i>Support</button>
-        <button role="menuitem" onclick="closeChatMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button>
         <div role="separator" style="height:0.5px;background:rgba(255,255,255,0.12);margin:4px 0"></div>
         <button role="menuitem" onclick="closeChatMenu();confirmBlock()"><i class="ti ti-ban"></i>Block this user</button>
         <button role="menuitem" class="danger" onclick="closeChatMenu();openReport(activeChatPartnerId,activeChatName)"><i class="ti ti-flag"></i>Report this user</button>
+        <div role="separator" style="height:0.5px;background:rgba(255,255,255,0.12);margin:4px 0"></div>
+        <button role="menuitem" onclick="closeChatMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button>
       </div>
     </div>
   </div>
@@ -2959,7 +2963,14 @@ function agreeToTerms(){
 }
 
 // ─── ⋯ menu (Settings / Support) ─────────────────────────────────────────────
-function toggleMainMenu(e){e.stopPropagation();document.getElementById('main-menu').classList.toggle('open');}
+function toggleMainMenu(e){e.stopPropagation();const m=document.getElementById('main-menu');syncAccountMenu(m);m.classList.toggle('open');}
+// Get verified until verified; Upgrade until on Gold; Top up on the free plans when packs are on sale
+function syncAccountMenu(m){
+  if(!m)return;
+  const t=myTierNow(),verified=myVerificationStatus==='approved';
+  const show={verify:!!currentUser&&!verified&&myVerificationIssue!=='underage',upgrade:!!currentUser&&t!=='gold',topup:!!currentUser&&(t==='liveness'||t==='id')&&!!(TOPUP&&TOPUP.allowed&&TOPUP.offers&&TOPUP.offers.length)};
+  m.querySelectorAll('[data-menu]').forEach(b=>{b.style.display=show[b.dataset.menu]?'':'none';});
+}
 function closeMainMenu(){const m=document.getElementById('main-menu');if(m)m.classList.remove('open');}
 document.addEventListener('click',e=>{if(!e.target.closest('#main-menu'))closeMainMenu();if(!e.target.closest('#waiting-menu')){const w=document.getElementById('waiting-menu');if(w)w.classList.remove('open');}});
 
@@ -3406,6 +3417,66 @@ async function shareScore(){
   showInviteFallback(message,url);
 }
 
+// ─── Top-ups: one-off packs of extra views, interests and super interests ───
+// The packs, prices and who can buy them come from the server (my_topup_offers), set up in the console.
+let TOPUP=null;
+async function loadTopUps(){
+  if(!currentUser){TOPUP=null;return;}
+  try{const {data,error}=await sb.rpc('my_topup_offers');if(!error)TOPUP=data;}catch(e){}
+  // A payment that wasn't confirmed on the way back (checked at most every 10 minutes)
+  if(TOPUP&&TOPUP.pending>0&&Date.now()-topUpCheckedAt>600000){topUpCheckedAt=Date.now();confirmTopUps(false);}
+}
+let topUpCheckedAt=0;
+const CURRENCY_SIGN={gbp:'£',usd:'$',aud:'A$',cad:'C$'};
+function moneyText(cur,amount){return (CURRENCY_SIGN[cur]||'')+(amount/100).toFixed(2);}
+async function callTopUp(body){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)return {ok:false,data:{error:'Please sign in again.'}};
+  try{
+    const r=await fetch(FN_BASE+'topup',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token},body:JSON.stringify(body)});
+    return {ok:r.ok,data:await r.json().catch(()=>({}))};
+  }catch(e){return {ok:false,data:{error:'Network problem. Please check your connection and try again.'}};}
+}
+async function openTopUp(){
+  if(!TOPUP)await loadTopUps();
+  const offers=(TOPUP&&TOPUP.offers)||[];
+  if(!TOPUP||!TOPUP.allowed||!offers.length){showToast('There are no top-ups available just now',false,3000);return;}
+  const line=o=>[o.views?`<span><i class="ti ti-eye"></i> ${o.views} view${o.views===1?'':'s'}</span>`:'',o.interests?`<span><i class="ti ti-heart"></i> ${o.interests} interest${o.interests===1?'':'s'}</span>`:'',o.supers?`<span><i class="ti ti-confetti"></i> ${o.supers} super interest${o.supers===1?'':'s'}</span>`:''].filter(Boolean).join('');
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:6px;text-align:center">Top up</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:16px;text-align:center">A one-off payment for extra views and interests. They’re used once your usual allowance runs out.</p>
+    ${offers.map(o=>`<div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(201,168,76,0.3);border-radius:13px;padding:14px;margin-bottom:10px;text-align:left">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${esc(o.name)}</span><span style="font-family:var(--serif);font-size:19px;color:var(--gold)">${moneyText(TOPUP.currency,o.amount)}</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--text-muted);margin-bottom:${o.valid_days?6:12}px">${line(o)}</div>
+      ${o.valid_days?`<p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Lasts ${o.valid_days} day${o.valid_days===1?'':'s'}</p>`:''}
+      <button class="btn-primary" style="font-size:15px" data-topup="${o.id}" onclick="buyTopUp(${Number(o.id)})">Buy for ${moneyText(TOPUP.currency,o.amount)}</button></div>`).join('')}
+    <button class="btn-ghost" style="font-size:14px;margin-top:4px" onclick="removeModal()">Not now</button>
+    <p style="font-size:11.5px;color:var(--text-muted);text-align:center;margin-top:12px;line-height:1.5">Want more every month? <span style="color:var(--gold);text-decoration:underline;cursor:pointer" onclick="removeModal();upgradeState=null;openPlans()">See the plans</span></p>`);
+}
+let topUpBusy=false;
+async function buyTopUp(id){
+  if(topUpBusy)return;topUpBusy=true;
+  busyModal('Opening secure checkout…');
+  const {ok,data}=await callTopUp({action:'checkout',offer_id:id});
+  topUpBusy=false;
+  if(ok&&data.url){goToStripe('topup',data.url);return;}
+  removeModal();
+  showToast(data.error||'Top-ups aren’t available just now. Please try again shortly.',true,4000);
+}
+// Back from paying: add the pack (also run on sign-in if a payment was left unconfirmed)
+async function confirmTopUps(show,paid=true){
+  if(show)busyModal('Adding your top-up…');
+  let added=0;
+  for(let i=0;i<(show?4:1);i++){
+    const {ok,data}=await callTopUp({action:'confirm'});
+    if(ok&&data.added){added=data.added;break;}
+    if(!show)break;
+    await wait(1500);
+  }
+  if(show)removeModal();
+  if(added){TOPUP=null;await loadPermissions();try{renderProfiles(parseInt(document.getElementById('filter-min').value)||0);}catch(e){}launchConfetti(null);showToast('Your top-up has been added ✓',false,3500);checkNotices();}
+  else if(show&&paid)showToast('Payment received. Your top-up will appear in a moment.',false,4000);
+}
+
 // ─── Pre-registration: waiting for your area to open ─────────────────────────
 // The server decides (my_prereg_status); without an answer the app carries on as normal,
 // and the server still refuses anything a waiting member isn't allowed to do yet.
@@ -3490,6 +3561,7 @@ let permsFailed=false;
 async function loadPermissions(){
   if(!currentUser){PERMS=null;permsFailed=false;PRE=null;return;}
   const preDone=loadPrereg();
+  loadTopUps();
   getMyReferralCode(); // ready for Invite friends
   let ok=false;
   for(let i=0;i<2&&!ok;i++){
@@ -3786,6 +3858,7 @@ function backFromStripe(){
   if(!stripeTrip||Date.now()-stripeTrip.at<1500)return;
   const trip=stripeTrip;stripeTrip=null;
   if(document.getElementById('busy-box'))removeModal();
+  if(trip.kind==='topup'){confirmTopUps(false);return;}
   afterCheckoutReturn('back',trip);
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')backFromStripe();});
@@ -4913,7 +4986,7 @@ async function executeUnmatch(pid,name){
 // Settings and Support opened from a chat's menu go back to that chat
 let menuReturn='screen-main';
 function menuBack(){const r=menuReturn;menuReturn='screen-main';goTo(r);}
-function toggleChatMenu(e){e.stopPropagation();document.getElementById('chat-menu').classList.toggle('open');}
+function toggleChatMenu(e){e.stopPropagation();const m=document.getElementById('chat-menu');syncAccountMenu(m);m.classList.toggle('open');}
 function closeChatMenu(){const m=document.getElementById('chat-menu');if(m)m.classList.remove('open');}
 document.addEventListener('click',e=>{if(!e.target.closest('#chat-menu'))closeChatMenu();});
 let blockTarget=null;
@@ -5804,6 +5877,8 @@ document.head.appendChild(spinStyle);
   const verifyReturn=new URLSearchParams(location.search).get('verification')==='done';
   const qs=new URLSearchParams(location.search);
   const payReturn=qs.get('checkout')==='success'?'success':qs.get('checkout')==='cancel'?'cancel':qs.get('billing')==='done'?'billing':null;
+  const topupReturn=qs.get('topup');
+  if(topupReturn){try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}}
   if(verifyReturn||payReturn){try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}}
   const unsubToken=qs.get('unsubscribe');
   if(unsubToken){try{history.replaceState(null,'',location.pathname+location.hash);}catch(e){}handleUnsubscribe(unsubToken);}
@@ -5836,6 +5911,7 @@ document.head.appendChild(spinStyle);
     else if(!hasPendingSignupOnLoad&&!authLinkError&&needsAgeGate())openAgeCheck();
     else if(!hasPendingSignupOnLoad&&!authLinkError&&needsVerificationGate())openVerifyScreen('gate');
     else if(!hasPendingSignupOnLoad&&!authLinkError)goTo('screen-main'); // let the confirmation-completion flow navigate instead, if one's in progress; stay put on an auth-link error
+    if(topupReturn&&!authLinkError){if(topupReturn==='success')confirmTopUps(true);else showToast('Payment cancelled — you haven’t been charged');}
     if(payReturn&&!authLinkError){
       if(payReturn==='billing'){openEditProfile();}
       afterCheckoutReturn(payReturn);
