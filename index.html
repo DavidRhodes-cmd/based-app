@@ -544,9 +544,10 @@ button.ins-tile:active{opacity:0.75;}
     <button class="tab-btn" id="tab-matches" onclick="switchTab('matches')"><i class="ti ti-heart" style="font-size:15px"></i> Interest <span id="matches-notif" style="display:none" class="notif-superdot"></span></button>
     <button class="tab-btn" id="tab-messages" onclick="switchTab('messages')"><svg width="17" height="15" viewBox="0 0 28 24" fill="none" style="flex-shrink:0"><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" opacity="0.65" transform="translate(0,3) scale(0.8)"/><path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" fill="currentColor" transform="translate(9,3) scale(0.8)"/></svg> It's mutual <span id="msg-notif" style="display:none" class="notif-superdot"></span></button>
   </div>
-  <div id="tab-browse-content" class="scrollable" style="padding:16px">
-    <!-- The filters, allowances and toggles stay in view while the profiles scroll underneath -->
-    <div id="search-sticky" style="position:sticky;top:-16px;z-index:5;background:var(--navy);margin:-16px -16px 0;padding:16px 16px 1px;box-shadow:0 8px 12px -10px rgba(0,0,0,0.6)">
+  <div id="tab-browse-content" class="scrollable" style="padding:0 16px 16px">
+    <!-- The filters, allowances and toggles stay in view while the profiles scroll underneath.
+         Pinned at the very top of the scroll area (no padding above it), so nothing can show through a gap. -->
+    <div id="search-sticky" style="position:sticky;top:0;z-index:5;background:var(--navy);margin:0 -16px;padding:16px 16px 1px;box-shadow:0 8px 12px -10px rgba(0,0,0,0.6);transform:translateZ(0)">
     <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:13px;padding:13px;margin-bottom:16px">
       <div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:11px">Filter matches</div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
