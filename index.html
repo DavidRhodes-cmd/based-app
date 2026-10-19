@@ -522,7 +522,7 @@ button.ins-tile:active{opacity:0.75;}
 <!-- MAIN (tabbed) -->
 <div id="screen-main" class="screen">
   <div class="app-header">
-    <div style="display:flex;align-items:center;gap:9px"><div class="brand-lockup" role="img" aria-label="BASED on values"><svg width="26" height="25" viewBox="200 215 620 600" aria-hidden="true" style="flex-shrink:0"><defs><linearGradient id="hd-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient><linearGradient id="hd-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5e3ad"/><stop offset=".5" stop-color="#d9bb66"/><stop offset="1" stop-color="#b08d3c"/></linearGradient></defs><g transform="translate(232 275) rotate(-14 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#hd-g1)"/></g><g transform="translate(352 335) rotate(12 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#hd-g2)" stroke="#232838" stroke-width="4.5" paint-order="stroke"/></g></svg><span class="brand-words"><span class="brand-name">BASED</span><span class="brand-tag">on values</span></span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.6" stroke-linecap="round" aria-hidden="true" style="flex-shrink:0"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.4" y1="15.4" x2="21" y2="21"/></svg></div><i id="header-verified-tick" class="ti ti-discount-check-filled" title="You’re verified" style="display:none;font-size:22px;line-height:22px;color:var(--verified)"></i></div>
+    <div style="display:flex;align-items:center;gap:9px"><div class="brand-lockup" role="img" aria-label="BASED on values"><svg width="26" height="25" viewBox="200 215 620 600" aria-hidden="true" style="flex-shrink:0"><defs><linearGradient id="hd-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient><linearGradient id="hd-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5e3ad"/><stop offset=".5" stop-color="#d9bb66"/><stop offset="1" stop-color="#b08d3c"/></linearGradient></defs><g transform="translate(232 275) rotate(-14 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#hd-g1)"/></g><g transform="translate(352 335) rotate(12 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="url(#hd-g2)" stroke="#232838" stroke-width="4.5" paint-order="stroke"/></g></svg><span class="brand-words"><span class="brand-name">BASED</span><span class="brand-tag">on values</span></span><span id="hdr-tier-icon" style="display:inline-flex;flex-shrink:0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.6" stroke-linecap="round" aria-hidden="true" style="flex-shrink:0"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.4" y1="15.4" x2="21" y2="21"/></svg></span></div><i id="header-verified-tick" class="ti ti-discount-check-filled" title="You’re verified" style="display:none;font-size:22px;line-height:22px;color:var(--verified)"></i></div>
     <button id="get-verified-btn" onclick="openVerifyScreen('header')" style="display:none;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:10px;padding:6px 10px;color:var(--verified);font-size:14px;font-weight:600;font-family:var(--sans);line-height:20px;cursor:pointer;white-space:nowrap;margin-left:auto;margin-right:10px"><i class="ti ti-discount-check" style="font-size:16px"></i>Get verified</button>
     <div style="position:relative"><button id="settings-btn" aria-label="Menu" aria-haspopup="true" onclick="toggleMainMenu(event)" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:24px;padding:4px;line-height:1"><i class="ti ti-dots"></i></button>
       <div id="main-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openSupport()"><i class="ti ti-lifebuoy"></i>Support</button><button role="menuitem" onclick="closeMainMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button></div></div>
@@ -3392,6 +3392,7 @@ async function loadPermissions(){
   permsFailed=!ok&&!PERMS;
   if(PERMS)isPremium=PERMS.tier==='plus'||PERMS.tier==='gold';
   applyPermissions();
+  if(typeof updateGetVerifiedBtn==='function')updateGetVerifiedBtn();
 }
 const FREE_BASICS=new Set(['profile_views','express_interest','super_interest']);
 function perm(f){
@@ -3806,14 +3807,32 @@ async function loadAppConfig(){
   requireAgeCheck=last?!!last.requireAgeCheck:true;
 }
 function needsAgeGate(){return requireAgeCheck&&!!currentUser&&myAgeStatus!=='passed'&&myVerificationStatus!=='approved';}
+// The icon at the right of the header logo: magnifying glass, + for BASED+, crown for Gold
+const HDR_ICONS={
+  none:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.6" stroke-linecap="round" aria-hidden="true" style="flex-shrink:0"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.4" y1="15.4" x2="21" y2="21"/></svg>',
+  plus:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="3.2" stroke-linecap="round" role="img" aria-label="BASED+" style="flex-shrink:0"><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/></svg>',
+  gold:'<svg width="17" height="17" viewBox="0 0 24 23" fill="var(--gold)" stroke="var(--gold)" stroke-width="1.8" stroke-linejoin="round" role="img" aria-label="BASED Gold" style="flex-shrink:0"><path d="M12 4l4 6l5 -4l-2 11h-14l-2 -11l5 4z"/><line x1="5" y1="20" x2="19" y2="20" stroke-linecap="round"/></svg>'
+};
+let hdrTierShown=null;
+function updateHeaderTierIcon(tier){
+  const el=document.getElementById('hdr-tier-icon');if(!el)return;
+  const k=currentUser&&(tier==='plus'||tier==='gold')?tier:'none';
+  if(k===hdrTierShown)return;hdrTierShown=k;el.innerHTML=HDR_ICONS[k];
+}
 // Header pill on the main screen — only for people who haven't verified yet
 function updateGetVerifiedBtn(){
   const b=document.getElementById('get-verified-btn');if(!b)return;
-  const show=!!currentUser&&myVerificationStatus!=='approved'&&myVerificationIssue!=='underage';
+  const show=!!currentUser&&myVerificationIssue!=='underage'&&(myVerificationStatus!=='approved'||(!!PERMS&&myTierNow()!=='gold'));
   b.style.display=show?'inline-flex':'none';
   // While an ID check is with a reviewer the pill says so (and opens the status screen) instead of vanishing
   const reviewing=myVerificationStatus==='in_review';
-  b.innerHTML=reviewing?'<i class="ti ti-clock" style="font-size:16px"></i>Under review':'<i class="ti ti-discount-check" style="font-size:16px"></i>Get verified';
+  // Once verified, the same pill offers an upgrade (until they're on Gold)
+  const tier=myTierNow();
+  const upgrade=!!currentUser&&myVerificationStatus==='approved'&&tier!=='gold'&&!!PERMS;
+  b.innerHTML=upgrade?'<i class="ti ti-sparkles" style="font-size:16px"></i>Upgrade':reviewing?'<i class="ti ti-clock" style="font-size:16px"></i>Under review':'<i class="ti ti-discount-check" style="font-size:16px"></i>Get verified';
+  b.onclick=upgrade?()=>{upgradeState=null;openPlans();}:()=>openVerifyScreen('header');
+  b.setAttribute('aria-label',upgrade?'Upgrade your plan':'');if(!upgrade)b.removeAttribute('aria-label');
+  updateHeaderTierIcon(tier);
   b.style.opacity=reviewing?'0.85':'1';
   const tick=document.getElementById('header-verified-tick');if(tick)tick.style.display=(currentUser&&myVerificationStatus==='approved')?'inline-block':'none';
   if(show){ // match the BASED logo's size
