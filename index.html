@@ -758,16 +758,16 @@ button.ins-tile:active{opacity:0.75;}
     <button onclick="saveDealbreakerScreen()" style="background:transparent;border:none;font-size:14px;color:var(--gold);cursor:pointer;font-family:var(--sans);font-weight:600">Save</button>
   </div>
   <div class="scrollable" style="padding:20px 16px">
-    <div class="toggle-row" style="padding-top:0;margin-bottom:18px">
+    <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:6px">Only show profiles aligned on…</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Tick the questions where someone must be on the same side as you. Anyone who differs from you on a ticked question won’t appear in Search.</p>
+    <div id="dealbreaker-list"></div>
+    <div class="toggle-row" style="margin-top:10px;border-top:0.5px solid rgba(255,255,255,0.07)">
       <div style="flex:1;padding-right:16px">
         <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:4px">Don’t show me people who have children</p>
         <p style="font-size:13px;color:var(--text-muted);line-height:1.4">Anyone who has said they have children won’t appear in Search.</p>
       </div>
       <div class="toggle-track" id="children-toggle" role="switch" aria-checked="false" aria-label="Don’t show me people who have children" tabindex="0" onclick="toggleHideChildren()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleHideChildren();}"><div class="toggle-thumb"></div></div>
     </div>
-    <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:6px">Only show profiles aligned on…</p>
-    <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Tick the questions where someone must be on the same side as you. Anyone who differs from you on a ticked question won’t appear in Search.</p>
-    <div id="dealbreaker-list"></div>
     <button class="btn-ghost bottom-safe" onclick="clearDealbreakers()" style="font-size:14px;margin-top:8px"><i class="ti ti-filter-off" style="margin-right:7px"></i>Clear filters</button>
   </div>
 </div>
