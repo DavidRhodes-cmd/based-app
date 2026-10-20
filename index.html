@@ -3597,6 +3597,7 @@ async function loadPermissions(){
   if(PERMS)isPremium=PERMS.tier==='plus'||PERMS.tier==='gold';
   await preDone;await pricesDone;
   applyPermissions();
+  planetsBackToEarthIfNotAllowed();
   if(typeof updateGetVerifiedBtn==='function')updateGetVerifiedBtn();
 }
 const FREE_BASICS=new Set(['profile_views','express_interest','super_interest']);
@@ -4507,6 +4508,15 @@ function loadPlanets(p){
   const ok=PLANETS.map(x=>x[0]);
   const list=(Array.isArray(p&&p.included_planets)?p.included_planets:[]).filter(k=>ok.includes(k));
   includedPlanets=new Set(list.length?list:['earth']);pendingPlanets=null;renderPlanetFilter();updateFilterCounts();
+  planetsBackToEarthIfNotAllowed();
+}
+// On a plan without the inter-planetary filter, go back to Earth only, so that if the filter
+// becomes available again (e.g. upgrading to Gold) it starts from Earth, not an old choice
+function planetsBackToEarthIfNotAllowed(){
+  if(!currentUser||!PERMS||!PERMS.features||permsFailed||canUse('planet_filter'))return;
+  if(includedPlanets.size===1&&includedPlanets.has('earth'))return;
+  includedPlanets=new Set(EARTH_ONLY);pendingPlanets=null;renderPlanetFilter();updateFilterCounts();
+  sb.from('profiles').update({included_planets:['earth']}).eq('id',currentUser.id).then(({error})=>{if(error)console.warn('Resetting planets failed:',error.message);});
 }
 // Alien members have their planet as their photo
 function planetPhoto(k){
