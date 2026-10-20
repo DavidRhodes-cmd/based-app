@@ -4,7 +4,7 @@
 // It never touches requests to other sites — Supabase (profiles, answers, messages), photos,
 // payments, checks — so none of that is ever stored on the device by it. Addresses are stored
 // without their ?… part, so links carrying tokens are never kept either.
-const CACHE = 'based-v3';
+const CACHE = 'based-v4';
 const ASSETS = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
