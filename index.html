@@ -454,7 +454,7 @@ button.ins-tile:active{opacity:0.75;}
           <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="9"/>
           <line x1="80" y1="141" x2="80" y2="156" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
           <line x1="80" y1="4" x2="80" y2="19" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-          <circle cx="80" cy="80" r="68" fill="none" stroke="#c9a84c" stroke-width="9" stroke-linecap="round" id="score-arc" stroke-dasharray="0 428" transform="rotate(90 80 80)" style="transition:stroke-dasharray .9s ease"/>
+          <circle cx="80" cy="80" r="68" fill="none" stroke="#c9a84c" stroke-width="9" stroke-linecap="butt" id="score-arc" stroke-dasharray="0 428" transform="rotate(90 80 80)" style="transition:stroke-dasharray .9s ease"/>
         </svg>
         <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;width:120px">
           <div id="score-end-img" style="height:38px;display:flex;align-items:center"></div>
@@ -3539,10 +3539,25 @@ let PERMS=null; // {tier, country, features:{name:{access,limit,period,used,upgr
 let incomingHiddenCount=0;
 let TIER_RULES=null; // raw feature_permissions rows, for "BASED+ gives you …" wording // people interested in me whose names this tier can't see
 const TIER_LABEL={liveness:'Selfie verified',id:'ID verified',plus:'BASED+',gold:'BASED Gold'};
-// Monthly prices in the member's own currency (must match the Stripe prices)
-const LOCAL_PRICES={GB:{plus:'£4.99',gold:'£9.99'},US:{plus:'$6.99',gold:'$12.99'},AU:{plus:'A$9.99',gold:'A$19.99'},CA:{plus:'C$8.99',gold:'C$17.99'}};
-function localPrice(t){const c=(myProfile&&myProfile.country)||(PERMS&&PERMS.country)||'GB';return (LOCAL_PRICES[c]||LOCAL_PRICES.GB)[t];}
+// Monthly prices in the member's own currency, set in the console (my_plan_prices). intro is a
+// first-month price, offered only to members who have never subscribed. The Stripe functions
+// charge from the same table. If it can't be loaded, these are shown (the prices at launch).
+const LOCAL_PRICES={GB:{cur:'gbp',plus:499,gold:999},US:{cur:'usd',plus:699,gold:1299},AU:{cur:'aud',plus:999,gold:1999},CA:{cur:'cad',plus:899,gold:1799}};
+const CUR_SIGN={gbp:'£',usd:'$',aud:'A$',cad:'C$'};
+let PRICES=null; // {currency, first_month, plans:{plus:{currency,amount,intro}, gold:{…}}}
+function money(cur,n){return (CUR_SIGN[cur]||'£')+(n%100?(n/100).toFixed(2):String(n/100));}
+function planPrice(t){
+  if(PRICES&&PRICES.plans&&PRICES.plans[t])return PRICES.plans[t];
+  const c=(myProfile&&myProfile.country)||(PERMS&&PERMS.country)||'GB',l=LOCAL_PRICES[c]||LOCAL_PRICES.GB;
+  return {currency:l.cur,amount:l[t],intro:null};
+}
+function localPrice(t){const p=planPrice(t);return p&&p.amount?money(p.currency,p.amount):'';}
+function introPrice(t){const p=planPrice(t);return p&&p.intro!=null&&p.intro<p.amount?money(p.currency,p.intro):null;}
 const TIER_PRICE={get plus(){return localPrice('plus');},get gold(){return localPrice('gold');}};
+async function loadPrices(){
+  try{const {data,error}=await sb.rpc('my_plan_prices',{p_country:(myProfile&&myProfile.country)||null});if(!error&&data&&data.plans)PRICES=data;}
+  catch(e){console.warn('Prices unavailable:',e.message||e);}
+}
 const FEATURE_INFO={
   profile_views:{name:'More profile views',icon:'ti-eye',unit:'profile views'},
   express_interest:{name:'More interests',icon:'ti-heart',unit:'interests'},
@@ -3565,6 +3580,7 @@ let permsFailed=false;
 async function loadPermissions(){
   if(!currentUser){PERMS=null;permsFailed=false;PRE=null;return;}
   const preDone=loadPrereg();
+  const pricesDone=loadPrices();
   loadTopUps();
   getMyReferralCode(); // ready for Invite friends
   let ok=false;
@@ -3579,7 +3595,7 @@ async function loadPermissions(){
   }
   permsFailed=!ok&&!PERMS;
   if(PERMS)isPremium=PERMS.tier==='plus'||PERMS.tier==='gold';
-  await preDone;
+  await preDone;await pricesDone;
   applyPermissions();
   if(typeof updateGetVerifiedBtn==='function')updateGetVerifiedBtn();
 }
@@ -3769,7 +3785,8 @@ function renderUpgrade(){
   }
   const sel=s.selected;
   const cards=s.options.map(t=>{
-    const price=t==='id'?'Free':`${TIER_PRICE[t]}<span style="font-size:13px;font-weight:400;color:var(--text-muted)"> /month</span>`;
+    const intro=t==='id'?null:introPrice(t);
+    const price=t==='id'?'Free':intro?`${intro}<span style="font-size:13px;font-weight:400;color:var(--text-muted)"> first month</span><span style="display:block;font-size:13px;font-weight:500;color:var(--text-on-dark);margin-top:2px">then ${TIER_PRICE[t]}/month</span>`:`${TIER_PRICE[t]}<span style="font-size:13px;font-weight:400;color:var(--text-muted)"> /month</span>`;
     return `<button class="up-card${t===sel?' on':''}" aria-pressed="${t===sel}" onclick="pickUpgradeOption('${t}')"><span style="font-family:var(--serif);font-size:${s.options.length>2?15:18}px;color:${t==='gold'?'var(--gold-light)':'var(--text-on-dark)'}">${OPTION_LABEL[t]}</span><span style="font-size:${s.options.length>2?18:22}px;font-weight:600">${price}</span>${s.options.length>2?'':`<span style="font-size:12px;color:var(--text-muted)">${OPTION_TAGLINE[t]}</span>`}</button>`;
   }).join('');
   // Gold shown beside (or above) BASED+: list only what Gold adds, under "Everything in BASED+, and:"
@@ -3798,8 +3815,10 @@ function renderUpgrade(){
     cta=`<button class="btn-primary" onclick="upgradeState=null;openVerifyScreen('header')">Get verified · Free</button>`;
     note='Takes about two minutes. BASED only keeps whether you passed, not your document.';
   }else{
-    cta=`<button class="btn-primary" onclick="startUpgrade('${sel}')">Get ${OPTION_LABEL[sel]} · ${TIER_PRICE[sel]}/month</button>`;
-    note='Monthly subscription. Cancel anytime in Settings.'+(my==='liveness'?'<br>You’ll do a quick ID check after paying.':'');
+    const intro=introPrice(sel);
+    cta=intro?`<button class="btn-primary" onclick="startUpgrade('${sel}')">Get ${OPTION_LABEL[sel]} · ${intro} first month</button>`
+             :`<button class="btn-primary" onclick="startUpgrade('${sel}')">Get ${OPTION_LABEL[sel]} · ${TIER_PRICE[sel]}/month</button>`;
+    note=(intro?`${intro} for your first month, then ${TIER_PRICE[sel]} a month until you cancel. Cancel anytime in Settings.`:'Monthly subscription. Cancel anytime in Settings.')+(my==='liveness'?'<br>You’ll do a quick ID check after paying.':'');
   }
   document.getElementById('upgrade-footer').innerHTML=`${cta}<p style="font-size:12px;line-height:1.5;color:var(--text-muted);text-align:center">${note}</p><button onclick="closeUpgrade()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Not now</button>`;
 }
@@ -3812,7 +3831,7 @@ async function openPlans(){
   const colClass=t=>t===my?' you':t==='gold'?' gold':'';
   const lockI='<i class="ti ti-lock" style="font-size:15px;color:#5d627a" aria-label="Not included"></i>';
   const checkI='<i class="ti ti-check" style="font-size:18px;color:var(--gold)" aria-label="Included"></i>';
-  let html=`<div class="plans-grid"><div style="border-bottom:0.5px solid rgba(201,168,76,0.3)"></div>${TIER_ORDER.map(t=>`<div class="plans-cell${colClass(t)}" style="flex-direction:column;justify-content:flex-end;gap:3px;padding:8px 0 6px;border-radius:10px 10px 0 0;border-bottom:0.5px solid rgba(201,168,76,0.3)">${t===my?'<span style="font-size:9px;letter-spacing:1px;font-weight:700;color:var(--navy);background:var(--text-muted);padding:2px 6px;border-radius:10px">YOU</span>':''}<span style="font-size:12px;font-weight:600;color:${t==='plus'||t==='gold'?'var(--gold-light)':'var(--text-on-dark)'}">${TIER_SHORT[t]}</span><span style="color:var(--text-muted)">${TIER_PRICE[t]||'Free'}</span></div>`).join('')}`;
+  let html=`<div class="plans-grid"><div style="border-bottom:0.5px solid rgba(201,168,76,0.3)"></div>${TIER_ORDER.map(t=>`<div class="plans-cell${colClass(t)}" style="flex-direction:column;justify-content:flex-end;gap:3px;padding:8px 0 6px;border-radius:10px 10px 0 0;border-bottom:0.5px solid rgba(201,168,76,0.3)">${t===my?'<span style="font-size:9px;letter-spacing:1px;font-weight:700;color:var(--navy);background:var(--text-muted);padding:2px 6px;border-radius:10px">YOU</span>':''}<span style="font-size:12px;font-weight:600;color:${t==='plus'||t==='gold'?'var(--gold-light)':'var(--text-on-dark)'}">${TIER_SHORT[t]}</span>${introPrice(t)?`<span style="color:var(--text-on-dark);font-weight:600">${introPrice(t)}*</span><span style="color:var(--text-muted);font-size:10px">then ${TIER_PRICE[t]}</span>`:`<span style="color:var(--text-muted)">${TIER_PRICE[t]||'Free'}</span>`}</div>`).join('')}`;
   PLAN_FEATURES.forEach(f=>{
     html+=`<div style="padding:11px 8px 11px 0;font-size:13px;line-height:1.35;color:var(--text-on-dark);display:flex;align-items:center">${COMPARE_LABEL[f]}</div>`;
     TIER_ORDER.forEach((t,i)=>{
@@ -3820,7 +3839,7 @@ async function openPlans(){
       html+=`<div class="plans-cell${colClass(t)}" style="color:${i>=2?'var(--gold-light)':'var(--text-on-dark)'}">${v.lock?lockI:v.check?checkI:v.text}</div>`;
     });
   });
-  html+=`</div><p style="margin-top:14px;font-size:12px;line-height:1.5;color:var(--text-muted)">Selfie = selfie and age check. ID = photo ID verified. Paid plans need a verified ID${my==='liveness'?'; you’ll do a quick ID check after paying':''}.</p>`;
+  html+=`</div><p style="margin-top:14px;font-size:12px;line-height:1.5;color:var(--text-muted)">Selfie = selfie and age check. ID = photo ID verified. Paid plans need a verified ID${my==='liveness'?'; you’ll do a quick ID check after paying':''}. Prices are per month.${['plus','gold'].filter(t=>introPrice(t)).map(t=>` *${OPTION_LABEL[t]}: ${introPrice(t)} for your first month, then ${TIER_PRICE[t]} a month until you cancel.`).join('')}${['plus','gold'].some(t=>introPrice(t))?' First-month prices are for new subscribers only.':''}</p>`;
   document.getElementById('plans-body').innerHTML=html;
   const buys=['plus','gold'].filter(t=>TIER_ORDER.indexOf(t)>TIER_ORDER.indexOf(my));
   document.getElementById('plans-footer').style.display=buys.length?'flex':'none';
