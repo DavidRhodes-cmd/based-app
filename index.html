@@ -100,7 +100,7 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 /* iPhones zoom the page when you tap a text box whose text is smaller than 16px, so on iPhone every text box uses 16px */
 @supports (-webkit-touch-callout:none){input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]),textarea,select{font-size:16px!important}}
 .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.based-badge{position:absolute;top:11px;right:13px;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--text-on-dark);border:0.5px solid rgba(201,168,76,0.3);border-radius:6px;padding:2px 7px;}
+.based-badge{position:absolute;top:9px;right:12px;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--text-on-dark);border:0.5px solid rgba(201,168,76,0.3);border-radius:6px;padding:2px 6px;}
 .tab-bar{display:flex;border-bottom:1px solid rgba(255,255,255,0.05);flex-shrink:0;background:var(--navy);}
 .tab-btn{flex:1;background:transparent;border:none;padding:13px 8px;font-size:12px;color:var(--text-muted);cursor:pointer;font-family:var(--sans);border-bottom:2px solid transparent;display:flex;align-items:center;justify-content:center;gap:5px;position:relative;}
 .tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
@@ -350,6 +350,8 @@ button.ins-tile:active{opacity:0.75;}
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Confirm password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Re-enter your password" id="inp-password-confirm" autocomplete="new-password" tabindex="6" onkeydown="if(event.key==='Enter')tryDetails()" /><button type="button" class="pw-toggle" tabindex="-1" onclick="togglePasswordVisibility('inp-password-confirm',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div></div>
     <label style="display:flex;align-items:center;gap:9px;margin-bottom:20px;cursor:pointer"><input type="checkbox" id="inp-remember-password" checked style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0" /><span style="font-size:13px;color:var(--text-muted)">Remember my password on this device</span></label>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Biological sex</label><div style="display:flex;gap:10px"><button class="sex-btn" id="sex-male" tabindex="7" onclick="selectSex('male')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>Male</button><button class="sex-btn" id="sex-female" tabindex="8" onclick="selectSex('female')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>Female</button></div></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Are you married?</label><div style="display:flex;gap:10px" role="group" aria-label="Are you married?"><button class="sex-btn" id="married-yes" tabindex="8" onclick="selectMarried(true)" aria-pressed="false">Yes</button><button class="sex-btn" id="married-no" tabindex="8" onclick="selectMarried(false)" aria-pressed="false">No</button></div></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Do you have children?</label><div style="display:flex;gap:10px" role="group" aria-label="Do you have children?"><button class="sex-btn" id="children-yes" tabindex="8" onclick="selectChildren(true)" aria-pressed="false">Yes</button><button class="sex-btn" id="children-no" tabindex="8" onclick="selectChildren(false)" aria-pressed="false">No</button></div></div>
     <div class="banner-note" style="margin-bottom:22px">We don't want to rob you of conversation, so you can figure out the rest.</div>
     <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-terms" tabindex="9" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to the BASED <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('terms');">Terms and Conditions</span></span></label>
     <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-special" tabindex="10" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to BASED processing my <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('special');">special category data</span> to operate the Service</span></label>
@@ -664,6 +666,7 @@ button.ins-tile:active{opacity:0.75;}
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="edit-dob" oninput="formatDobInput(this)" /><p id="edit-dob-note" style="display:none;font-size:11px;color:var(--text-muted);margin-top:7px;line-height:1.5"><i class="ti ti-lock" style="margin-right:4px"></i><span id="edit-dob-note-text">Confirmed by your ID, so it can’t be changed.</span></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Country</label><select class="form-input" id="edit-country" onchange="onCountryChange('edit')"></select><p id="edit-country-note" style="font-size:12px;color:var(--red);margin-top:7px;display:none"></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block" id="edit-location-label">Postcode</label><div class="loc-wrap"><input class="form-input" type="text" id="edit-location" oninput="onLocationInput('edit')" onblur="setTimeout(()=>hideSuggest('edit'),200)" /><div class="loc-suggest" id="edit-loc-suggest"></div></div><p style="font-size:11px;color:var(--text-muted);margin-top:7px">Used to calculate distances — not shown to other users.</p></div>
+    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Do you have children?</label><div style="display:flex;gap:10px" role="group" aria-label="Do you have children?"><button class="sex-btn" id="edit-children-yes" onclick="setMyChildren(true)" aria-pressed="false">Yes</button><button class="sex-btn" id="edit-children-no" onclick="setMyChildren(false)" aria-pressed="false">No</button></div></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Show distances in</label><div class="unit-toggle"><button type="button" id="units-mi" onclick="setUnits('mi')">Miles</button><button type="button" id="units-km" onclick="setUnits('km')">Kilometres</button></div></div>
     <div style="margin-bottom:22px">
       <label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label>
@@ -755,6 +758,13 @@ button.ins-tile:active{opacity:0.75;}
     <button onclick="saveDealbreakerScreen()" style="background:transparent;border:none;font-size:14px;color:var(--gold);cursor:pointer;font-family:var(--sans);font-weight:600">Save</button>
   </div>
   <div class="scrollable" style="padding:20px 16px">
+    <div class="toggle-row" style="padding-top:0;margin-bottom:18px">
+      <div style="flex:1;padding-right:16px">
+        <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:4px">Don’t show me people who have children</p>
+        <p style="font-size:13px;color:var(--text-muted);line-height:1.4">Anyone who has said they have children won’t appear in Search.</p>
+      </div>
+      <div class="toggle-track" id="children-toggle" role="switch" aria-checked="false" aria-label="Don’t show me people who have children" tabindex="0" onclick="toggleHideChildren()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleHideChildren();}"><div class="toggle-thumb"></div></div>
+    </div>
     <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:6px">Only show profiles aligned on…</p>
     <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Tick the questions where someone must be on the same side as you. Anyone who differs from you on a ticked question won’t appear in Search.</p>
     <div id="dealbreaker-list"></div>
@@ -833,6 +843,18 @@ button.ins-tile:active{opacity:0.75;}
 </div>
 
 <!-- CHECK EMAIL (post sign-up, confirmation pending) -->
+<div id="screen-not-for-you" class="screen">
+  <div class="app-header">
+    <div style="width:28px"></div>
+    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div style="width:28px"></div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 16px;text-align:center">
+    <p style="font-family:var(--serif);font-size:24px;color:var(--text-on-dark);margin-bottom:28px">This app is not for you.</p>
+    <button class="btn-ghost" style="max-width:280px" onclick="goTo('screen-welcome')">Close</button>
+  </div>
+</div>
+
 <div id="screen-check-email" class="screen">
   <div class="app-header">
     <button class="btn-back" onclick="goTo('screen-welcome')"><i class="ti ti-arrow-left"></i></button>
@@ -949,6 +971,7 @@ sb.auth.onAuthStateChange(async(event,session)=>{
       myProfile.sex=pending.sex;myProfile.religion=pending.religion;myProfile.photo=pending.photo;
       myProfile.marketing_consent=pending.marketing_consent;myProfile.terms_accepted_at=pending.terms_accepted_at;
       myProfile.referred_by=pending.referred_by;
+      myProfile.married=pending.married===false?false:null;myProfile.has_children=typeof pending.has_children==='boolean'?pending.has_children:null;
       myProfile.country=pending.country||'GB';myProfile.units=pending.units||defaultUnitsFor(myProfile.country);
       if(pending.lat!=null&&pending.lng!=null){myProfile.lat=pending.lat;myProfile.lng=pending.lng;}
       myProfile.photo_file=pending.photo?dataURLtoFile(pending.photo,'profile.jpg'):null;
@@ -1020,7 +1043,7 @@ function endImg(side,size,maxW){const e=SCALE[side];return e&&e.image?`<img src=
 // "towards This", or just "towards" when the end has no name
 function towardsText(side){const n=(SCALE[side]&&SCALE[side].name)||'';return n?'towards '+n:'towards';}
 // "62%" with the picture of the end someone leans towards (or "Middle")
-function leanBadgeHtml(score,size=16){const l=leanOf(score);if(!l)return'';if(!l.side||!l.pct)return'<span>Middle</span>';return `<span>${l.pct}%</span>${endImg(l.side,size,Math.round(size*2.6))}<span class="visually-hidden">${esc(towardsText(l.side))}</span>`;}
+function leanBadgeHtml(score,size=26){const l=leanOf(score);if(!l)return'';if(!l.side||!l.pct)return'<span>Middle</span>';return `<span>${l.pct}%</span>${endImg(l.side,size,Math.round(size*2.6))}<span class="visually-hidden">${esc(towardsText(l.side))}</span>`;}
 function fullAnswers(a){const out=new Array(NUM_Q).fill(0);if(Array.isArray(a))a.forEach((v,i)=>{if(i<NUM_Q)out[i]=Number(v)||0;});return out;}
 const RELIGIONS=["Atheist","Agnostic","Christian","Hindu","Jewish","Sikh","Muslim","Other"];
 
@@ -1566,6 +1589,7 @@ function resetSignupForm(){
   ['inp-agree-terms','inp-agree-special','inp-marketing-consent'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
   const rem=document.getElementById('inp-remember-password');if(rem)rem.checked=true;
   ['sex-male','sex-female'].forEach(id=>document.getElementById(id).classList.remove('selected'));
+  pickYesNo('married',null);pickYesNo('children',null);
   const pi=document.getElementById('photo-input');if(pi)pi.value='';
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-preview').removeAttribute('src');
   document.getElementById('upload-placeholder').style.display='block';
@@ -1658,6 +1682,8 @@ async function tryDetails(){
   if(!pass){err.style.display='block';err.textContent='Please enter a password.';passEl.classList.add('input-error');return;}
   if(!passConfirm){err.style.display='block';err.textContent='Please confirm your password.';confirmEl.classList.add('input-error');return;}
   if(!myProfile.sex){err.style.display='block';err.textContent='Please select your biological sex.';return;}
+  if(myProfile.married!==false){err.style.display='block';err.textContent='Please say whether you’re married.';return;}
+  if(typeof myProfile.has_children!=='boolean'){err.style.display='block';err.textContent='Please say whether you have children.';return;}
   const dob=parseDobToISO(dobRaw);
   if(!dob){err.style.display='block';err.textContent='Please enter a valid date of birth (DD/MM/YYYY).';dobEl.classList.add('input-error');return;}
   if(calcAge(dob)<18){err.style.display='block';err.textContent='You must be at least 18 to use BASED.';dobEl.classList.add('input-error');return;}
@@ -1741,7 +1767,8 @@ async function finishProfileCreation(userId,email){
     marketing_consent:!!myProfile.marketing_consent,
     terms_accepted_at:myProfile.terms_accepted_at||new Date().toISOString(),
     special_data_consent_at:myProfile.terms_accepted_at||new Date().toISOString(), // both boxes are required on the same screen, at the same moment
-    referred_by:myProfile.referred_by||null
+    referred_by:myProfile.referred_by||null,
+    married:false,has_children:typeof myProfile.has_children==='boolean'?myProfile.has_children:null
   });
   if(profileErr){
     console.error('Profile save error:', profileErr);
@@ -1756,7 +1783,7 @@ async function finishProfileCreation(userId,email){
   myPhotos=savedPhotos;myProfile.extra_photos=[];
   rememberEmail(email);
   try{localStorage.removeItem('basedReferralCode');}catch(e){}
-  excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;dealbreakers=new Set();pendingDealbreakers=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
+  excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;dealbreakers=new Set();pendingDealbreakers=null;hideWithChildren=false;pendingHideChildren=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
   isPremium=false;profileHidden=false;myVerificationStatus='unverified';myVerificationIssue=null;myAgeStatus='none';
   await loadPermissions();
   await loadMyInteractions();
@@ -1799,6 +1826,7 @@ async function stageSignupRemotely(userId){
         extra_photos:(myProfile.extra_photos||[]).map(x=>x.url),
         marketing_consent:!!myProfile.marketing_consent,terms_accepted_at:myProfile.terms_accepted_at,
         referred_by:myProfile.referred_by||null,
+        married:myProfile.married===false?false:null,has_children:typeof myProfile.has_children==='boolean'?myProfile.has_children:null,
         country:myProfile.country||'GB',units:myProfile.units||'mi',lat:myProfile.lat??null,lng:myProfile.lng??null
       })
     });
@@ -2113,6 +2141,8 @@ async function restoreSession(){
     isPremium=p.is_premium||false;
     loadReligionFilter(p);
     loadPlanets(p);
+    myProfile.has_children=typeof p.has_children==='boolean'?p.has_children:null;pickYesNo('edit-children',myProfile.has_children);
+    hideWithChildren=!!p.hide_with_children;
     loadDealbreakers(p);
     mySearchFilters=(p.search_filters&&typeof p.search_filters==='object')?p.search_filters:{};
     profileHidden=p.is_hidden||false;
@@ -2752,6 +2782,21 @@ async function doHideForever(profileKey){
 }
 
 // ─── Questions flow ───────────────────────────────────────────────────────────
+function pickYesNo(prefix,v){['yes','no'].forEach(k=>{const b=document.getElementById(prefix+'-'+k);if(b){const on=v===(k==='yes');b.classList.toggle('selected',on);b.setAttribute('aria-pressed',on);}});}
+// Married people can't join: answering Yes ends the sign-up there and then (nothing is saved)
+function selectMarried(v){
+  if(v){resetSignupForm();signupAnswered=false;goTo('screen-not-for-you');return;}
+  myProfile.married=false;pickYesNo('married',false);
+}
+function selectChildren(v){myProfile.has_children=v;pickYesNo('children',v);}
+// Edit profile: saved straight away
+async function setMyChildren(v){
+  if(!currentUser)return;
+  const before=myProfile.has_children;
+  myProfile.has_children=v;pickYesNo('edit-children',v);
+  const {error}=await sb.from('profiles').update({has_children:v}).eq('id',currentUser.id);
+  if(error){myProfile.has_children=before;pickYesNo('edit-children',before);showToast('Couldn’t save that — please try again.',true);}
+}
 function selectSex(s){document.getElementById('sex-male').classList.toggle('selected',s==='male');document.getElementById('sex-female').classList.toggle('selected',s==='female');myProfile.sex=s;}
 // ─── DOB entry: a plain text field (DD/MM/YYYY) instead of the native date
 // picker, since the picker's internal calendar-icon tab stop can't be
@@ -2917,7 +2962,7 @@ const PRIVACY_UPDATED='11 October 2026';
 const PRIVACY_TEXT=
   `<p style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Last updated: ${PRIVACY_UPDATED}</p>`+
   H_('Who we are')+P_('BASED is run by Based Dating Limited, a company registered in England and Wales. We are the “controller” of your personal data. Contact: support@baseddatingonline.com.',18)+
-  H_('What we collect')+P_('<b style="color:var(--text-on-dark)">From you:</b> your first name, email, password (stored only as a secure hash), date of birth, biological sex, country and postcode or town (turned into a map position for distances), photos, questionnaire answers, your religion (if you choose to give it), your Search settings, your pre-saved introduction, and the messages and emoji reactions you send.')+
+  H_('What we collect')+P_('<b style="color:var(--text-on-dark)">From you:</b> your first name, email, password (stored only as a secure hash), date of birth, biological sex, whether you’re married and whether you have children, country and postcode or town (turned into a map position for distances), photos, questionnaire answers, your religion (if you choose to give it), your Search settings, your pre-saved introduction, and the messages and emoji reactions you send.')+
     P_('<b style="color:var(--text-on-dark)">From your use of BASED:</b> who you show interest in, move on from or block; profiles you view; reports you make; when you last read each chat; your plan and its status; and your consents.')+
     P_('<b style="color:var(--text-on-dark)">From others:</b> messages other members send you, reports made about you, your payment status from Stripe, and your age and identity check results from Didit.',18)+
   H_('Why we use it')+P_('To run BASED for you (our contract with you, the Terms and Conditions): showing your profile, working out compatibility, letting matches message each other, managing your plan and sending service emails.')+
@@ -4596,6 +4641,18 @@ function loadReligionFilter(p){
 // the Matched/Aligned labels on a profile). Saved on the account from its own
 // screen (Settings → Dealbreaker filters).
 let dealbreakers=new Set(),pendingDealbreakers=null;
+let hideWithChildren=false,pendingHideChildren=null; // "Don't show me people who have children" (Search filters it on the server)
+function renderChildrenToggle(){const t=document.getElementById('children-toggle');if(!t)return;const on=pendingHideChildren!=null?pendingHideChildren:hideWithChildren;t.classList.toggle('on',on);t.setAttribute('aria-checked',on);}
+function toggleHideChildren(){pendingHideChildren=!(pendingHideChildren!=null?pendingHideChildren:hideWithChildren);renderChildrenToggle();}
+function commitHideChildren(){
+  if(pendingHideChildren==null||pendingHideChildren===hideWithChildren){pendingHideChildren=null;return false;}
+  const before=hideWithChildren;hideWithChildren=pendingHideChildren;pendingHideChildren=null;
+  if(currentUser)sb.from('profiles').update({hide_with_children:hideWithChildren}).eq('id',currentUser.id).then(({error})=>{
+    if(error){console.warn('Saving the children filter failed:',error.message);hideWithChildren=before;renderChildrenToggle();updateFilterCounts();showToast('Couldn’t save your dealbreakers — please try again.',true);}
+    else loadBrowseProfiles();
+  });
+  return true;
+}
 function sameSide(mine,theirs){mine=mine||0;theirs=theirs||0;return (mine===0&&theirs===0)||(mine>0&&theirs>0)||(mine<0&&theirs<0);}
 function passesDealbreakers(p){
   if(!dealbreakers.size||!canUse('dealbreakers'))return true;
@@ -4617,25 +4674,26 @@ function toggleDealbreaker(i){
   renderDealbreakers();
 }
 function openDealbreakerScreen(){
-  pendingDealbreakers=new Set(dealbreakers);renderDealbreakers();
+  pendingDealbreakers=new Set(dealbreakers);pendingHideChildren=null;renderDealbreakers();renderChildrenToggle();
   goTo('screen-dealbreakers');
   const sc=document.querySelector('#screen-dealbreakers .scrollable');if(sc)sc.scrollTop=0;
 }
-function cancelDealbreakerScreen(){pendingDealbreakers=null;goTo('screen-edit-profile');}
+function cancelDealbreakerScreen(){pendingDealbreakers=null;pendingHideChildren=null;renderChildrenToggle();goTo('screen-edit-profile');}
 function saveDealbreakerScreen(){
-  commitDealbreakers();updateFilterCounts();
+  commitDealbreakers();commitHideChildren();updateFilterCounts();
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   showToast('Dealbreaker filters saved',false,1600);
   goTo('screen-edit-profile');
 }
 function updateFilterCounts(){
   const d=document.getElementById('dealbreaker-count'),r=document.getElementById('religion-count');
-  if(d)d.textContent=dealbreakers.size?`${dealbreakers.size} set`:'None set';
+  const nDb=dealbreakers.size+(hideWithChildren?1:0);
+  if(d)d.textContent=nDb?`${nDb} set`:'None set';
   const pc=document.getElementById('planet-count');
   if(pc){const n=includedPlanets.size;pc.textContent=n===1&&includedPlanets.has('earth')?'Earth only':n===PLANETS.length?'The whole solar system':n===1?PLANETS.find(x=>includedPlanets.has(x[0]))[1]+' only':`${n} planets`;}
   if(r){const total=RELIGIONS.length+1,shown=total-[...excludedReligions].filter(x=>x===NONE_STATED||RELIGIONS.includes(x)).length;r.textContent=shown===total?'All shown':`${shown} of ${total} shown`;}
 }
-function clearDealbreakers(){pendingDealbreakers=new Set();renderDealbreakers();}
+function clearDealbreakers(){pendingDealbreakers=new Set();pendingHideChildren=false;renderDealbreakers();renderChildrenToggle();}
 function loadDealbreakers(p){
   dealbreakers=new Set((Array.isArray(p&&p.dealbreakers)?p.dealbreakers:[]).filter(i=>Number.isInteger(i)&&i>=0&&i<NUM_Q));
   pendingDealbreakers=null;renderDealbreakers();updateFilterCounts();
@@ -5873,7 +5931,7 @@ async function executeDelete(){
     await hardSignOut();
   }
   const wasPremium=isPremium;
-  excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;dealbreakers=new Set();pendingDealbreakers=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
+  excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;dealbreakers=new Set();pendingDealbreakers=null;hideWithChildren=false;pendingHideChildren=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
   isPremium=false;currentUser=null;
   resetSignupForm();myPhotos=[];editPhotos=null;
   myAnswers=new Array(NUM_Q).fill(0);
