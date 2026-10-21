@@ -91,6 +91,9 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .info-icon-btn{flex-shrink:0;width:19px;height:19px;min-width:19px;border-radius:50%;background:transparent;border:1px solid rgba(255,255,255,0.28);color:var(--text-muted);font-size:11px;font-family:Georgia,serif;font-style:italic;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;line-height:1;margin-top:1px;}
 .info-icon-btn:hover{border-color:var(--gold);color:var(--gold);}
 .q-slider{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:5px;background:rgba(255,255,255,0.12);outline:none;cursor:pointer;}
+.slider-bubble{position:absolute;bottom:calc(100% + 8px);transform:translateX(-50%);min-width:38px;padding:5px 9px;border-radius:10px;background:var(--gold);color:var(--navy);font-family:var(--sans);font-size:16px;font-weight:700;text-align:center;line-height:1.1;pointer-events:none;opacity:0;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.35);}
+.slider-bubble::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--gold);}
+.slider-bubble.on{opacity:1;}
 .q-slider::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--gold);cursor:pointer;border:2.5px solid var(--navy);}
 .profile-card{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:17px;padding:15px;display:flex;align-items:center;gap:13px;cursor:pointer;position:relative;}
 .profile-card:active{background:rgba(255,255,255,0.05);}
@@ -686,6 +689,13 @@ button.ins-tile:active{opacity:0.75;}
           <p style="font-size:13px;color:var(--text-muted);line-height:1.4">Pause while you're seeing someone. You won't appear in searches.</p>
         </div>
         <div class="toggle-track" id="hide-toggle" onclick="toggleHideProfile()"><div class="toggle-thumb"></div></div>
+      </div>
+      <div class="toggle-row">
+        <div style="flex:1;padding-right:16px">
+          <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:4px">Sounds</p>
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.4">Play a sound for super interests and when it’s mutual. Your phone’s silent switch also turns them off.</p>
+        </div>
+        <div class="toggle-track" id="sounds-toggle" role="switch" aria-label="Sounds" tabindex="0" onclick="toggleSounds()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSounds();}"><div class="toggle-thumb"></div></div>
       </div>
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07);display:flex;flex-wrap:wrap;gap:8px">
         <button class="btn-ghost" onclick="openModifyAnswers()" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px;display:inline-block;transform:rotate(90deg)"></i>Modify my answers</button>
@@ -2187,6 +2197,7 @@ function subscribeToInteractions(){
         const pp=id=>browseProfiles.find(x=>x.id===id);
         if(newMatch&&pp(newMatch)){
           const p=pp(newMatch);
+          playSound('mutual');
           showLiveBanner({title:`It's mutual with ${p.name}! 🎉`,sub:'You can now message each other',photo:p.photo_url,initials:p.initials,
             onTap:()=>{goTo('screen-main');switchTab('messages');}});
         }else if(newInterest&&pp(newInterest)){
@@ -2194,7 +2205,7 @@ function subscribeToInteractions(){
           if(theirSuper.has(newInterest)){
             showLiveBanner({title:`${p.name} sent you a super interest!`,sub:'They’re especially keen. Tap to see their profile',icon:'ti-confetti',
               onTap:()=>{goTo('screen-main');switchTab('matches');}});
-            markSuperSeen(newInterest);launchConfetti();
+            markSuperSeen(newInterest);launchConfetti();playSound('super');
           }else{
             showLiveBanner({title:`${p.name} is interested in you`,sub:'Tap to see their profile',photo:p.photo_url,initials:p.initials,
               onTap:()=>{goTo('screen-main');switchTab('matches');}});
@@ -2679,6 +2690,51 @@ function nextCongrats(){
 }
 
 // ─── Super interest celebration ──────────────────────────────────────────────
+// ─── Sounds: a sparkle for a super interest (sent or received), a fanfare when it's mutual ───
+// Made in the browser (no sound files). Off switch in Settings; remembered on this device.
+// Phones only allow sound after the member has touched the app, so the first touch unlocks it.
+let soundCtx=null;
+function soundsOn(){try{return localStorage.getItem('basedSounds')!=='off';}catch(e){return true;}}
+function unlockSound(){
+  try{
+    if(!soundCtx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;soundCtx=new AC();}
+    if(soundCtx.state==='suspended')soundCtx.resume();
+    const b=soundCtx.createBuffer(1,1,22050),src=soundCtx.createBufferSource();src.buffer=b;src.connect(soundCtx.destination);src.start(0);
+  }catch(e){}
+}
+['pointerdown','touchend','keydown'].forEach(ev=>document.addEventListener(ev,unlockSound,{once:true,passive:true}));
+function tone(freq,start,dur,vol,type){
+  const c=soundCtx,o=c.createOscillator(),g=c.createGain();
+  o.type=type||'sine';o.frequency.setValueAtTime(freq,start);
+  g.gain.setValueAtTime(0.0001,start);g.gain.exponentialRampToValueAtTime(vol,start+0.012);g.gain.exponentialRampToValueAtTime(0.0001,start+dur);
+  o.connect(g);g.connect(c.destination);o.start(start);o.stop(start+dur+0.05);
+}
+// A bell: the note plus a quieter, higher partial
+function bell(freq,start,dur,vol){tone(freq,start,dur,vol,'sine');tone(freq*2.01,start,dur*0.6,vol*0.35,'sine');tone(freq*3.02,start,dur*0.35,vol*0.12,'sine');}
+function playSound(kind){
+  if(!soundsOn())return;
+  try{
+    unlockSound();if(!soundCtx||soundCtx.state!=='running')return;
+    const t=soundCtx.currentTime+0.03;
+    if(kind==='super'){
+      // rising sparkle: E6 G#6 B6 E7, then a soft shimmer
+      [1318.5,1661.2,1975.5,2637].forEach((f,i)=>bell(f,t+i*0.07,0.55,0.11));
+      [3136,3520,3951].forEach((f,i)=>tone(f,t+0.3+i*0.05,0.25,0.035,'triangle'));
+    }else if(kind==='mutual'){
+      // a short fanfare: C5 E5 G5 rising, then a full C major chord that rings, with sparkles on top
+      [523.25,659.25,783.99].forEach((f,i)=>bell(f,t+i*0.11,0.4,0.12));
+      [523.25,659.25,783.99,1046.5].forEach(f=>bell(f,t+0.36,1.5,0.09));
+      tone(261.63,t+0.36,1.3,0.06,'triangle');
+      [2093,2637,3136,2637,3520].forEach((f,i)=>tone(f,t+0.45+i*0.09,0.3,0.03,'triangle'));
+    }
+  }catch(e){}
+}
+function toggleSounds(){
+  const on=!soundsOn();
+  try{localStorage.setItem('basedSounds',on?'on':'off');}catch(e){}
+  renderSoundsToggle();if(on)playSound('super');
+}
+function renderSoundsToggle(){const t=document.getElementById('sounds-toggle');if(t){t.classList.toggle('on',soundsOn());t.setAttribute('aria-checked',soundsOn());}}
 // A short burst of confetti from a point (a button) or from the top of the screen.
 function launchConfetti(fromEl){
   try{if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;}catch(e){}
@@ -2735,7 +2791,7 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
   }
   await loadPermissions(); // the server knows whether this counted (replies to someone already interested in you don't)
   if(isSuper){
-    launchConfetti(document.getElementById('super-btn'));
+    launchConfetti(document.getElementById('super-btn'));playSound('super');
     const sp=perm('super_interest'),left=limitLeft('super_interest');
     showToast(left!==Infinity?`Super interest sent · ${left} left`:'Super interest sent',false,2000);
     await new Promise(r=>setTimeout(r,1100)); // let the moment land before moving on
@@ -2746,7 +2802,7 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
   let isMutual=false;
   if(currentUser){
     const {data}=await sb.from('interactions').select('id,created_at').eq('from_user',profileKey).eq('to_user',currentUser.id).eq('action','interested');
-    if(data&&data.length){mutualMatches.add(profileKey);loadBrowseProfiles();incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();showToast("It's mutual with "+name+"! 🎉");isMutual=true;}
+    if(data&&data.length){mutualMatches.add(profileKey);loadBrowseProfiles();incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();showToast("It's mutual with "+name+"! 🎉");playSound('mutual');isMutual=true;}
   }
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   renderMatchesTab();
@@ -3285,8 +3341,9 @@ function renderSignupQuestions(){
     <div style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:${q.scoring?'var(--gold)':'var(--text-muted)'};margin-bottom:10px">${q.scoring?'Your values':'On your profile · not part of matching'}</div>
     <h2 id="sq-heading" style="margin:0 0 20px;font-family:var(--serif);font-weight:normal;font-size:28px;line-height:1.15;color:var(--text-on-dark);display:flex;align-items:flex-end">${esc(q.text)}</h2>
     <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${card('sq-left',q.left,false)}${card('sq-right',q.right,true)}</div>
-    <div style="margin-top:28px">
-      <input type="range" id="sq-slider" class="q-slider" style="width:100%" min="-10" max="10" step="1" value="${v}" aria-label="Where you sit between the two statements" oninput="signupSlide(this.value)" />
+    <div style="margin-top:38px">
+      <div style="position:relative"><div id="sq-bubble" class="slider-bubble" aria-hidden="true"></div>
+      <input type="range" id="sq-slider" class="q-slider" style="width:100%;display:block" min="-10" max="10" step="1" value="${v}" aria-label="Where you sit between the two statements" oninput="signupSlide(this.value);sqBubble(true)" onpointerdown="sqDragging=true;sqBubble(true)" onpointerup="sqDragging=false;sqBubble(false)" onpointercancel="sqDragging=false;sqBubble(false)" ontouchend="sqDragging=false;sqBubble(false)" onchange="sqBubble(false)" onblur="sqDragging=false;sqBubble(false)" /></div>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 13px 0" aria-hidden="true">${tick(6,0.25)}${tick(6,0.25)}${tick(12,0.45)}${tick(6,0.25)}${tick(6,0.25)}</div>
       <div id="sq-middle" style="text-align:center;font-size:13px;color:var(--text-muted);margin-top:6px;min-height:18px"></div>
     </div>
@@ -3351,6 +3408,17 @@ function signupPaint(){
   const mid=document.getElementById('sq-middle');if(mid)mid.textContent=v===0?'In the middle':'';
   const sl=document.getElementById('sq-slider');if(sl)sl.setAttribute('aria-valuetext',v===0?'In the middle':`${tag}: ${v<0?q.left:q.right}`);
   if(q.slot===FAITH_Q_INDEX){const pk=document.getElementById('signup-religion-picker');if(pk)pk.style.display=v>0?'grid':'none';}
+}
+// The number above the slider's thumb while it's being moved (hidden shortly after letting go)
+let sqDragging=false,sqBubbleTimer=null;
+function sqBubble(show){
+  const sl=document.getElementById('sq-slider'),b=document.getElementById('sq-bubble');if(!sl||!b)return;
+  const v=parseInt(sl.value)||0,min=+sl.min,max=+sl.max,thumb=26;
+  b.textContent=v>0?'+'+v:String(v);
+  b.style.left=(thumb/2+(v-min)/(max-min)*(sl.offsetWidth-thumb))+'px';
+  clearTimeout(sqBubbleTimer);
+  if(show)b.classList.add('on');
+  if(!show||!sqDragging)sqBubbleTimer=setTimeout(()=>{if(!sqDragging)b.classList.remove('on');},show?900:600);
 }
 // The statement at each end of a question's slider
 function stmtPairHtml(q){return `<div style="display:flex;gap:10px;font-size:12.5px;line-height:1.4;color:var(--text-muted);margin:8px 0 8px"><span style="flex:1;text-align:left">${esc(q.left)}</span><span style="align-self:flex-end;font-size:11px;line-height:1;color:rgba(255,255,255,0.2)" aria-hidden="true">|</span><span style="flex:1;text-align:right">${esc(q.right)}</span></div>`;}
@@ -5465,7 +5533,7 @@ function celebrateNewSupers(){
   const fresh=[...theirSuper].filter(id=>incomingInterest.has(id)&&!mutualMatches.has(id)&&!dismissedIncoming.has(id)&&!hiddenForever.has(id)&&!seen.has(id)&&browseProfiles.some(x=>x.id===id));
   if(!fresh.length)return;
   fresh.forEach(markSuperSeen);
-  setTimeout(()=>launchConfetti(),250);
+  setTimeout(()=>{launchConfetti();playSound('super');},250);
 }
 async function openIncomingProfile(pid){
   let p=browseProfiles.find(x=>x.id===pid||x.name===pid);
@@ -5566,6 +5634,7 @@ async function changeEmail(){
 }
 
 function openEditProfile(){
+  renderSoundsToggle();
   if(!profileLoaded){showProfileLoadError();return;} // never show (and let anyone save) blank details
   document.getElementById('edit-name').value=myProfile.name||'';
   document.getElementById('edit-dob').value=isoToDobDisplay(myProfile.dob);
@@ -5956,7 +6025,11 @@ async function handleUnsubscribe(token){
 
 // ─── Spinner CSS (for loading states) ────────────────────────────────────────
 const spinStyle=document.createElement('style');
-spinStyle.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.ti[style*="spin"]{display:inline-block;transform-origin:50% 50%;line-height:1}'; // icons are inline by default, and inline elements can't rotate
+spinStyle.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.ti[style*="spin"]{display:inline-block;transform-origin:50% 50%;line-height:1}'
+  // Loading: one heart from the logo, spinning (replaces the loader icon everywhere it's used)
+  +'@keyframes heartSpin{from{transform:perspective(400px) rotateY(0deg)}to{transform:perspective(400px) rotateY(360deg)}}'
+  +'.ti.ti-loader{animation:heartSpin 1.4s linear infinite!important;display:inline-block;line-height:1;width:1em;height:1em;vertical-align:-0.125em}'
+  +'.ti.ti-loader::before{content:""!important;display:block;width:1em;height:1em;background:url(\'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -2 112 100"%3E%3Cdefs%3E%3ClinearGradient id="g" x1="0" y1="0" x2="1" y2="1"%3E%3Cstop offset="0" stop-color="%23f5e3ad"/%3E%3Cstop offset=".5" stop-color="%23d9bb66"/%3E%3Cstop offset="1" stop-color="%23b08d3c"/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="none" stroke="url%28%23g%29" stroke-width="9" stroke-linejoin="round"/%3E%3C/svg%3E\') center/contain no-repeat}'; // icons are inline by default, and inline elements can't rotate
 document.head.appendChild(spinStyle);
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
