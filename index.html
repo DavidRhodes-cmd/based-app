@@ -409,7 +409,7 @@ button.ins-tile:active{opacity:0.75;}
   </div>
   <div class="scrollable" style="padding:20px 16px">
     <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:6px">Your agreements</p>
-    <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:16px">What you agreed to when you joined BASED. Tap the underlined words to read them again.</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:16px">What you agreed to when you joined BASED. Tap the underlined words to read them again. How we use your data is explained in our <span style="color:var(--gold);text-decoration:underline;cursor:pointer" onclick="openTerms('privacy','screen-support')">privacy notice</span>.</p>
     <div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px 14px 4px">
       <div id="sup-consent-error" style="display:none;background:rgba(235,87,87,0.08);border:0.5px solid rgba(235,87,87,0.35);border-radius:11px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:var(--text-on-dark);line-height:1.5">We couldn’t load your agreements just now, so they can’t be changed. <span onclick="openSupport()" style="color:var(--gold);text-decoration:underline;cursor:pointer">Try again</span></div>
       <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;cursor:pointer"><input type="checkbox" id="sup-agree-terms" onchange="onSupportConsent('terms',this)" style="width:18px;height:18px;accent-color:var(--gold);flex-shrink:0;margin-top:1px" /><span style="font-size:14px;color:var(--text-on-dark);line-height:1.45">I agree to the BASED <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('terms','screen-support');">Terms and Conditions</span></span></label>
@@ -419,7 +419,7 @@ button.ins-tile:active{opacity:0.75;}
     <p style="font-size:15px;color:var(--text-on-dark);margin:26px 0 6px">Your data and your rights</p>
     <p style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:12px">Under UK data protection law (UK GDPR) you have rights over your personal data. Tap any of these to use them.</p>
     <div class="rights-list">
-      <button onclick="openTerms('privacy','screen-support')"><i class="ti ti-info-circle"></i><span><b>How we use your data</b><small>Right to be informed</small></span><i class="ti ti-chevron-right"></i></button>
+      <button onclick="openTerms('privacy','screen-support')"><i class="ti ti-info-circle"></i><span><b>Privacy notice</b><small>How we use your data · Right to be informed</small></span><i class="ti ti-chevron-right"></i></button>
       <button onclick="openRightRectify()"><i class="ti ti-edit"></i><span><b>Correct your data</b><small>Right to rectification</small></span><i class="ti ti-chevron-right"></i></button>
       <button onclick="openRightRestrict()"><i class="ti ti-player-pause"></i><span><b>Pause your account</b><small>Right to restrict processing</small></span><i class="ti ti-chevron-right"></i></button>
       <button onclick="openRightObject()"><i class="ti ti-hand-stop"></i><span><b>Object to how we use your data</b><small>Right to object</small></span><i class="ti ti-chevron-right"></i></button>
@@ -1620,7 +1620,7 @@ function resetSignupForm(){
   ['inp-agree-terms','inp-agree-special','inp-marketing-consent'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
   const rem=document.getElementById('inp-remember-password');if(rem)rem.checked=true;
   ['sex-male','sex-female'].forEach(id=>document.getElementById(id).classList.remove('selected'));
-  pickYesNo('married',null);pickYesNo('children',null);clearDetailErrors();
+  pickYesNo('married',null);pickYesNo('children',null);clearDetailErrors();detailsToTop();
   const pi=document.getElementById('photo-input');if(pi)pi.value='';
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-preview').removeAttribute('src');
   document.getElementById('upload-placeholder').style.display='block';
@@ -3199,7 +3199,7 @@ async function agreeAgain(kind){
 let termsKind='terms',termsReturn='screen-details';
 function openTerms(kind,from){
   termsKind=kind==='special'||kind==='privacy'?kind:'terms';termsReturn=from||'screen-details';
-  document.getElementById('terms-title').textContent={special:'Special category data',privacy:'How we use your data',terms:'Terms and Conditions'}[termsKind];
+  document.getElementById('terms-title').textContent={special:'Special category data',privacy:'Privacy notice',terms:'Terms and Conditions'}[termsKind];
   // Show the screen FIRST, then fill it and go to the top. Filling a hidden scroll area and
   // then revealing it can leave it frozen (unscrollable) on iPhone Safari, and it kept the
   // old scroll position, so a second visit opened at the end.
@@ -3689,7 +3689,10 @@ function showResults(){
   renderProfiles(0);
 }
 let lastScoreText='';
-function resultsPrimary(){if(!currentUser){showPreregNote();goTo('screen-details');return;}afterResults();}
+// About you always opens at the top when you arrive from your score (it keeps its place when
+// you come back from reading the Terms or positioning a photo)
+function detailsToTop(){const sc=document.querySelector('#screen-details .scrollable');if(!sc)return;sc.scrollTop=0;requestAnimationFrame(()=>{sc.scrollTop=0;});}
+function resultsPrimary(){if(!currentUser){showPreregNote();goTo('screen-details');detailsToTop();return;}afterResults();}
 function showPreregNote(){const n=document.getElementById('details-prereg-note');if(n)n.style.display=preregMode?'block':'none';}
 // Share my score: with the member's own invite code once they have an account
 async function shareScore(){
@@ -5196,10 +5199,10 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
 
 // ─── Sign-up: swipe right to go back, like each screen's back arrow ─────────
 // Questions → the previous question (from the first: your score, or the welcome screen);
-// Your Score → the last question; About you → the welcome screen (what you've typed is kept). Dragging a slider isn't a swipe.
+// Your Score → the last question; About you → Your Score, like its back arrow (what you've typed is kept). Dragging a slider isn't a swipe.
 [['screen-questions',()=>signupBack()],
  ['screen-results',()=>{if(currentUser||!SIGNUP_QUESTIONS.length)return;signupIdx=SIGNUP_QUESTIONS.length-1;renderSignupQuestions();goTo('screen-questions');}],
- ['screen-details',()=>goTo('screen-welcome')]].forEach(([id,back])=>{
+ ['screen-details',()=>goTo(signupAnswered?'screen-results':'screen-welcome')]].forEach(([id,back])=>{
   const container=document.getElementById(id);if(!container)return;
   let startX=0,startY=0,tracking=false;
   container.addEventListener('touchstart',e=>{
