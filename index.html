@@ -3781,7 +3781,7 @@ function showAllowanceInfo(){
     <div style="margin-bottom:12px">${rows}</div>
     ${resets?`<p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:10px">${resets}</p>`:''}
     <p style="font-size:14px;color:var(--text-on-dark);line-height:1.5;margin-bottom:18px;text-align:center">${more}</p>
-    ${canTop||canUp?`<div style="display:flex;gap:10px;margin-bottom:10px">${canTop?`<button class="btn-ghost" style="flex:1;font-size:15px;color:var(--gold);border-color:var(--gold)" onclick="removeModal();openTopUp()">Top up</button>`:''}${canUp?`<button class="btn-primary" style="flex:1;font-size:15px" onclick="removeModal();openPlanUpgrade()">Upgrade</button>`:''}</div>`:''}
+    ${canTop||canUp?`<div style="display:flex;gap:10px;margin-bottom:10px">${canTop?`<button class="btn-ghost" style="flex:1;font-size:15px;color:var(--gold);border-color:var(--gold)" onclick="removeModal();openTopUp()">Top up</button>`:''}${canUp?`<button class="btn-primary" style="flex:1;font-size:15px" onclick="removeModal();openPlanUpgrade('gold')">Upgrade</button>`:''}</div>`:''}
     <button class="btn-ghost" style="font-size:14px" onclick="removeModal()">Close</button>`);
 }
 function miniToggle(id,label,on,locked,onclick){
@@ -3956,8 +3956,7 @@ function renderUpgrade(){
     note='Takes about two minutes. BASED only keeps whether you passed, not your document.';
   }else{
     const intro=introPrice(sel);
-    cta=intro?`<button class="btn-primary" onclick="startUpgrade('${sel}')">Get ${OPTION_LABEL[sel]} · ${intro} first month</button>`
-             :`<button class="btn-primary" onclick="startUpgrade('${sel}')">Get ${OPTION_LABEL[sel]} · ${TIER_PRICE[sel]}/month</button>`;
+    cta=`<button class="btn-primary" onclick="startUpgrade('${sel}')">Get ${OPTION_LABEL[sel]}</button>`; // the price is on the cards above and in the note below
     note=(intro?`${intro} for your first month, then ${TIER_PRICE[sel]} a month until you cancel. Cancel anytime in Settings.`:'Monthly subscription. Cancel anytime in Settings.')+(my==='liveness'?'<br>You’ll do a quick ID check after paying.':'');
   }
   document.getElementById('upgrade-footer').innerHTML=`${cta}<p style="font-size:12px;line-height:1.5;color:var(--text-muted);text-align:center">${note}</p><button onclick="closeUpgrade()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Not now</button>`;
@@ -4550,12 +4549,12 @@ function renderPlanRow(){
 }
 // The upgrade screen without a particular feature in mind: both paid plans from Free,
 // just Gold from BASED+
-function openPlanUpgrade(){
+function openPlanUpgrade(prefer){
   const my=myTierNow();
   const options=['plus','gold'].filter(t=>TIER_ORDER.indexOf(t)>TIER_ORDER.indexOf(my));
   if(!options.length)return;
   const active=document.querySelector('.screen.active');
-  upgradeState={f:null,generic:true,isLimit:false,selected:options[0],options,returnTo:active?active.id:'screen-main'};
+  upgradeState={f:null,generic:true,isLimit:false,selected:options.includes(prefer)?prefer:options[0],options,returnTo:active?active.id:'screen-main'};
   renderUpgrade();
   goTo('screen-upgrade');
   document.getElementById('upgrade-body').scrollTop=0;
