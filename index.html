@@ -3912,6 +3912,12 @@ async function loadPermissions(){
 const FREE_BASICS=new Set(['profile_views','express_interest','super_interest']);
 function perm(f){
   if(PERMS&&PERMS.features&&PERMS.features[f])return PERMS.features[f];
+  // Loaded, but this feature isn't on their plan (e.g. not yet verified, or waiting for their
+  // area to open): locked — or hidden, if the starter plan hides it. Never unlocked.
+  if(PERMS&&PERMS.features){
+    const c=PERMS.country,rs=(TIER_RULES||[]).filter(r=>r.feature===f&&r.tier==='liveness'),r=rs.find(x=>x.country===c)||rs.find(x=>x.country==='*');
+    return {access:r&&r.access==='hidden'?'hidden':'locked',limit:null};
+  }
   if(permsFailed)return FREE_BASICS.has(f)?{access:'allowed',limit:null}:{access:'locked',limit:null};
   if(f==='profile_views')return isPremium?{access:'allowed',limit:null}:{access:'allowed',limit:FREE_LIMIT,period:'total',used:viewedProfiles.size+freeViewsCarried};
   return {access:'allowed',limit:null};
@@ -4075,10 +4081,17 @@ function gainLine(f,tier){
 }
 function myTierNow(){return (PERMS&&PERMS.tier)||'liveness';}
 
+// While waiting for their area to open, nothing paid can be used or bought yet
+function notOpenYet(){
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px"><i class="ti ti-lock" style="color:var(--gold);margin-right:6px"></i>Not yet</p>
+    <p style="font-size:14px;color:var(--text-muted);line-height:1.55;margin-bottom:18px">This unlocks when BASED opens near you and you’ve verified. As a founding member you’ll get BASED+ free to start.</p>
+    <button class="btn-primary" style="font-size:15px" onclick="removeModal()">OK</button>`);
+}
 // reason: 'locked' (default) or 'limit' (allowance used up)
 async function showUpgradePrompt(f,reason){
   removeModal();
   if(permsFailed){showToast('We couldn’t load your plan just now — please try again in a moment.',true,3000);refreshPermissions(true);return;}
+  if(needsWaiting()){notOpenYet();return;}
   if(!TIER_RULES){try{const {data:rows}=await sb.from('feature_permissions').select('country,feature,tier,access,limit_value,limit_period');TIER_RULES=rows||[];}catch(e){TIER_RULES=[];}}
   const p=perm(f),my=myTierNow();
   const isLimit=(reason==='limit'||p.access==='allowed')&&p.limit!=null;
@@ -4734,7 +4747,7 @@ function renderPlanRow(){
   // A free plan given by BASED: say until when (the end time is midnight, so show the day before)
   const gift=PERMS&&PERMS.gift&&PERMS.gift.tier===t?new Date(new Date(PERMS.gift.until).getTime()-1000):null;
   const bs='border-radius:11px;padding:9px 13px;font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap';
-  const up=t==='gold'||ending?'':`<button onclick="openPlanUpgrade()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Upgrade</button>`;
+  const up=t==='gold'||ending||needsWaiting()?'':`<button onclick="openPlanUpgrade()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Upgrade</button>`;
   // Manage = Stripe's page to change card, see receipts or cancel (only once you've paid through Stripe)
   const manage=myStripeCustomer?`<button onclick="openBilling()" style="background:transparent;border:0.5px solid rgba(255,255,255,0.18);color:var(--text-muted);${bs}">Manage</button>`:'';
   // Cancelled but still paid up: offer to carry on instead of upgrading
@@ -4745,6 +4758,7 @@ function renderPlanRow(){
 // The upgrade screen without a particular feature in mind: both paid plans from Free,
 // just Gold from BASED+
 function openPlanUpgrade(prefer){
+  if(needsWaiting()){notOpenYet();return;}
   const my=myTierNow();
   const options=['plus','gold'].filter(t=>TIER_ORDER.indexOf(t)>TIER_ORDER.indexOf(my));
   if(!options.length)return;
