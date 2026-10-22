@@ -91,6 +91,9 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .info-icon-btn{flex-shrink:0;width:19px;height:19px;min-width:19px;border-radius:50%;background:transparent;border:1px solid rgba(255,255,255,0.28);color:var(--text-muted);font-size:11px;font-family:Georgia,serif;font-style:italic;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;line-height:1;margin-top:1px;}
 .info-icon-btn:hover{border-color:var(--gold);color:var(--gold);}
 .q-slider{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:5px;background:rgba(255,255,255,0.12);outline:none;cursor:pointer;}
+.field-err{display:none;font-size:12.5px;line-height:1.4;color:var(--red);margin:7px 2px 0;}
+.field-hint{font-size:12px;line-height:1.4;color:var(--text-muted);margin:7px 2px 0;}
+.field-hint.ok{color:var(--green);}
 .slider-bubble{position:absolute;bottom:calc(100% + 8px);transform:translateX(-50%);min-width:38px;padding:5px 9px;border-radius:10px;background:var(--gold);color:var(--navy);font-family:var(--sans);font-size:16px;font-weight:700;text-align:center;line-height:1.1;pointer-events:none;opacity:0;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.35);}
 .slider-bubble::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--gold);}
 .slider-bubble.on{opacity:1;}
@@ -350,8 +353,8 @@ button.ins-tile:active{opacity:0.75;}
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="inp-dob" tabindex="2" oninput="formatDobInput(this)" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block" id="inp-location-label">Postcode</label><div class="loc-wrap"><input class="form-input" type="text" placeholder="e.g. LS1 4BR" id="inp-location" autocomplete="postal-code" tabindex="3" oninput="onLocationInput('inp')" onblur="setTimeout(()=>hideSuggest('inp'),200)" /><div class="loc-suggest" id="inp-loc-suggest"></div></div></div>
     <p style="font-size:11px;color:var(--text-muted);margin-top:-10px;margin-bottom:17px">Used to calculate distances — not shown to other users.</p><div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="inp-email" autocomplete="email" list="based-remembered-emails" tabindex="4" /></div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Min. 8 characters" id="inp-password" autocomplete="new-password" tabindex="5" onkeydown="if(event.key==='Enter')tryDetails()" /><button type="button" class="pw-toggle" tabindex="-1" onclick="togglePasswordVisibility('inp-password',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div></div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Confirm password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Re-enter your password" id="inp-password-confirm" autocomplete="new-password" tabindex="6" onkeydown="if(event.key==='Enter')tryDetails()" /><button type="button" class="pw-toggle" tabindex="-1" onclick="togglePasswordVisibility('inp-password-confirm',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Min. 8 characters" id="inp-password" autocomplete="new-password" tabindex="5" onkeydown="if(event.key==='Enter')tryDetails()" /><button type="button" class="pw-toggle" tabindex="-1" onclick="togglePasswordVisibility('inp-password',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div><p class="field-hint" id="pw-hint" aria-live="polite">8 characters or more</p></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Confirm password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Re-enter your password" id="inp-password-confirm" autocomplete="new-password" tabindex="6" onkeydown="if(event.key==='Enter')tryDetails()" /><button type="button" class="pw-toggle" tabindex="-1" onclick="togglePasswordVisibility('inp-password-confirm',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div><p class="field-hint ok" id="pw-match" aria-live="polite" style="display:none"><i class="ti ti-check"></i> Passwords match</p></div>
     <label style="display:flex;align-items:center;gap:9px;margin-bottom:20px;cursor:pointer"><input type="checkbox" id="inp-remember-password" checked style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0" /><span style="font-size:13px;color:var(--text-muted)">Remember my password on this device</span></label>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Biological sex</label><div style="display:flex;gap:10px"><button class="sex-btn" id="sex-male" tabindex="7" onclick="selectSex('male')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>Male</button><button class="sex-btn" id="sex-female" tabindex="8" onclick="selectSex('female')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>Female</button></div></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Are you married?</label><div style="display:flex;gap:10px" role="group" aria-label="Are you married?"><button class="sex-btn" id="married-yes" tabindex="8" onclick="selectMarried(true)" aria-pressed="false">Yes</button><button class="sex-btn" id="married-no" tabindex="8" onclick="selectMarried(false)" aria-pressed="false">No</button></div></div>
@@ -1600,7 +1603,7 @@ function resetSignupForm(){
   ['inp-agree-terms','inp-agree-special','inp-marketing-consent'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
   const rem=document.getElementById('inp-remember-password');if(rem)rem.checked=true;
   ['sex-male','sex-female'].forEach(id=>document.getElementById(id).classList.remove('selected'));
-  pickYesNo('married',null);pickYesNo('children',null);
+  pickYesNo('married',null);pickYesNo('children',null);clearDetailErrors();
   const pi=document.getElementById('photo-input');if(pi)pi.value='';
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-preview').removeAttribute('src');
   document.getElementById('upload-placeholder').style.display='block';
@@ -1671,11 +1674,96 @@ function distanceSpan(p){const t=distanceText(p);return t?` <span style="font-si
 // The welcome screen "Create my profile" collects details then signs up.
 // "Browse matches" tries to restore a session.
 
+// ─── About you: each field is checked as you leave it, with the message under the field ───
+// Empty fields aren't flagged while you're filling the form in, only once you've tried Create my profile.
+let detailsTried=false;
+function detailsBox(id){
+  const main=document.getElementById('details-main');let c=document.getElementById(id);
+  if(!c||!main||!main.contains(c))return null;
+  while(c.parentElement&&c.parentElement!==main)c=c.parentElement;
+  return c;
+}
+function fieldErr(id,msg){
+  const box=detailsBox(id);if(!box)return;
+  let p=document.getElementById('ferr-'+id);
+  if(!p){
+    p=document.createElement('p');p.className='field-err';p.id='ferr-'+id;p.setAttribute('role','alert');
+    if(id==='upload-area'){p.style.textAlign='center';p.style.marginTop='10px';document.getElementById('upload-area').after(p);} // right under the photo circle
+    else if(box.tagName==='LABEL'){p.style.margin='-6px 2px 14px 26px';box.after(p);}else box.appendChild(p);
+  }
+  p.textContent=msg||'';p.style.display=msg?'block':'none';
+  const el=document.getElementById(id);if(el&&/^(INPUT|SELECT)$/.test(el.tagName)&&el.type!=='checkbox')el.classList.toggle('input-error',!!msg);
+  if(id==='upload-area'){const a=document.getElementById('upload-area');if(a)a.style.borderColor=msg?'var(--red)':'';}
+  if(!msg&&!document.querySelector('#details-main .field-err[style*="block"]')){const e=document.getElementById('details-error');if(e)e.style.display='none';}
+}
+const EMAIL_RE=/^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const DETAIL_CHECKS={
+  'inp-name':v=>!v?'Please enter your name.':!nameOk(v)?NAME_RULE:'',
+  'inp-dob':v=>{if(!v)return 'Please enter your date of birth.';const d=parseDobToISO(v);if(!d)return 'Please enter a valid date of birth (DD/MM/YYYY).';return calcAge(d)<18?'You must be at least 18 to use BASED.':'';},
+  'inp-location':v=>!v?(document.getElementById('inp-country').value==='GB'?'Please enter your postcode.':'Please enter your nearest town or city.'):'',
+  'inp-email':v=>!v?'Please enter your email.':!EMAIL_RE.test(v)?'Please enter a valid email address.':'',
+  'inp-password':v=>!v?'Please enter a password.':v.length<8?'Password must be at least 8 characters.':'',
+  'inp-password-confirm':v=>!v?'Please confirm your password.':v!==document.getElementById('inp-password').value?'Passwords do not match.':'',
+};
+function checkDetail(id){
+  const el=document.getElementById(id);if(!el)return true;
+  const v=/password/.test(id)?el.value:el.value.trim();
+  if(!v&&!detailsTried){fieldErr(id,'');return true;}
+  const m=DETAIL_CHECKS[id](v);fieldErr(id,m);return !m;
+}
+function updatePasswordHints(){
+  const p=document.getElementById('inp-password').value,c=document.getElementById('inp-password-confirm').value;
+  const h=document.getElementById('pw-hint'),m=document.getElementById('pw-match');
+  if(h){const ok=p.length>=8;h.classList.toggle('ok',ok);h.innerHTML=ok?'<i class="ti ti-check"></i> 8 characters or more':'8 characters or more';}
+  if(m)m.style.display=c&&c===p?'block':'none';
+}
+let breachChecked={pass:null,bad:false};
+async function checkBreachedNow(){
+  const pass=document.getElementById('inp-password').value;
+  if(pass.length<8||breachChecked.pass===pass)return;
+  const bad=await isBreachedPassword(pass);breachChecked={pass,bad};
+  if(document.getElementById('inp-password').value===pass&&bad)fieldErr('inp-password',BREACHED_MSG);
+}
+(function wireDetailChecks(){
+  Object.keys(DETAIL_CHECKS).forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.addEventListener('blur',()=>setTimeout(()=>{ // a moment, so picking a town suggestion counts first
+      const ok=checkDetail(id);
+      if(id==='inp-password'&&ok)checkBreachedNow();
+      if(id==='inp-password'&&document.getElementById('inp-password-confirm').value)checkDetail('inp-password-confirm');
+    },id==='inp-location'?250:0));
+    el.addEventListener('input',()=>{
+      if(/password/.test(id))updatePasswordHints();
+      const shown=document.getElementById('ferr-'+id);
+      if(shown&&shown.style.display==='block')checkDetail(id); // clears as soon as it's right
+      if(id==='inp-password'){const c=document.getElementById('ferr-inp-password-confirm');if(c&&c.style.display==='block')checkDetail('inp-password-confirm');}
+    });
+  });
+  ['inp-agree-terms','inp-agree-special'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',()=>{if(el.checked)fieldErr(id,'');});});
+})();
+// Everything at once, on Create my profile: every problem marked, and the first one scrolled to
+function validateAllDetails(){
+  detailsTried=true;
+  const bad=[];
+  if(!myProfile.photo){fieldErr('upload-area','Please add a photo. It’s needed to create your profile.');bad.push('upload-area');}else fieldErr('upload-area','');
+  ['inp-name','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{if(!checkDetail(id))bad.push(id);});
+  if(breachChecked.pass===document.getElementById('inp-password').value&&breachChecked.bad){fieldErr('inp-password',BREACHED_MSG);if(!bad.includes('inp-password'))bad.push('inp-password');}
+  if(!myProfile.sex){fieldErr('sex-male','Please choose your biological sex.');bad.push('sex-male');}
+  if(myProfile.married!==false){fieldErr('married-no','Please say whether you’re married.');bad.push('married-no');}
+  if(typeof myProfile.has_children!=='boolean'){fieldErr('children-no','Please say whether you have children.');bad.push('children-no');}
+  if(!document.getElementById('inp-agree-terms').checked){fieldErr('inp-agree-terms','Please agree to the Terms and Conditions.');bad.push('inp-agree-terms');}
+  if(!document.getElementById('inp-agree-special').checked){fieldErr('inp-agree-special','Please agree to BASED processing your special category data.');bad.push('inp-agree-special');}
+  if(bad.length){const b=detailsBox(bad[0]);if(b)b.scrollIntoView({behavior:'smooth',block:'center'});}
+  return !bad.length;
+}
+function clearDetailErrors(){detailsTried=false;breachChecked={pass:null,bad:false};document.querySelectorAll('#details-main .field-err').forEach(p=>{p.style.display='none';p.textContent='';});updatePasswordHints();}
 async function tryDetails(){
   const err=document.getElementById('details-error');
   const nameEl=document.getElementById('inp-name'),passEl=document.getElementById('inp-password'),confirmEl=document.getElementById('inp-password-confirm');
   const emailEl=document.getElementById('inp-email'),dobEl=document.getElementById('inp-dob'),locationEl=document.getElementById('inp-location');
   [nameEl,emailEl,dobEl,locationEl,passEl,confirmEl].forEach(el=>el.classList.remove('input-error'));
+  if(!openCountries.has(document.getElementById('inp-country').value)){onCountryChange('inp');return;}
+  if(!validateAllDetails()){err.style.display='block';err.textContent='Please check the items marked in red above.';return;}
   if(!myProfile.photo){err.style.display='block';err.textContent='Please upload a photo before continuing.';return;}
   const name=nameEl.value.trim();
   const email=emailEl.value.trim();
@@ -1712,7 +1800,7 @@ async function tryDetails(){
   // (No "is this email already registered?" check here — for privacy, the app
   // never reveals whether an email address has a BASED account.)
   if(await isBreachedPassword(pass)){
-    err.style.display='block';err.textContent=BREACHED_MSG;
+    err.style.display='block';err.textContent=BREACHED_MSG;fieldErr('inp-password',BREACHED_MSG);breachChecked={pass,bad:true};
     passEl.classList.add('input-error');confirmEl.classList.add('input-error');
     btn.disabled=false;btn.textContent=originalLabel;
     return;
@@ -1721,7 +1809,7 @@ async function tryDetails(){
   const geo=await resolveLocation('inp');
   if(!geo){
     err.style.display='block';err.textContent=locationErrorText(signupCountry);
-    locationEl.classList.add('input-error');
+    fieldErr('inp-location',locationErrorText(signupCountry));
     btn.disabled=false;btn.textContent=originalLabel;
     return;
   }
@@ -2843,9 +2931,9 @@ function pickYesNo(prefix,v){['yes','no'].forEach(k=>{const b=document.getElemen
 // Married people can't join: answering Yes ends the sign-up there and then (nothing is saved)
 function selectMarried(v){
   if(v){resetSignupForm();signupAnswered=false;goTo('screen-not-for-you');return;}
-  myProfile.married=false;pickYesNo('married',false);
+  myProfile.married=false;pickYesNo('married',false);fieldErr('married-no','');
 }
-function selectChildren(v){myProfile.has_children=v;pickYesNo('children',v);}
+function selectChildren(v){myProfile.has_children=v;pickYesNo('children',v);fieldErr('children-no','');}
 // Edit profile: saved straight away
 async function setMyChildren(v){
   if(!currentUser)return;
@@ -2854,7 +2942,7 @@ async function setMyChildren(v){
   const {error}=await sb.from('profiles').update({has_children:v}).eq('id',currentUser.id);
   if(error){myProfile.has_children=before;pickYesNo('edit-children',before);showToast('Couldn’t save that — please try again.',true);}
 }
-function selectSex(s){document.getElementById('sex-male').classList.toggle('selected',s==='male');document.getElementById('sex-female').classList.toggle('selected',s==='female');myProfile.sex=s;}
+function selectSex(s){fieldErr('sex-male','');document.getElementById('sex-male').classList.toggle('selected',s==='male');document.getElementById('sex-female').classList.toggle('selected',s==='female');myProfile.sex=s;}
 // ─── DOB entry: a plain text field (DD/MM/YYYY) instead of the native date
 // picker, since the picker's internal calendar-icon tab stop can't be
 // controlled from page-level tabindex in some browsers.
@@ -3300,7 +3388,7 @@ function saveRepositionPhoto(){
     if(uploadPreview){
       document.getElementById('upload-placeholder').style.display='none';
       uploadPreview.src=dataUrl;uploadPreview.style.display='block';
-      document.getElementById('upload-area').classList.add('has-photo');
+      document.getElementById('upload-area').classList.add('has-photo');fieldErr('upload-area','');
       document.getElementById('reposition-btn').style.display='flex';
     }
     const editImg=document.getElementById('edit-avatar-img');
@@ -5029,10 +5117,10 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
 
 // ─── Sign-up: swipe right to go back, like each screen's back arrow ─────────
 // Questions → the previous question (from the first: your score, or the welcome screen);
-// Your Score → the last question; About you → Your Score. Dragging a slider isn't a swipe.
+// Your Score → the last question; About you → the welcome screen (what you've typed is kept). Dragging a slider isn't a swipe.
 [['screen-questions',()=>signupBack()],
  ['screen-results',()=>{if(currentUser||!SIGNUP_QUESTIONS.length)return;signupIdx=SIGNUP_QUESTIONS.length-1;renderSignupQuestions();goTo('screen-questions');}],
- ['screen-details',()=>goTo(signupAnswered?'screen-results':'screen-welcome')]].forEach(([id,back])=>{
+ ['screen-details',()=>goTo('screen-welcome')]].forEach(([id,back])=>{
   const container=document.getElementById(id);if(!container)return;
   let startX=0,startY=0,tracking=false;
   container.addEventListener('touchstart',e=>{
