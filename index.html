@@ -717,6 +717,7 @@ button.ins-tile:active{opacity:0.75;}
         </div>
         <div class="toggle-track" id="sounds-toggle" role="switch" aria-label="Sounds" tabindex="0" onclick="toggleSounds()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSounds();}"><div class="toggle-thumb"></div></div>
       </div>
+      <div id="mini-score" style="padding:16px 0 4px;display:flex;align-items:center;justify-content:center;gap:10px" aria-live="polite"></div>
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07);display:flex;flex-wrap:wrap;gap:8px">
         <button class="btn-ghost" onclick="openModifyAnswers()" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px;display:inline-block;transform:rotate(90deg)"></i>Modify my answers</button>
         <button class="btn-ghost" onclick="inviteFriends()" style="font-size:14px;padding:11px 17px"><i class="ti ti-user-plus" style="margin-right:7px"></i>Invite friends</button>
@@ -1152,6 +1153,7 @@ async function loadScaleEnds(){
     for(const r of data)if((r.side==='left'||r.side==='right')&&r.image)next[r.side]={name:r.name||'',image:r.image};
     SCALE=next;
     try{localStorage.setItem(SCALE_CACHE_KEY,JSON.stringify(SCALE));}catch(e){}
+    if(typeof renderMiniScore==='function')renderMiniScore();
     if(document.getElementById('screen-results')?.classList.contains('active'))showResults();
     return true;
   }catch(e){return false;}
@@ -3651,7 +3653,7 @@ function leaveModifyAnswers(){
   showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Save your changes?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">You’ve changed some answers that haven’t been saved.</p><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();saveModifyAnswers()">Save changes</button><button class="btn-ghost" style="font-size:15px" onclick="removeModal();cancelModifyAnswers()">Discard changes</button><button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Keep editing</button></div>`);
 }
 async function saveModifyAnswers(){
-  myAnswers=[...modifyTempAnswers];
+  myAnswers=[...modifyTempAnswers];renderMiniScore();
   myProfile.religion=myAnswers[FAITH_Q_INDEX]>0?modifyTempReligion:null;
   const based_score=calcBasedScore(myAnswers);
   if(currentUser)await sb.from('profiles').update({answers:myAnswers,based_score,religion:myProfile.religion}).eq('id',currentUser.id);
@@ -3659,6 +3661,24 @@ async function saveModifyAnswers(){
   goTo('screen-edit-profile');
 }
 
+// A smaller copy of Your Score, in Settings above Modify my answers (redrawn whenever the answers change)
+function renderMiniScore(){
+  const box=document.getElementById('mini-score');if(!box)return;
+  const l=leanOf(calcBasedScore(myAnswers))||{pct:0,side:null};
+  const allZero=QUESTIONS.every(q=>(myAnswers[q.slot]||0)===0);
+  const C=2*Math.PI*68,len=(l.pct/100)*(C/2);
+  const tf=l.side==='right'?'translate(160 0) scale(-1 1) rotate(90 80 80)':'rotate(90 80 80)';
+  const end=side=>{const on=l.side===side&&l.pct;return `<div style="width:62px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center"><div style="opacity:${on?1:0.45}">${endImg(side,20,52)}</div>${SCALE[side].name?`<div style="font-size:10px;line-height:1.25;color:${on?'var(--gold)':'var(--text-muted)'}">${esc(SCALE[side].name)}</div>`:''}</div>`;};
+  const label=l.side&&l.pct?towardsText(l.side):allZero?'On the fence':'In the middle';
+  box.innerHTML=`${end('left')}<div style="position:relative;width:104px;height:104px;flex-shrink:0" role="img" aria-label="Your score: ${l.pct}% ${esc(label)}">
+    <svg width="104" height="104" viewBox="0 0 160 160" aria-hidden="true"><circle cx="80" cy="80" r="68" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10"/>
+      <line x1="80" y1="141" x2="80" y2="156" stroke="rgba(255,255,255,0.3)" stroke-width="2"/><line x1="80" y1="4" x2="80" y2="19" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+      <circle cx="80" cy="80" r="68" fill="none" stroke="#c9a84c" stroke-width="10" stroke-linecap="butt" stroke-dasharray="${len} ${C}" transform="${tf}" style="opacity:${l.pct?1:0}"/></svg>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+      <div style="font-size:11px;letter-spacing:1px;color:var(--text-muted);margin-bottom:1px">MY SCORE</div>
+      <div style="font-size:22px;line-height:1.1;font-weight:700;color:var(--gold);font-family:var(--serif)">${l.pct}%</div>
+      <div style="font-size:9.5px;line-height:1.2;color:var(--text-muted);max-width:76px">${esc(label)}</div></div></div>${end('right')}`;
+}
 function showResults(){
   const score=calcBasedScore(myAnswers),l=leanOf(score)||{pct:0,side:null};
   document.getElementById('results-answer-count').textContent='Calculated from your '+NUM_SCORING+' answers';
@@ -5857,7 +5877,7 @@ async function changeEmail(){
 }
 
 function openEditProfile(){
-  renderSoundsToggle();
+  renderSoundsToggle();renderMiniScore();
   if(!profileLoaded){showProfileLoadError();return;} // never show (and let anyone save) blank details
   document.getElementById('edit-name').value=myProfile.name||'';
   document.getElementById('edit-dob').value=isoToDobDisplay(myProfile.dob);
