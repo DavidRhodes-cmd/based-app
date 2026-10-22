@@ -383,6 +383,23 @@ button.ins-tile:active{opacity:0.75;}
   </div>
 </div>
 
+<!-- UPDATED TERMS: agree again to carry on -->
+<div id="screen-reaccept" class="screen">
+  <div class="app-header">
+    <div style="width:28px"></div>
+    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div style="width:28px"></div>
+  </div>
+  <div class="scrollable" style="padding:30px 20px">
+    <div style="text-align:center;margin-bottom:22px"><i class="ti ti-file-text" style="font-size:36px;color:var(--gold)"></i></div>
+    <p id="reaccept-title" style="font-family:var(--serif);font-size:22px;line-height:1.3;color:var(--text-on-dark);text-align:center;margin-bottom:12px">We’ve updated our terms</p>
+    <p style="font-size:14px;line-height:1.6;color:var(--text-muted);text-align:center;margin-bottom:24px">Please read the changes and agree to them to carry on using BASED.</p>
+    <div id="reaccept-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:26px"></div>
+    <button class="btn-ghost" style="font-size:14px" onclick="hardSignOut().then(()=>goTo('screen-welcome'))">Log out</button>
+    <p style="font-size:12px;line-height:1.5;color:var(--text-muted);text-align:center;margin-top:14px">If you don’t want to agree, email support@baseddatingonline.com and we’ll close your account and delete your data.</p>
+  </div>
+</div>
+
 <!-- SUPPORT -->
 <div id="screen-support" class="screen">
   <div class="app-header">
@@ -1163,7 +1180,7 @@ let messageChannel=null; // Supabase realtime channel
 let interactionsChannel=null; // Supabase realtime channel for live match/interest detection
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
-function goTo(id){if(id==='screen-main'&&typeof needsWaiting==='function'&&needsWaiting()){id='screen-waiting';renderWaiting();}document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);if(id==='screen-main'){if(typeof updateGetVerifiedBtn==='function')updateGetVerifiedBtn();if(typeof maybeAutoWiden==='function'&&searchAuto&&!widenTried){widenTried=true;maybeAutoWiden();}}}
+function goTo(id){if((id==='screen-main'||id==='screen-waiting')&&typeof needsReaccept==='function'&&needsReaccept()){id='screen-reaccept';renderReaccept();}else if(id==='screen-main'&&typeof needsWaiting==='function'&&needsWaiting()){id='screen-waiting';renderWaiting();}document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);if(id==='screen-main'){if(typeof updateGetVerifiedBtn==='function')updateGetVerifiedBtn();if(typeof maybeAutoWiden==='function'&&searchAuto&&!widenTried){widenTried=true;maybeAutoWiden();}}}
 // Member-written text (names, messages) is made safe before it goes into the page.
 // esc: for text and attribute values. ja: for a value inside a '…' JS string in an onclick attribute.
 // Names: letters, spaces, hyphens, apostrophes and full stops (matches the server's rule)
@@ -1882,7 +1899,7 @@ async function finishProfileCreation(userId,email){
   myPhotos=savedPhotos;myProfile.extra_photos=[];
   rememberEmail(email);
   try{localStorage.removeItem('basedReferralCode');}catch(e){}
-  excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;dealbreakers=new Set();pendingDealbreakers=null;hideWithChildren=false;pendingHideChildren=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
+  excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;dealbreakers=new Set();pendingDealbreakers=null;hideWithChildren=false;pendingHideChildren=null;LEGAL_NEED=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
   isPremium=false;profileHidden=false;myVerificationStatus='unverified';myVerificationIssue=null;myAgeStatus='none';
   await loadPermissions();
   await loadMyInteractions();
@@ -3039,7 +3056,7 @@ const TERMS_TEXT=`
 <p style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Last updated: 11 October 2026</p>
 
 <p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:8px">1. Who we are</p>
-<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">BASED is operated by Based Dating Limited, a company registered in England and Wales ("we", "us", "our"). These Terms and Conditions ("Terms") govern your use of the BASED app and website (the "Service"). By creating an account, you agree to be bound by these Terms.</p>
+<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">BASED is operated by BASED ON VALUES DATING LIMITED, a company registered in England and Wales ("we", "us", "our"). These Terms and Conditions ("Terms") govern your use of the BASED app and website (the "Service"). By creating an account, you agree to be bound by these Terms.</p>
 
 <p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:8px">2. Eligibility</p>
 <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">You must be at least 18 years old to use BASED. By creating an account, you confirm that you are 18 or older, that you are legally permitted to enter into a binding contract, and that the information you provide is accurate. We may ask you to verify your age or identity at any time and may suspend or terminate accounts we reasonably believe belong to someone under 18.</p>
@@ -3106,7 +3123,7 @@ const H_=t=>`<p style="font-family:var(--serif);font-size:16px;color:var(--text-
 const PRIVACY_UPDATED='11 October 2026';
 const PRIVACY_TEXT=
   `<p style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Last updated: ${PRIVACY_UPDATED}</p>`+
-  H_('Who we are')+P_('BASED is run by Based Dating Limited, a company registered in England and Wales. We are the “controller” of your personal data. Contact: support@baseddatingonline.com.',18)+
+  H_('Who we are')+P_('BASED is run by BASED ON VALUES DATING LIMITED, a company registered in England and Wales. We are the “controller” of your personal data. Contact: support@baseddatingonline.com.',18)+
   H_('What we collect')+P_('<b style="color:var(--text-on-dark)">From you:</b> your first name, email, password (stored only as a secure hash), date of birth, biological sex, whether you’re married and whether you have children, country and postcode or town (turned into a map position for distances), photos, questionnaire answers, your religion (if you choose to give it), your Search settings, your pre-saved introduction, and the messages and emoji reactions you send.')+
     P_('<b style="color:var(--text-on-dark)">From your use of BASED:</b> who you show interest in, move on from or block; profiles you view; reports you make; when you last read each chat; when you last had BASED open (so we can see how many members are online); your plan and its status; and your consents.')+
     P_('<b style="color:var(--text-on-dark)">From others:</b> messages other members send you, reports made about you, your payment status from Stripe, and your age and identity check results from Didit.',18)+
@@ -3120,6 +3137,65 @@ const PRIVACY_TEXT=
   H_('How long we keep it')+P_('While you have an account. When you delete it, everything is deleted straight away, except: conversations under an open safety report; if a report about you is open, a private copy of your account until 90 days after the report is closed; a one-way fingerprint of your email with your free-allowance usage, so allowances don’t reset if you re-join; and payment records Stripe must keep by law.',18)+
   H_('Your rights')+P_('You can find out how we use your data, get a copy of it, correct it, delete it, pause (restrict) its use, object to how we use it, take it to another service, and withdraw your consent at any time. Use the options on the Support page, or email support@baseddatingonline.com. We reply within one month.')+
     P_('If you’re unhappy with how we’ve handled your data, please tell us first. You can also complain to the Information Commissioner’s Office: ico.org.uk/make-a-complaint or 0303 123 1113.',30);
+// ─── The legal documents, as published from the console (Legal page) ────────
+// Kept as plain text: "# " heading, blank line = new paragraph, "- " bullet, **bold**, [words](https://…).
+// Shown as text only (everything is escaped first). If they can't be loaded, the built-in wording above is used.
+let LEGAL={};try{LEGAL=JSON.parse(localStorage.getItem('basedLegal')||'{}')||{};}catch(e){LEGAL={};}
+function legalBlocks(body){
+  const out=[];let para=[];const flush=()=>{if(para.length){out.push({t:'p',x:para.join(' ')});para=[];}};
+  String(body||'').replace(/\r\n?/g,'\n').split('\n').forEach(raw=>{
+    const l=raw.trim();
+    if(!l){flush();return;}
+    if(/^#{1,3}\s+/.test(l)){flush();out.push({t:'h',x:l.replace(/^#{1,3}\s+/,'')});return;}
+    if(/^[-•*]\s+/.test(l)){flush();out.push({t:'li',x:l.replace(/^[-•*]\s+/,'')});return;}
+    para.push(l);
+  });
+  flush();return out;
+}
+function legalInline(x){
+  return esc(x).replace(/\*\*(.+?)\*\*/g,'<b style="color:var(--text-on-dark)">$1</b>')
+    .replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+|mailto:[^\s)]+)\)/g,(m,t,u)=>`<a href="${u}" target="_blank" rel="noopener" style="color:var(--gold)">${t}</a>`);
+}
+function legalHtml(doc){
+  const d=doc.published_at?new Date(doc.published_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'';
+  const bl=legalBlocks(doc.body);
+  return (d?`<p style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Last updated: ${esc(d)}</p>`:'')+bl.map((b,i)=>{
+    const last=i===bl.length-1,next=bl[i+1];
+    if(b.t==='h')return `<p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin:${i?'10px':'0'} 0 8px">${legalInline(b.x)}</p>`;
+    if(b.t==='li')return `<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:${next&&next.t==='li'?6:14}px;padding-left:14px;text-indent:-14px">•&nbsp; ${legalInline(b.x)}</p>`;
+    return `<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:${last?30:12}px">${legalInline(b.x)}</p>`;
+  }).join('');
+}
+async function loadLegal(){
+  try{
+    const res=await Promise.all(['terms','special','privacy'].map(k=>sb.rpc('legal_doc',{p_kind:k})));
+    const next={};res.forEach((r,i)=>{if(!r.error&&r.data&&r.data.body)next[['terms','special','privacy'][i]]=r.data;});
+    if(Object.keys(next).length){LEGAL=Object.assign({},LEGAL,next);try{localStorage.setItem('basedLegal',JSON.stringify(LEGAL));}catch(e){}}
+  }catch(e){}
+}
+loadLegal();
+// Agree again after the Terms or the special category data notice change (marked so when published)
+let LEGAL_NEED=null; // {terms:bool, special:bool}
+async function loadLegalStatus(){
+  if(!currentUser){LEGAL_NEED=null;return;}
+  try{const {data,error}=await sb.rpc('my_legal_status');if(!error)LEGAL_NEED=data||null;}catch(e){}
+}
+function needsReaccept(){return !!currentUser&&!!LEGAL_NEED&&(LEGAL_NEED.terms||LEGAL_NEED.special);}
+function renderReaccept(){
+  const n=LEGAL_NEED||{},both=n.terms&&n.special;
+  document.getElementById('reaccept-title').textContent=both?'We’ve updated our Terms and Conditions and how we use special category data':n.terms?'We’ve updated our Terms and Conditions':'We’ve updated how we use special category data';
+  const item=(k,label)=>`<div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:13px;background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.3)"><span style="flex:1;font-size:15px;color:var(--text-on-dark)">${label}</span><button class="btn-primary" style="width:auto;padding:10px 16px;font-size:14px" onclick="openTerms('${k}','screen-reaccept')">Read and agree</button></div>`;
+  document.getElementById('reaccept-list').innerHTML=(n.terms?item('terms','Terms and Conditions'):'')+(n.special?item('special','Special category data'):'');
+}
+async function agreeAgain(kind){
+  busyModal('Saving…');
+  const {error}=await sb.rpc('agree_legal',{p_kind:kind});
+  removeModal();
+  if(error){showToast('Couldn’t save that just now. Please try again.',true);goTo('screen-reaccept');return;}
+  if(LEGAL_NEED)LEGAL_NEED[kind]=false;
+  if(needsReaccept()){renderReaccept();goTo('screen-reaccept');}
+  else{showToast('Thank you',false,1600);goTo('screen-main');}
+}
 let termsKind='terms',termsReturn='screen-details';
 function openTerms(kind,from){
   termsKind=kind==='special'||kind==='privacy'?kind:'terms';termsReturn=from||'screen-details';
@@ -3129,7 +3205,7 @@ function openTerms(kind,from){
   // old scroll position, so a second visit opened at the end.
   goTo('screen-terms');
   const area=document.getElementById('terms-scroll-area');
-  area.innerHTML={special:SPECIAL_DATA_TEXT,privacy:PRIVACY_TEXT,terms:TERMS_TEXT}[termsKind];
+  area.innerHTML=LEGAL[termsKind]&&LEGAL[termsKind].body?legalHtml(LEGAL[termsKind]):{special:SPECIAL_DATA_TEXT,privacy:PRIVACY_TEXT,terms:TERMS_TEXT}[termsKind];
   const btn=document.getElementById('terms-agree-btn');
   btn.parentElement.style.display=termsKind==='privacy'?'none':''; // nothing to agree to — it's information
   // Already agreed (e.g. reading it again)? No need to scroll to the end again.
@@ -3147,6 +3223,7 @@ function onTermsScroll(){
   if(nearBottom&&btn.disabled&&termsKind!=='privacy'){btn.disabled=false;btn.style.opacity='1';btn.textContent='I agree';}
 }
 function agreeToTerms(){
+  if(termsReturn==='screen-reaccept'){agreeAgain(termsKind);return;}
   if(termsReturn==='screen-support'){
     const box=document.getElementById(termsKind==='special'?'sup-agree-special':'sup-agree-terms');
     if(!box.checked){box.checked=true;onSupportConsent(termsKind,box);} // records the agreement
@@ -3786,6 +3863,7 @@ setInterval(touchSeen,3*60*1000);
 async function loadPermissions(){
   if(!currentUser){PERMS=null;permsFailed=false;PRE=null;return;}
   touchSeen();
+  const legalDone=loadLegalStatus();
   const preDone=loadPrereg();
   const pricesDone=loadPrices();
   loadTopUps();
@@ -3802,8 +3880,9 @@ async function loadPermissions(){
   }
   permsFailed=!ok&&!PERMS;
   if(PERMS)isPremium=PERMS.tier==='plus'||PERMS.tier==='gold';
-  await preDone;await pricesDone;
+  await preDone;await pricesDone;await legalDone;
   applyPermissions();
+  if(needsReaccept()){const a=document.querySelector('.screen.active');if(a&&['screen-main','screen-waiting'].includes(a.id))goTo('screen-main');}
   planetsBackToEarthIfNotAllowed();
   if(typeof updateGetVerifiedBtn==='function')updateGetVerifiedBtn();
 }
@@ -6142,7 +6221,7 @@ async function executeDelete(){
     await hardSignOut();
   }
   const wasPremium=isPremium;
-  excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;dealbreakers=new Set();pendingDealbreakers=null;hideWithChildren=false;pendingHideChildren=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
+  excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;dealbreakers=new Set();pendingDealbreakers=null;hideWithChildren=false;pendingHideChildren=null;LEGAL_NEED=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
   isPremium=false;currentUser=null;
   resetSignupForm();myPhotos=[];editPhotos=null;
   myAnswers=new Array(NUM_Q).fill(0);
