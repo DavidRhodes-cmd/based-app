@@ -3020,7 +3020,7 @@ const PRIVACY_TEXT=
   `<p style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Last updated: ${PRIVACY_UPDATED}</p>`+
   H_('Who we are')+P_('BASED is run by Based Dating Limited, a company registered in England and Wales. We are the “controller” of your personal data. Contact: support@baseddatingonline.com.',18)+
   H_('What we collect')+P_('<b style="color:var(--text-on-dark)">From you:</b> your first name, email, password (stored only as a secure hash), date of birth, biological sex, whether you’re married and whether you have children, country and postcode or town (turned into a map position for distances), photos, questionnaire answers, your religion (if you choose to give it), your Search settings, your pre-saved introduction, and the messages and emoji reactions you send.')+
-    P_('<b style="color:var(--text-on-dark)">From your use of BASED:</b> who you show interest in, move on from or block; profiles you view; reports you make; when you last read each chat; your plan and its status; and your consents.')+
+    P_('<b style="color:var(--text-on-dark)">From your use of BASED:</b> who you show interest in, move on from or block; profiles you view; reports you make; when you last read each chat; when you last had BASED open (so we can see how many members are online); your plan and its status; and your consents.')+
     P_('<b style="color:var(--text-on-dark)">From others:</b> messages other members send you, reports made about you, your payment status from Stripe, and your age and identity check results from Didit.',18)+
   H_('Why we use it')+P_('To run BASED for you (our contract with you, the Terms and Conditions): showing your profile, working out compatibility, letting matches message each other, managing your plan and sending service emails.')+
     P_('Your religion, photos and messages are “special category data”, which we use only with your explicit consent, given when you joined.')+
@@ -3691,8 +3691,13 @@ const FEATURE_INFO={
 // If your plan can't be loaded: keep the last one we had; with none, only the free basics
 // work (the server enforces their limits) and paid features stay locked — never unlocked.
 let permsFailed=false;
+// "Last seen": noted every few minutes while BASED is open, so staff can see how many are online
+// (the server ignores repeats within 2 minutes). Nothing else is recorded.
+function touchSeen(){if(currentUser&&document.visibilityState==='visible')sb.rpc('touch_last_seen').then(()=>{},()=>{});}
+setInterval(touchSeen,3*60*1000);
 async function loadPermissions(){
   if(!currentUser){PERMS=null;permsFailed=false;PRE=null;return;}
+  touchSeen();
   const preDone=loadPrereg();
   const pricesDone=loadPrices();
   loadTopUps();
@@ -4683,7 +4688,8 @@ function sameSet(a,b){if(a.size!==b.size)return false;for(const x of a)if(!b.has
 function filterScreenChanged(which){
   if(which==='planets')return pendingPlanets&&!sameSet(pendingPlanets,includedPlanets);
   return which==='religion'?(pendingReligions&&!sameSet(pendingReligions,excludedReligions))
-                           :(pendingDealbreakers&&!sameSet(pendingDealbreakers,dealbreakers));
+                           :((pendingDealbreakers&&!sameSet(pendingDealbreakers,dealbreakers))
+                             ||(pendingHideChildren!=null&&pendingHideChildren!==hideWithChildren)); // the children toggle counts too
 }
 function leaveFilterScreen(which){
   const save=which==='religion'?'saveReligionScreen()':which==='planets'?'savePlanetScreen()':'saveDealbreakerScreen()';
@@ -5020,6 +5026,29 @@ async function switchTab(tab){['browse','matches','messages'].forEach(t=>{docume
     leaveModifyAnswers();
   },{passive:true});
 })();
+
+// ─── Sign-up: swipe right to go back, like each screen's back arrow ─────────
+// Questions → the previous question (from the first: your score, or the welcome screen);
+// Your Score → the last question; About you → Your Score. Dragging a slider isn't a swipe.
+[['screen-questions',()=>signupBack()],
+ ['screen-results',()=>{if(currentUser||!SIGNUP_QUESTIONS.length)return;signupIdx=SIGNUP_QUESTIONS.length-1;renderSignupQuestions();goTo('screen-questions');}],
+ ['screen-details',()=>goTo(signupAnswered?'screen-results':'screen-welcome')]].forEach(([id,back])=>{
+  const container=document.getElementById(id);if(!container)return;
+  let startX=0,startY=0,tracking=false;
+  container.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1)return;
+    if(e.target.closest('input,select,textarea,.loc-suggest'))return;
+    startX=e.touches[0].clientX;startY=e.touches[0].clientY;tracking=true;
+  },{passive:true});
+  container.addEventListener('touchend',e=>{
+    if(!tracking)return;
+    tracking=false;
+    if(document.getElementById('modal-bd'))return;
+    const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
+    if(dx<60||Math.abs(dx)<Math.abs(dy)*1.5)return; // a clear swipe to the right only
+    back();
+  },{passive:true});
+});
 
 // ─── Swipe on Support, or on a Terms / privacy page opened from it, to go back ─
 [['screen-support',()=>menuBack()],['screen-terms',()=>goTo(termsReturn)]].forEach(([id,back])=>{
