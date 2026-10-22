@@ -3750,14 +3750,39 @@ function allowanceRows(){
     if(p.access==='allowed'&&p.limit!=null)periods.add(p.period||'total');
     const val=locked?'<i class="ti ti-lock" style="font-size:12px"></i>':unlimited?'<span style="font-size:17px;line-height:1">∞</span>':String(left);
     const said=locked?`${label}: not on your plan`:unlimited?`${label}: unlimited`:`${label}: ${left} left`;
-    const tap=locked||(!unlimited&&left<=0)?` onclick="showUpgradePrompt('${f}',${locked?'undefined':"'limit'"})" style="cursor:pointer"`:'';
-    html+=`<span class="allow-item${!unlimited&&!locked&&left<=0?' empty':''}"${tap} role="img" aria-label="${said}"><i class="ti ${icon}"></i><b>${val}</b></span>`;
+    html+=`<span class="allow-item${!unlimited&&!locked&&left<=0?' empty':''}" role="img" aria-label="${said}"><i class="ti ${icon}"></i><b>${val}</b></span>`;
   });
   if(!html)return '';
   // When the allowances come back (weeks run Monday to Sunday, UK time)
   const d=periods.has('day'),w=periods.has('week');
   const reset=d&&w?'Views reset at midnight, the rest on Monday':w?'Resets on Monday':d?'Resets at midnight':'';
-  return `<div><div style="display:flex;gap:14px;align-items:center">${html}</div>${reset?`<p style="font-size:11px;color:var(--text-muted);opacity:0.8;margin-top:6px">${reset}</p>`:''}</div>`;
+  // Tapping the strip explains it: your plan, what you get, when it resets, and how to get more
+  return `<div role="button" tabindex="0" aria-label="Your allowances — tap for details" onclick="showAllowanceInfo()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showAllowanceInfo();}" style="cursor:pointer"><div style="display:flex;gap:14px;align-items:center">${html}</div>${reset?`<p style="font-size:11px;color:var(--text-muted);opacity:0.8;margin-top:6px">${reset}</p>`:''}</div>`;
+}
+function showAllowanceInfo(){
+  const t=myTierNow(),pw={total:'in total',day:'a day',week:'a week'};
+  const lines=[['profile_views','ti-eye','Profile views'],['express_interest','ti-heart','Interests'],['super_interest','ti-confetti','Super interests']];
+  const periods=new Set();
+  const rows=lines.filter(([f])=>!isHidden(f)).map(([f,icon,label])=>{
+    const p=perm(f),left=limitLeft(f),bonus=bonusOf(f);
+    let what,leftTxt='';
+    if(p.access!=='allowed')what='Not on your plan';
+    else if(p.limit==null)what='Unlimited';
+    else{what=`${p.limit} ${pw[p.period]||'in total'}`;periods.add(p.period||'total');}
+    if(left!==Infinity&&(p.access==='allowed'||bonus))leftTxt=`${left} left${bonus?` (including ${bonus} extra${bonus===1?'':'s'})`:''}`;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid rgba(255,255,255,0.08)"><i class="ti ${icon}" style="font-size:19px;color:var(--gold);width:22px;text-align:center"></i><span style="flex:1;font-size:14px;color:var(--text-on-dark);text-align:left">${label}</span><span style="text-align:right;font-size:13px;line-height:1.35;color:var(--text-on-dark)">${what}${leftTxt?`<span style="display:block;font-size:12px;color:var(--text-muted)">${leftTxt}</span>`:''}</span></div>`;
+  }).join('');
+  const resets=[periods.has('day')?'Daily allowances reset at midnight.':'',periods.has('week')?'Weekly allowances reset on Monday.':'',periods.has('total')?'Allowances “in total” don’t reset.':''].filter(Boolean).join(' ');
+  const canTop=(t==='liveness'||t==='id')&&!!(TOPUP&&TOPUP.allowed&&TOPUP.offers&&TOPUP.offers.length);
+  const canUp=t!=='gold';
+  const more=canTop&&canUp?'Top up or upgrade to get more.':canUp?'Upgrade to get more.':'You’re on our top plan.';
+  showModal(`<p style="font-size:11px;letter-spacing:1.5px;color:var(--gold);font-weight:600;text-align:center;margin-bottom:4px">YOUR PLAN</p>
+    <p style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark);text-align:center;margin-bottom:14px">${TIER_LABEL[t]||'Free'}</p>
+    <div style="margin-bottom:12px">${rows}</div>
+    ${resets?`<p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:10px">${resets}</p>`:''}
+    <p style="font-size:14px;color:var(--text-on-dark);line-height:1.5;margin-bottom:18px;text-align:center">${more}</p>
+    ${canTop||canUp?`<div style="display:flex;gap:10px;margin-bottom:10px">${canTop?`<button class="btn-ghost" style="flex:1;font-size:15px;color:var(--gold);border-color:var(--gold)" onclick="removeModal();openTopUp()">Top up</button>`:''}${canUp?`<button class="btn-primary" style="flex:1;font-size:15px" onclick="removeModal();openPlanUpgrade()">Upgrade</button>`:''}</div>`:''}
+    <button class="btn-ghost" style="font-size:14px" onclick="removeModal()">Close</button>`);
 }
 function miniToggle(id,label,on,locked,onclick){
   return `<button type="button" id="${id}" class="mini-toggle${on?' on':''}${locked?' locked':''}" onclick="${onclick}" aria-pressed="${on}"><span>${label}</span>${locked?'<i class="ti ti-lock" style="font-size:12px"></i>':''}<span class="toggle-track"><span class="toggle-thumb"></span></span></button>`;
