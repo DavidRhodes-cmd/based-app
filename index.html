@@ -722,7 +722,7 @@ button.ins-tile:active{opacity:0.75;}
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07);display:flex;flex-wrap:wrap;gap:8px">
         <button class="btn-ghost" onclick="openModifyAnswers()" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px;display:inline-block;transform:rotate(90deg)"></i>Modify my answers</button>
         <button class="btn-ghost" onclick="inviteFriends()" style="font-size:14px;padding:11px 17px"><i class="ti ti-user-plus" style="margin-right:7px"></i>Invite friends</button>
-        <p id="invite-offer" style="display:none;gap:6px;align-items:flex-start;width:100%;font-size:13px;color:var(--text-muted);line-height:1.45;margin-top:4px"></p>
+        <p id="invite-offer" style="display:none;gap:12px;align-items:center;width:100%;font-size:13px;color:var(--text-muted);line-height:1.45;margin-top:4px"></p>
       </div>
       <!-- Plan features (padlocked until you upgrade) -->
       <div class="toggle-row" data-feature="read_receipts">
@@ -1111,7 +1111,19 @@ function getReferralCode(){try{return localStorage.getItem('basedReferralCode')|
 // change) directly from the URL, synchronously, before any async work starts.
 // Replaces an earlier localStorage-based check that stopped working once
 // pending sign-up data moved to server-side staging.
-try{hasPendingSignupOnLoad=/access_token|type=recovery|type=signup|type=email_change|type=magiclink/.test(window.location.hash);}catch(e){}
+// (An email-change link isn't a sign-up: it signs you in with your new address, and we take you to search.)
+let emailChangeLink=false,authLinkMessage=null;
+try{emailChangeLink=/type=email_change/.test(window.location.hash);}catch(e){}
+try{hasPendingSignupOnLoad=!emailChangeLink&&/access_token|type=recovery|type=signup|type=magiclink/.test(window.location.hash);}catch(e){}
+// Changing your email needs a click in BOTH inboxes. After the first one, Supabase sends you
+// back here with a message saying so: show it in plain words.
+try{
+  if(/[#&]message=/.test(window.location.hash)){
+    const m=new URLSearchParams(window.location.hash.replace(/^#/,'')).get('message')||'';
+    authLinkMessage=/other email/i.test(m)?'other':'ok';
+    history.replaceState(null,'',window.location.pathname);
+  }
+}catch(e){}
 // Supabase's PASSWORD_RECOVERY event is unreliable in practice — often only a
 // plain SIGNED_IN event fires for a reset link, leaving the app on whatever
 // screen happens to be marked active by default. Detect it directly from the
@@ -4753,7 +4765,7 @@ function renderInviteOffer(){
   const inv=PRE&&PRE.invites,earned=((PRE&&PRE.rewards)||[]).some(r=>r.kind==='invite');
   if(!inv||earned){el.style.display='none';return;}
   const n=Math.min(inv.count||0,inv.needed||3),need=inv.needed||3,m=inv.months||1;
-  el.innerHTML=`<i class="ti ti-gift" style="color:var(--gold);flex-shrink:0;line-height:1.45"></i><span>When ${need} friends create a profile with your link, you get ${m} month${m===1?'':'s'} of BASED+ free.${n?` <span style="color:var(--text-on-dark)">${n} of ${need} so far.</span>`:''}</span>`;
+  el.innerHTML=`<i class="ti ti-gift" style="font-size:24px;color:var(--gold);flex-shrink:0"></i><span>When ${need} friends create a profile with your link, you get ${m} month${m===1?'':'s'} of BASED+ free.${n?` <span style="color:var(--text-on-dark)">${n} of ${need} so far.</span>`:''}</span>`;
   el.style.display='flex';
 }
 // Settings → Founding member / invite reward: what's waiting, running or done
@@ -5906,6 +5918,21 @@ function renderMutualBadge(){
 }
 
 // ─── Edit profile & settings ──────────────────────────────────────────────────
+// An email change half done (only one of the two links clicked, or neither yet)
+async function showPendingEmailChange(){
+  try{
+    const {data}=await sb.auth.getUser();const u=data&&data.user;if(!u)return;
+    if(currentUser&&u.email&&u.email!==currentUser.email){currentUser=u;document.getElementById('edit-email').value=u.email;}
+    const note=document.getElementById('edit-email-note');
+    if(u.new_email&&note&&!note.textContent){note.style.color='var(--text-muted)';note.textContent='Waiting for you to confirm the change to '+u.new_email+': click the link in the emails sent to both addresses.';}
+  }catch(e){}
+}
+function showEmailChangeStep(step){
+  const done=step==='done',email=(currentUser&&currentUser.email)||'';
+  const title=done?'Your email has changed':step==='other'?'One more link to click':'Link confirmed';
+  const body=done?`You now sign in with <b>${esc(email)}</b>.`:step==='other'?'That’s the first one done. Now click the link in the email we sent to your other address. Your email changes once both are confirmed.':'Thanks, that link worked.';
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">${title}</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">${body}</p><button class="btn-primary" style="font-size:15px" onclick="removeModal()">OK</button>`);
+}
 async function changeEmail(){
   const note=document.getElementById('edit-email-note');
   const emailEl=document.getElementById('edit-email');
@@ -5927,8 +5954,8 @@ async function changeEmail(){
     return;
   }
   note.style.color='var(--green)';
-  note.textContent='Confirmation link sent to '+newEmail+' — your email won\'t change until you click it.';
-  showToast('Confirmation email sent');
+  note.textContent='We’ve emailed a link to '+currentEmail+' and to '+newEmail+'. Click the link in both emails: your email changes once both are confirmed.';
+  showToast('Confirmation emails sent');
 }
 
 function openEditProfile(){
@@ -5947,6 +5974,7 @@ function openEditProfile(){
   setUnits(myUnits(),true);
   document.getElementById('edit-email').value=(currentUser&&currentUser.email)||'';
   document.getElementById('edit-email-note').textContent='';
+  showPendingEmailChange();
   ['edit-name','edit-dob','edit-location'].forEach(id=>document.getElementById(id).classList.remove('input-error'));
   const init=(myProfile.name||'?').charAt(0).toUpperCase();
   document.getElementById('edit-avatar-initials').textContent=init;
@@ -6277,7 +6305,9 @@ async function executeLogout(){
 }
 
 async function executeDelete(){
-  removeModal();
+  if(window.__deleting)return; // a second tap while the first is still going
+  window.__deleting=true;
+  showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold)"></i><p style="color:var(--text-on-dark);margin-top:12px">Deleting your account…</p></div>');
   if(currentUser){
     try{
       const {data:{session}}=await sb.auth.getSession();
@@ -6288,11 +6318,13 @@ async function executeDelete(){
       if(!resp.ok){
         const body=await resp.json().catch(()=>({}));
         console.error('Account deletion failed:',body.error||resp.statusText);
+        removeModal();window.__deleting=false;
         showToast('Something went wrong deleting your account — please try again.',true);
         return;
       }
     }catch(e){
       console.error('Account deletion exception:',e);
+      removeModal();window.__deleting=false;
       showToast('Something went wrong deleting your account — please try again.',true);
       return;
     }
@@ -6381,6 +6413,7 @@ document.head.appendChild(spinStyle);
     }
   }
   if(splash)splash.remove(); // signed in and on the right screen now
+  if(!authLinkError&&(authLinkMessage||emailChangeLink))showEmailChangeStep(emailChangeLink?'done':authLinkMessage);
   if(authLinkError){
     try{await sb.auth.signOut();}catch(e){}
     currentUser=null;
