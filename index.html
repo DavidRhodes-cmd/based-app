@@ -722,6 +722,7 @@ button.ins-tile:active{opacity:0.75;}
       <div style="padding:14px 0;border-bottom:0.5px solid rgba(255,255,255,0.07);display:flex;flex-wrap:wrap;gap:8px">
         <button class="btn-ghost" onclick="openModifyAnswers()" style="font-size:14px;padding:11px 17px"><i class="ti ti-adjustments" style="margin-right:7px;display:inline-block;transform:rotate(90deg)"></i>Modify my answers</button>
         <button class="btn-ghost" onclick="inviteFriends()" style="font-size:14px;padding:11px 17px"><i class="ti ti-user-plus" style="margin-right:7px"></i>Invite friends</button>
+        <p id="invite-offer" style="display:none;gap:6px;align-items:flex-start;width:100%;font-size:13px;color:var(--text-muted);line-height:1.45;margin-top:4px"></p>
       </div>
       <!-- Plan features (padlocked until you upgrade) -->
       <div class="toggle-row" data-feature="read_receipts">
@@ -4746,8 +4747,18 @@ function onMyVerificationChanged(p){
 }
 
 // Settings → Current plan, with an Upgrade button unless you're already on Gold
+// Settings → under Invite friends: the 3-friends offer, until it's been earned
+function renderInviteOffer(){
+  const el=document.getElementById('invite-offer');if(!el)return;
+  const inv=PRE&&PRE.invites,earned=((PRE&&PRE.rewards)||[]).some(r=>r.kind==='invite');
+  if(!inv||earned){el.style.display='none';return;}
+  const n=Math.min(inv.count||0,inv.needed||3),need=inv.needed||3,m=inv.months||1;
+  el.innerHTML=`<i class="ti ti-gift" style="color:var(--gold);flex-shrink:0;line-height:1.45"></i><span>When ${need} friends create a profile with your link, you get ${m} month${m===1?'':'s'} of BASED+ free.${n?` <span style="color:var(--text-on-dark)">${n} of ${need} so far.</span>`:''}</span>`;
+  el.style.display='flex';
+}
 // Settings → Founding member / invite reward: what's waiting, running or done
 function renderRewardRow(){
+  renderInviteOffer();
   const row=document.getElementById('reward-row');if(!row)return;
   const rs=(PRE&&PRE.rewards)||[],fm=(PRE&&PRE.founding_months)||2;
   const day=(t)=>new Date(new Date(t).getTime()-1000).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); // ends at midnight: show the day before
