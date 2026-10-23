@@ -701,6 +701,10 @@ button.ins-tile:active{opacity:0.75;}
       </div>
       <p style="font-size:12px;color:var(--text-muted);margin-top:7px" id="edit-email-note"></p>
     </div>
+    <div style="margin-bottom:22px">
+      <label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label>
+      <button onclick="openChangePassword()" style="width:100%;text-align:left;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.2);border-radius:11px;padding:13px 16px;color:var(--text-on-dark);font-size:14px;cursor:pointer;font-family:var(--sans)"><i class="ti ti-lock" style="margin-right:8px;color:var(--gold)"></i>Change password</button>
+    </div>
 
     <div style="border-top:0.5px solid rgba(255,255,255,0.08);padding-top:20px;display:flex;flex-direction:column;gap:2px">
       <!-- Free for everyone -->
@@ -5940,6 +5944,38 @@ function showEmailChangeStep(step){
   const title=done?'Your email has changed':step==='other'?'One more link to click':'Link confirmed';
   const body=done?`You now sign in with <b>${esc(email)}</b>.`:step==='other'?'That’s the first one done. Now click the link in the email we sent to your other address. Your email changes once both are confirmed.':'Thanks, that link worked.';
   showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">${title}</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">${body}</p><button class="btn-primary" style="font-size:15px" onclick="removeModal()">OK</button>`);
+}
+// Settings → Change password: needs your current password, then signs you out everywhere else
+function openChangePassword(){
+  const f=(id,label,ac)=>`<label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin:0 0 7px;display:block">${label}</label><input class="form-input" type="password" id="${id}" autocomplete="${ac}" style="margin-bottom:14px" />`;
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:16px;text-align:center">Change password</p>
+    <div style="text-align:left">${f('cp-current','Current password','current-password')}${f('cp-new','New password (at least 8 characters)','new-password')}${f('cp-confirm','Confirm new password','new-password')}</div>
+    <p id="cp-error" style="display:none;font-size:13px;color:var(--red);line-height:1.45;margin-bottom:12px;text-align:center"></p>
+    <button class="btn-primary" id="cp-save" style="font-size:15px;margin-bottom:8px" onclick="saveNewPassword()">Change password</button>
+    <button onclick="removeModal()" style="width:100%;background:transparent;border:none;color:var(--text-muted);font-size:14px;padding:10px;cursor:pointer;font-family:var(--sans)">Cancel</button>`);
+  setTimeout(()=>{const c=document.getElementById('cp-current');if(c)c.focus();},50);
+}
+async function saveNewPassword(){
+  const g=(id)=>document.getElementById(id),err=g('cp-error'),btn=g('cp-save');
+  const cur=g('cp-current').value,pass=g('cp-new').value,conf=g('cp-confirm').value;
+  ['cp-current','cp-new','cp-confirm'].forEach(id=>g(id).classList.remove('input-error'));
+  const fail=(msg,...ids)=>{err.textContent=msg;err.style.display='block';ids.forEach(id=>g(id).classList.add('input-error'));btn.disabled=false;btn.textContent='Change password';};
+  if(!cur)return fail('Please enter your current password.','cp-current');
+  if(pass.length<8)return fail('Your new password must be at least 8 characters.','cp-new');
+  if(pass!==conf)return fail('The new passwords don’t match.','cp-new','cp-confirm');
+  if(pass===cur)return fail('That’s your current password. Choose a new one.','cp-new');
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader" style="margin-right:7px"></i>Changing…';err.style.display='none';
+  if(await isBreachedPassword(pass))return fail(BREACHED_MSG,'cp-new','cp-confirm');
+  const email=currentUser&&currentUser.email;
+  // Check the current password first, so someone who picks up an unlocked phone can't change it
+  const {error:e1}=await sb.auth.signInWithPassword({email,password:cur});
+  if(e1)return fail(e1.status===429?'Too many attempts. Please wait a few minutes and try again.':'Your current password isn’t right.','cp-current');
+  const {error:e2}=await sb.auth.updateUser({password:pass});
+  if(e2)return fail(/same/i.test(e2.message||'')?'That’s your current password. Choose a new one.':'Couldn’t change your password just now. Please try again.','cp-new');
+  try{await sb.auth.signOut({scope:'others'});}catch(e){} // every other device has to sign in again
+  try{await tryStoreCredential(email,pass);}catch(e){}
+  removeModal();
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Password changed</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">You’re still signed in here. Anywhere else you were signed in, you’ll need to sign in again with your new password.</p><button class="btn-primary" style="font-size:15px" onclick="removeModal()">OK</button>`);
 }
 async function changeEmail(){
   const note=document.getElementById('edit-email-note');
