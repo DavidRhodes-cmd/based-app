@@ -5036,7 +5036,7 @@ function commitHideChildren(){
   const before=hideWithChildren;hideWithChildren=pendingHideChildren;pendingHideChildren=null;
   if(currentUser)sb.from('profiles').update({hide_with_children:hideWithChildren}).eq('id',currentUser.id).then(({error})=>{
     if(error){console.warn('Saving the children filter failed:',error.message);hideWithChildren=before;renderChildrenToggle();updateFilterCounts();showToast('Couldn’t save your dealbreakers — please try again.',true);}
-    else loadBrowseProfiles();
+    else loadBrowseProfiles().then(()=>{renderProfiles(parseInt(document.getElementById('filter-min').value)||0);updateFilterCounts();}); // Search filters this on the server, so fetch and redraw it
   });
   return true;
 }
