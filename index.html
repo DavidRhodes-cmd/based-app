@@ -3989,7 +3989,9 @@ function allowanceRows(){
   if(!html)return '';
   // When the allowances come back (weeks run Monday to Sunday, UK time)
   const d=periods.has('day'),w=periods.has('week');
-  const reset=d&&w?'Views reset at midnight, the rest on Monday':w?'Resets on Monday':d?'Resets at midnight':'';
+  // Allowances "in total" (the free Selfie level) never come back: say so, and how to get more
+  const once=periods.has('total')&&!d&&!w;
+  const reset=d&&w?'Views reset at midnight, the rest on Monday':w?'Resets on Monday':d?'Resets at midnight':once?(myVerificationStatus!=='approved'?'These don’t reset · verify your ID for more':'These don’t reset'):'';
   // Tapping the strip explains it: your plan, what you get, when it resets, and how to get more
   return `<div role="button" tabindex="0" aria-label="Your allowances — tap for details" onclick="showAllowanceInfo()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showAllowanceInfo();}" style="cursor:pointer"><div style="display:flex;gap:14px;align-items:center">${html}</div>${reset?`<p style="font-size:11px;color:var(--text-muted);opacity:0.8;margin-top:6px">${reset}</p>`:''}</div>`;
 }
