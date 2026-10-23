@@ -2123,7 +2123,7 @@ async function doResetPassword(){
   removeModal();
   if(error){err.style.display='block';err.textContent=/aal2|insufficient_aal/i.test((error.code||'')+' '+error.message)?'You need the code from your authenticator app to change this password. Please try the link again.':error.message;return;}
   const resetEmail=updateData&&updateData.user&&updateData.user.email;
-  await sb.auth.signOut();
+  await sb.auth.signOut({scope:'global'}); // ends this sign-in on every device, not just this one
   currentUser=null;
   if(resetEmail){await tryStoreCredential(resetEmail,pass);rememberEmail(resetEmail);}
   showToast('Password reset');
@@ -3902,7 +3902,7 @@ let permsFailed=false;
 // "Last seen": noted every few minutes while BASED is open, so staff can see how many are online
 // (the server ignores repeats within 2 minutes). Nothing else is recorded.
 function touchSeen(){if(currentUser&&document.visibilityState==='visible')sb.rpc('touch_last_seen').then(()=>{},()=>{});}
-setInterval(touchSeen,3*60*1000);
+setInterval(touchSeen,60*1000); // also how a sign-in ended elsewhere (e.g. a password reset) is noticed within a minute
 async function loadPermissions(){
   if(!currentUser){PERMS=null;permsFailed=false;PRE=null;return;}
   touchSeen();
@@ -5371,13 +5371,21 @@ function subscribeToAllMessages(){
   allMessagesChannel=sb.channel('inbox:'+currentUser.id)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},payload=>{
       const m=payload.new||{};
-      if(!m.match_id||String(m.sender_id)===currentUser.id)return;
+      if(!m.match_id)return;
       const parts=m.match_id.split('__');if(!parts.includes(currentUser.id))return;
+      // Sent by you on another device: just bring the It's mutual list up to date here
+      if(String(m.sender_id)===currentUser.id){refreshChatListSoon();return;}
       const due=msgDueIn(m);
       if(due>0){setTimeout(()=>incomingMessageNotice(m),due+400);return;} // a reply that's on its way
       incomingMessageNotice(m);
     })
     .subscribe();
+}
+// Redraw the It's mutual list if it's on screen (several messages at once → one redraw)
+let chatListTimer=null;
+function refreshChatListSoon(){
+  clearTimeout(chatListTimer);
+  chatListTimer=setTimeout(()=>{if(document.getElementById('screen-main').classList.contains('active')&&document.getElementById('tab-messages-content').style.display==='block')renderConversationsTab();},400);
 }
 function incomingMessageNotice(m){
       if(!currentUser)return;
@@ -5385,7 +5393,7 @@ function incomingMessageNotice(m){
       if(viewingChatWith(pid))return; // already on screen
       unreadFrom.set(pid,(unreadFrom.get(pid)||0)+1);updateUnreadBadge();
       const p=browseProfiles.find(x=>x.id===pid);
-      if(document.getElementById('screen-main').classList.contains('active')&&document.getElementById('tab-messages-content').style.display==='block')renderConversationsTab();
+      refreshChatListSoon();
       showLiveBanner({title:`New message from ${p?p.name:'your match'}`,sub:'Tap to open the chat',photo:p&&p.photo_url,initials:p&&p.initials,
         onTap:()=>{if(p)openChat(pid,p.initials,p.name,p.photo_url||'');}});
 }
