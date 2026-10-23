@@ -2287,6 +2287,7 @@ async function restoreSession(){
     readReceipts=p.read_receipts!==false;
     myStripeCustomer=!!p.stripe_customer_id;
     myCancelAt=p.subscription_cancel_at||null;
+    mySubStatus=p.subscription_status||null;mySubEnd=p.subscription_expires_at||null;
     savedIntro=p.saved_intro||'';
     myVerificationStatus=p.verification_status||'unverified';
     myVerificationIssue=p.verification_issue||null;
@@ -3784,7 +3785,8 @@ async function openTopUp(){
       <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--text-muted);margin-bottom:${o.valid_days?6:12}px">${line(o)}</div>
       ${o.valid_days?`<p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Lasts ${o.valid_days} day${o.valid_days===1?'':'s'}</p>`:''}
       <button class="btn-primary" style="font-size:15px" data-topup="${o.id}" onclick="buyTopUp(${Number(o.id)})">Buy for ${moneyText(TOPUP.currency,o.amount)}</button></div>`).join('')}
-    <button class="btn-ghost" style="font-size:14px;margin-top:4px" onclick="removeModal()">Not now</button>
+    ${myTierNow()!=='gold'?`<button class="btn-ghost" style="font-size:15px;margin-top:4px;color:var(--gold);border-color:var(--gold)" onclick="removeModal();openPlanUpgrade('gold')">Upgrade instead</button>`:''}
+    <button class="btn-ghost" style="font-size:14px;margin-top:8px" onclick="removeModal()">Not now</button>
     <p style="font-size:11.5px;color:var(--text-muted);text-align:center;margin-top:12px;line-height:1.5">Want more every month? <span style="color:var(--gold);text-decoration:underline;cursor:pointer" onclick="removeModal();upgradeState=null;openPlans()">See the plans</span></p>`);
 }
 let topUpBusy=false;
@@ -3816,6 +3818,7 @@ async function confirmTopUps(show,paid=true){
 // The server decides (my_prereg_status); without an answer the app carries on as normal,
 // and the server still refuses anything a waiting member isn't allowed to do yet.
 let PRE=null;
+let mySubStatus=null,mySubEnd=null; // e.g. 'trialing' during a BASED+ free trial
 function needsWaiting(){return !!currentUser&&!!PRE&&PRE.on===true&&PRE.open===false;}
 async function loadPrereg(){
   if(!currentUser){PRE=null;return;}
@@ -4011,13 +4014,15 @@ function showAllowanceInfo(){
   const resets=[periods.has('day')?'Daily allowances reset at midnight.':'',periods.has('week')?'Weekly allowances reset on Monday.':'',periods.has('total')?'Allowances “in total” don’t reset.':''].filter(Boolean).join(' ');
   const canTop=(t==='liveness'||t==='id')&&!!(TOPUP&&TOPUP.allowed&&TOPUP.offers&&TOPUP.offers.length);
   const canUp=t!=='gold';
-  const more=canTop&&canUp?'Top up or upgrade to get more.':canUp?'Upgrade to get more.':'You’re on our top plan.';
+  const canVerify=myVerificationStatus!=='approved'&&myVerificationIssue!=='underage'; // free, and unlocks the ID-verified allowances
+  const opts=[canVerify?'verify your ID (free)':'',canTop?'top up':'',canUp?'upgrade':''].filter(Boolean);
+  const more=opts.length?(opts.length>1?opts.slice(0,-1).join(', ')+' or '+opts[opts.length-1]:opts[0]).replace(/^./,c=>c.toUpperCase())+' to get more.':'You’re on our top plan.';
   showModal(`<p style="font-size:11px;letter-spacing:1.5px;color:var(--gold);font-weight:600;text-align:center;margin-bottom:4px">YOUR PLAN</p>
     <p style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark);text-align:center;margin-bottom:14px">${TIER_LABEL[t]||'Free'}</p>
     <div style="margin-bottom:12px">${rows}</div>
     ${resets?`<p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:10px">${resets}</p>`:''}
     <p style="font-size:14px;color:var(--text-on-dark);line-height:1.5;margin-bottom:18px;text-align:center">${more}</p>
-    ${canTop||canUp?`<div style="display:flex;gap:10px;margin-bottom:10px">${canTop?`<button class="btn-ghost" style="flex:1;font-size:15px;color:var(--gold);border-color:var(--gold)" onclick="removeModal();openTopUp()">Top up</button>`:''}${canUp?`<button class="btn-primary" style="flex:1;font-size:15px" onclick="removeModal();openPlanUpgrade('gold')">Upgrade</button>`:''}</div>`:''}
+    ${canVerify||canTop||canUp?`<div style="display:flex;gap:8px;margin-bottom:10px">${canVerify?`<button class="btn-ghost" style="flex:1;font-size:14px;padding-left:6px;padding-right:6px;color:var(--gold);border-color:var(--gold)" onclick="removeModal();openVerifyScreen('header')">Verify ID</button>`:''}${canTop?`<button class="btn-ghost" style="flex:1;font-size:14px;padding-left:6px;padding-right:6px;color:var(--gold);border-color:var(--gold)" onclick="removeModal();openTopUp()">Top up</button>`:''}${canUp?`<button class="btn-primary" style="flex:1;font-size:14px;padding-left:6px;padding-right:6px" onclick="removeModal();openPlanUpgrade('gold')">Upgrade</button>`:''}</div>`:''}
     <button class="btn-ghost" style="font-size:14px" onclick="removeModal()">Close</button>`);
 }
 function miniToggle(id,label,on,locked,onclick){
@@ -4144,6 +4149,10 @@ async function showUpgradePrompt(f,reason){
 function closeUpgrade(){const back=(upgradeState&&upgradeState.returnTo)||'screen-main';upgradeState=null;goTo(back==='screen-upgrade'||back==='screen-plans'?'screen-main':back);}
 function pickUpgradeOption(t){if(!upgradeState)return;upgradeState.selected=t;renderUpgrade();}
 
+// BASED+ chosen now would be free until… (free months waiting or running); null if not
+function plusTrialEnd(){const t=PRE&&PRE.trial_end;return t&&new Date(t).getTime()>Date.now()+2*86400000?new Date(t):null;}
+const longDate=(d)=>new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+const shortDate=(d)=>new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
 function renderUpgrade(){
   const s=upgradeState;if(!s)return;
   const f=s.f,p=perm(f),my=myTierNow();
@@ -4168,8 +4177,8 @@ function renderUpgrade(){
   }
   const sel=s.selected;
   const cards=s.options.map(t=>{
-    const intro=t==='id'?null:introPrice(t);
-    const price=t==='id'?'Free':intro?`${intro}<span style="font-size:13px;font-weight:400;color:var(--text-muted)"> first month</span><span style="display:block;font-size:13px;font-weight:500;color:var(--text-on-dark);margin-top:2px">then ${TIER_PRICE[t]}/month</span>`:`${TIER_PRICE[t]}<span style="font-size:13px;font-weight:400;color:var(--text-muted)"> /month</span>`;
+    const intro=t==='id'?null:introPrice(t),trial=t==='plus'?plusTrialEnd():null;
+    const price=t==='id'?'Free':trial?`Free<span style="font-size:13px;font-weight:400;color:var(--text-muted)"> until ${shortDate(trial)}</span><span style="display:block;font-size:13px;font-weight:500;color:var(--text-on-dark);margin-top:2px">then ${TIER_PRICE[t]}/month</span>`:intro?`${intro}<span style="font-size:13px;font-weight:400;color:var(--text-muted)"> first month</span><span style="display:block;font-size:13px;font-weight:500;color:var(--text-on-dark);margin-top:2px">then ${TIER_PRICE[t]}/month</span>`:`${TIER_PRICE[t]}<span style="font-size:13px;font-weight:400;color:var(--text-muted)"> /month</span>`;
     return `<button class="up-card${t===sel?' on':''}" aria-pressed="${t===sel}" onclick="pickUpgradeOption('${t}')"><span style="font-family:var(--serif);font-size:${s.options.length>2?15:18}px;color:${t==='gold'?'var(--gold-light)':'var(--text-on-dark)'}">${OPTION_LABEL[t]}</span><span style="font-size:${s.options.length>2?18:22}px;font-weight:600">${price}</span>${s.options.length>2?'':`<span style="font-size:12px;color:var(--text-muted)">${OPTION_TAGLINE[t]}</span>`}</button>`;
   }).join('');
   // Gold shown beside (or above) BASED+: list only what Gold adds, under "Everything in BASED+, and:"
@@ -4198,9 +4207,13 @@ function renderUpgrade(){
     cta=`<button class="btn-primary" onclick="upgradeState=null;openVerifyScreen('header')">Get verified · Free</button>`;
     note='Takes about two minutes. BASED only keeps whether you passed, not your document.';
   }else{
-    const intro=introPrice(sel);
+    const intro=introPrice(sel),trial=sel==='plus'?plusTrialEnd():null;
+    const waiting=((PRE&&PRE.rewards)||[]).some(r=>!r.claimed);
     cta=`<button class="btn-primary" onclick="startUpgrade('${sel}')">Get ${OPTION_LABEL[sel]}</button>`; // the price is on the cards above and in the note below
-    note=(intro?`${intro} for your first month, then ${TIER_PRICE[sel]} a month until you cancel. Cancel anytime in Settings.`:'Monthly subscription. Cancel anytime in Settings.')+(my==='liveness'?'<br>You’ll do a quick ID check after paying.':'');
+    note=trial?`Your free months make BASED+ free until ${longDate(trial)}, then ${TIER_PRICE[sel]} a month. Nothing is charged until then, and if you cancel before, you pay nothing.`
+        :(intro?`${intro} for your first month, then ${TIER_PRICE[sel]} a month until you cancel. Cancel anytime in Settings.`:'Monthly subscription. Cancel anytime in Settings.')
+          +(sel==='gold'&&waiting?'<br>Your free BASED+ months stay waiting while you’re on Gold.':'');
+    note+=(my==='liveness'?`<br>You’ll do a quick ID check after ${trial?'adding your card':'paying'}.`:'');
   }
   document.getElementById('upgrade-footer').innerHTML=`${cta}<p style="font-size:12px;line-height:1.5;color:var(--text-muted);text-align:center">${note}</p><button onclick="closeUpgrade()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Not now</button>`;
 }
@@ -4725,6 +4738,7 @@ let lastPlanKey=null,permRefreshAt=0;
 function onMyPlanMaybeChanged(p){
   if(p&&p.stripe_customer_id)myStripeCustomer=true;
   if(p&&'subscription_cancel_at' in p&&(p.subscription_cancel_at||null)!==myCancelAt){myCancelAt=p.subscription_cancel_at||null;renderPlanRow();}
+  if(p&&'subscription_status' in p){mySubStatus=p.subscription_status||null;mySubEnd=p.subscription_expires_at||null;renderPlanRow();}
   const key=(p.subscription_tier||'none')+'|'+(p.subscription_expires_at||'');
   if(key!==lastPlanKey)refreshPermissions(true);
   lastPlanKey=key;
@@ -4795,7 +4809,9 @@ function renderRewardRow(){
   for(const r of rs){
     const what=r.kind==='founding'?'':'For bringing 3 friends: ';
     const m=`${r.months} month${r.months===1?'':'s'} of BASED+ free`;
-    if(!r.claimed){lines.push(`${what}${m}, waiting for you. It starts when your ID is verified.`);if(!verified)showVerify=true;}
+    if(!r.claimed&&PRE&&PRE.paying)lines.push(`${what}${m}, waiting. It starts if you stop paying for ${TIER_LABEL[myTierNow()]||'your plan'}.`);
+    else if(!r.claimed){lines.push(`${what}${m}, waiting for you. It starts when your ID is verified.`);if(!verified)showVerify=true;}
+    else if(r.trial&&r.until&&new Date(r.until)>new Date())lines.push(`${what}used for your BASED+ free trial, until ${day(r.until)}`);
     else if(r.until&&new Date(r.until)>new Date())lines.push(`${what}BASED+ free until ${day(r.until)}`);
     else if(r.kind==='invite')lines.push('Thanks for bringing 3 friends to BASED');
   }
@@ -4810,7 +4826,7 @@ function renderPlanRow(){
   renderRewardRow();
   const row=document.getElementById('plan-row');if(!row)return;
   const t=myTierNow(),paid=t==='plus'||t==='gold';
-  const name=paid?TIER_LABEL[t]:'Free';
+  const name=paid?TIER_LABEL[t]+(mySubStatus==='trialing'&&mySubEnd&&!myCancelAt?` · free until ${shortDate(new Date(new Date(mySubEnd).getTime()-2*86400000))}, then ${TIER_PRICE[t]}/month`:''):'Free';
   const ending=paid&&myCancelAt?new Date(myCancelAt):null;
   // A free plan given by BASED: say until when (the end time is midnight, so show the day before)
   const gift=PERMS&&PERMS.gift&&PERMS.gift.tier===t?new Date(new Date(PERMS.gift.until).getTime()-1000):null;
