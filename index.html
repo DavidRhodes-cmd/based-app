@@ -2420,6 +2420,7 @@ async function loadBrowseProfiles(){
   searchOffset=n;
   searchTotal=useOldBrowse?n:(profiles.find(p=>p.total!=null)||{}).total||0;
   browseProfiles=[...real,...demoForSex];
+  renderMutualBadge(); // who's visible decides which chats count towards the It's mutual dot
 }
 // What the sliders are set to, in the form the server wants
 function searchParams(){
@@ -2478,6 +2479,7 @@ async function loadMoreProfiles(){
   });
   const demos=browseProfiles.filter(p=>p.isDemo),others=browseProfiles.filter(p=>!p.isDemo);
   browseProfiles=[...others,...added,...demos];
+  renderMutualBadge(); // who's visible decides which chats count towards the It's mutual dot
   searchOffset+=rows.filter(r=>!r.related).length;
   if(!rows.length)searchOffset=searchTotal; // nothing more came back — stop asking
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
@@ -5362,16 +5364,15 @@ async function refreshUnreadCounts(){
   await loadChatReads();
   const prevUnread=new Map(unreadFrom); // kept for any conversation that fails to load
   unreadFrom.clear();
-  let count=0,oldest=0;const now=Date.now();
+  const days=new Map();const now=Date.now();
   for(const pid of mutualMatches){
     const matchId=getMatchId(currentUser.id,pid);
     const {data:msgs,error:uErr}=await sb.rpc('get_decrypted_messages',{p_match_id:matchId});
     const n=uErr?(prevUnread.get(pid)||0):countUnread(msgs,matchId);if(n)unreadFrom.set(pid,n); // failed load → keep the last known count
     const last=msgs&&msgs.length?msgs[msgs.length-1].created_at:matchCreatedAt[pid];
-    const days=last?(now-new Date(last).getTime())/86400000:0;
-    count++;if(days>oldest)oldest=days;
+    days.set(pid,last?(now-new Date(last).getTime())/86400000:0);
   }
-  updateConnectedNotif(count,oldest);
+  updateConnectedNotif(days);
 }
 
 // ─── Bin on a match in It's mutual ────────────────────────────────────────────
@@ -5803,9 +5804,9 @@ async function openIncomingProfile(pid){
 }
 
 async function renderConversationsTab(){
-  if(!currentUser){document.getElementById('conversations-list').innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">Sign in to see your conversations.</p>';updateConnectedNotif(0,0);return;}
+  if(!currentUser){document.getElementById('conversations-list').innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">Sign in to see your conversations.</p>';updateConnectedNotif(new Map());return;}
   const matchIds=Array.from(mutualMatches).map(pid=>getMatchId(currentUser.id,pid));
-  if(!matchIds.length){document.getElementById('conversations-list').innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet. Match with someone to start chatting.</p>';updateConnectedNotif(0,0);return;}
+  if(!matchIds.length){document.getElementById('conversations-list').innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet. Match with someone to start chatting.</p>';updateConnectedNotif(new Map());return;}
   // Gather each conversation's data first, so we can sort by most recent activity
   // before rendering — newest conversations belong at the top of the list.
   const now=Date.now();
@@ -5842,21 +5843,22 @@ async function renderConversationsTab(){
     html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${ja(p.initials)}','${ja(p.name)}','${ja(p.photo_url||'')}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px;min-width:0"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${esc(p.name)}</span>${p.verified?VERIFIED_TICK.replace('margin-left:4px','margin-left:-3px;flex-shrink:0'):''}${distanceSpan(p)}</div><div style="font-size:13px;color:${unreadFrom.get(pid)?'var(--text-on-dark)':'var(--text-muted)'};font-weight:${unreadFrom.get(pid)?'600':'400'};margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(preview)}</div></div><button onclick="event.stopPropagation();openChatBinMenu('${pid}','${ja(p.name)}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Options for this match"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
   });
   document.getElementById('conversations-list').innerHTML=html||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet.</p>';
-  updateConnectedNotif(entries.length,oldestDays);
+  updateConnectedNotif(new Map(entries.map(e=>[e.pid,e.daysSince])));
 }
 // It's mutual tab badge: COLOUR = how long your quietest chat has gone without a
 // message (green <2 days, amber 2–3, red 3+); NUMBER inside = total unread messages.
-let mutualChatCount=0,mutualOldestDays=0;
-function updateConnectedNotif(count,oldestDays){
-  mutualChatCount=count;mutualOldestDays=oldestDays;
-  renderMutualBadge();
-}
+// Only chats with someone you can currently see count — the same rule as the It's mutual list —
+// so a match who's gone back to the waiting list (or left) doesn't leave a dot with nothing behind it.
+let mutualDays=new Map(); // partner → days since the last message (or since you matched)
+function updateConnectedNotif(days){mutualDays=days instanceof Map?days:new Map();renderMutualBadge();}
+function mutualVisible(pid){return browseProfiles.some(x=>x.id===pid||x.name===pid);}
 function renderMutualBadge(){
   const badge=document.getElementById('msg-notif');
   if(!badge)return;
-  let unread=0;unreadFrom.forEach(v=>unread+=v);
-  if(!mutualChatCount&&!unread){badge.style.display='none';return;}
-  const d=mutualOldestDays;
+  let unread=0;unreadFrom.forEach((v,pid)=>{if(mutualVisible(pid))unread+=v;});
+  let count=0,oldest=0;mutualDays.forEach((v,pid)=>{if(mutualVisible(pid)){count++;if(v>oldest)oldest=v;}});
+  if(!count&&!unread){badge.style.display='none';return;}
+  const d=oldest;
   badge.style.background=d>=3?'var(--red)':d>=2?'var(--gold)':'var(--green)';
   badge.style.color=d>=3?'#fff':'#1a1f2e';
   badge.textContent=unread?(unread>9?'9+':String(unread)):'';
