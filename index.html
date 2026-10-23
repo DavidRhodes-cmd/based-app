@@ -3797,10 +3797,13 @@ async function loadPrereg(){
   const active=document.querySelector('.screen.active');
   if(active&&active.id==='screen-waiting'){
     if(wasWaiting&&!needsWaiting()){ // their area has just opened
-      setTimeout(()=>{if(needsAgeGate())openAgeCheck();else goMain();},0);
+      setTimeout(()=>{if(needsAgeGate())openAgeCheck();else goMain();checkNotices();},0); // and show "BASED is open near you"
     }else renderWaiting();
   }
 }
+// While someone is looking at "You're on the list", check every minute whether their area has
+// opened, so they're let in without having to close and reopen the app
+setInterval(()=>{const a=document.querySelector('.screen.active');if(currentUser&&a&&a.id==='screen-waiting'&&document.visibilityState==='visible')loadPrereg();},60*1000);
 function renderWaiting(){
   const box=document.getElementById('waiting-body');if(!box||!PRE)return;
   const a=PRE.area,inv=PRE.invites||{count:0,needed:3,months:1},fm=PRE.founding_months||2;
