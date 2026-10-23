@@ -2931,7 +2931,7 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
   let isMutual=false;
   if(currentUser){
     const {data}=await sb.from('interactions').select('id,created_at').eq('from_user',profileKey).eq('to_user',currentUser.id).eq('action','interested');
-    if(data&&data.length){mutualMatches.add(profileKey);loadBrowseProfiles();incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();playSound('mutual');isMutual=true;
+    if(data&&data.length){mutualMatches.add(profileKey);mutualDays.set(profileKey,0);renderMutualBadge();loadBrowseProfiles();incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();playSound('mutual');isMutual=true;
       // The same big moment the other person gets
       showLiveBanner({title:`It's mutual with ${name}! 🎉`,sub:'You can now message each other',photo:photoUrl||null,initials:inits,onTap:()=>{goTo('screen-main');switchTab('messages');}});}
   }
@@ -3668,7 +3668,7 @@ function renderModifyAnswers(){
       <input type="range" class="q-slider" style="width:100%;position:relative;display:block;background:transparent;background-image:linear-gradient(rgba(255,255,255,0.12),rgba(255,255,255,0.12));background-size:100% 5px;background-repeat:no-repeat;background-position:center;height:26px" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${s}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=this.value>0?'+'+this.value:this.value;${extraOninput}" /></div>
       ${picker}
     </div>`;
-  }).join('');
+  }).join('')+`<div class="bottom-safe" style="padding:8px 0 12px"><button class="btn-primary" style="font-size:15px" onclick="saveModifyAnswers()">Save</button></div>`;
 }
 function cancelModifyAnswers(){goTo('screen-edit-profile');}
 function modifyAnswersChanged(){
