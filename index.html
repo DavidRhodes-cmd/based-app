@@ -3810,7 +3810,7 @@ async function confirmTopUps(show,paid=true){
     await wait(1500);
   }
   if(show)removeModal();
-  if(added){TOPUP=null;await loadPermissions();try{renderProfiles(parseInt(document.getElementById('filter-min').value)||0);}catch(e){}launchConfetti(null);showToast('Your top-up has been added ✓',false,3500);checkNotices();}
+  if(added){TOPUP=null;await loadPermissions();try{await loadBrowseProfiles();renderProfiles(parseInt(document.getElementById('filter-min').value)||0);}catch(e){} /* the server unlocks the profiles it was holding back */launchConfetti(null);showToast('Your top-up has been added ✓',false,3500);checkNotices();}
   else if(show&&paid)showToast('Payment received. Your top-up will appear in a moment.',false,4000);
 }
 
@@ -4750,6 +4750,7 @@ async function refreshPermissions(force){
   const before=PERMS&&PERMS.tier;
   await loadPermissions();
   const after=PERMS&&PERMS.tier;
+  if(before&&after&&before!==after)await loadBrowseProfiles(); // a new plan changes which profiles the server holds back
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   if(typeof renderMatchesTab==='function')renderMatchesTab();
   if(typeof updateFilterCounts==='function')updateFilterCounts();
@@ -5183,7 +5184,20 @@ function toggleLocationMode(){
 }
 
 // ─── Messaging ────────────────────────────────────────────────────────────────
-async function switchTab(tab){['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?'block':'none';});refreshPermissions();if(tab==='matches'){await loadMyInteractions();await loadBrowseProfiles();renderMatchesTab();celebrateNewSupers();}if(tab==='messages'){await loadMyInteractions();await loadBrowseProfiles();renderConversationsTab();}}
+// Search stays up to date with other members' changes (e.g. someone now saying they have children,
+// or hiding their profile): checked quietly every 2 minutes while you're looking at it, and when
+// you come back to the Search tab. It's only redrawn if who's in it has changed, keeping your place.
+async function quietSearchRefresh(force){
+  const main=document.getElementById('screen-main'),tab=document.getElementById('tab-browse-content');
+  if(!currentUser||!main.classList.contains('active')||!tab||tab.style.display==='none'||document.visibilityState!=='visible'||document.getElementById('modal-bd'))return;
+  if(!force&&Date.now()-browseLoadedAt<60*1000)return;
+  const key=()=>browseProfiles.filter(x=>!x.isDemo).map(x=>x.id+(x.locked?'L':'')).sort().join(',');
+  const before=key(),top=tab.scrollTop;
+  await loadBrowseProfiles();
+  if(key()!==before){renderProfiles(parseInt(document.getElementById('filter-min').value)||0);tab.scrollTop=top;}
+}
+setInterval(()=>quietSearchRefresh(false),2*60*1000);
+async function switchTab(tab){if(tab==='browse')setTimeout(()=>quietSearchRefresh(false),0);['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?'block':'none';});refreshPermissions();if(tab==='matches'){await loadMyInteractions();await loadBrowseProfiles();renderMatchesTab();celebrateNewSupers();}if(tab==='messages'){await loadMyInteractions();await loadBrowseProfiles();renderConversationsTab();}}
 
 // ─── Swipe left/right between Search, Interest, and It's mutual ───────────────
 (function initTabSwipe(){
