@@ -282,6 +282,8 @@ button.ins-tile:active{opacity:0.75;}
 .feature-locked::after{content:'\eae2';font-family:'tabler-icons';position:absolute;top:6px;right:8px;font-size:16px;color:var(--gold);opacity:1;pointer-events:none;}
 .feature-locked[data-lock="plain"]>*{opacity:1;}
 .filter-btn.feature-locked::after{top:4px;right:6px;font-size:14px;}
+
+.cp-masked{-webkit-text-security:disc;}
 </style>
 </head>
 <body>
@@ -3006,6 +3008,11 @@ function isoToDobDisplay(iso){
   if(!iso)return'';
   const m=iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
   return m?`${m[3]}/${m[2]}/${m[1]}`:'';
+}
+function toggleMasked(inputId,btn){
+  const input=document.getElementById(inputId);
+  const hidden=input.classList.toggle('cp-masked');
+  btn.innerHTML=hidden?'<i class="ti ti-eye"></i>':'<i class="ti ti-eye-off"></i>';
 }
 function togglePasswordVisibility(inputId,btn){
   const input=document.getElementById(inputId);
@@ -5947,7 +5954,16 @@ function showEmailChangeStep(step){
 }
 // Settings → Change password: needs your current password, then signs you out everywhere else
 function openChangePassword(){
-  const f=(id,label,ac)=>`<label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin:0 0 7px;display:block">${label}</label><input class="form-input" type="password" id="${id}" autocomplete="${ac}" style="margin-bottom:14px" />`;
+  // The current password has to be typed: it isn't marked as a password field, so password
+  // managers don't offer to fill it in (someone holding an unlocked phone mustn't get it for free).
+  // Where the browser can't hide the letters of an ordinary field, it falls back to a normal password field.
+  const masked=window.CSS&&CSS.supports&&CSS.supports('-webkit-text-security','disc');
+  const f=(id,label,ac)=>{
+    const cur=id==='cp-current'&&masked;
+    const input=cur?`<input class="form-input cp-masked" type="text" id="${id}" name="cp-check-${Date.now()}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" />`
+                   :`<input class="form-input" type="password" id="${id}" autocomplete="${id==='cp-current'?'off':ac}" />`;
+    return `<label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin:0 0 7px;display:block">${label}</label><div class="pw-wrap" style="margin-bottom:14px">${input}<button type="button" class="pw-toggle" tabindex="-1" onclick="${cur?`toggleMasked('${id}',this)`:`togglePasswordVisibility('${id}',this)`}" aria-label="Show password"><i class="ti ti-eye"></i></button></div>`;
+  };
   showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:16px;text-align:center">Change password</p>
     <div style="text-align:left">${f('cp-current','Current password','current-password')}${f('cp-new','New password (at least 8 characters)','new-password')}${f('cp-confirm','Confirm new password','new-password')}</div>
     <p id="cp-error" style="display:none;font-size:13px;color:var(--red);line-height:1.45;margin-bottom:12px;text-align:center"></p>
