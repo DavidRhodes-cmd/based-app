@@ -2931,7 +2931,9 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
   let isMutual=false;
   if(currentUser){
     const {data}=await sb.from('interactions').select('id,created_at').eq('from_user',profileKey).eq('to_user',currentUser.id).eq('action','interested');
-    if(data&&data.length){mutualMatches.add(profileKey);loadBrowseProfiles();incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();showToast("It's mutual with "+name+"! 🎉");playSound('mutual');isMutual=true;}
+    if(data&&data.length){mutualMatches.add(profileKey);loadBrowseProfiles();incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();playSound('mutual');isMutual=true;
+      // The same big moment the other person gets
+      showLiveBanner({title:`It's mutual with ${name}! 🎉`,sub:'You can now message each other',photo:photoUrl||null,initials:inits,onTap:()=>{goTo('screen-main');switchTab('messages');}});}
   }
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   renderMatchesTab();
