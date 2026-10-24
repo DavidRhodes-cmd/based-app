@@ -354,6 +354,7 @@ button.ins-tile:active{opacity:0.75;}
       </div>
     </div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" placeholder="Your first name" id="inp-name" autocomplete="given-name" tabindex="1" /></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Surname</label><input class="form-input" type="text" placeholder="Your surname" id="inp-surname" autocomplete="family-name" tabindex="1" /><p style="font-size:12px;color:var(--text-muted);margin-top:7px;line-height:1.45">Other members only ever see its first letter, e.g. Sarah R.</p></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="inp-dob" tabindex="2" oninput="formatDobInput(this)" /></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block" id="inp-location-label">Postcode</label><div class="loc-wrap"><input class="form-input" type="text" placeholder="e.g. LS1 4BR" id="inp-location" autocomplete="postal-code" tabindex="3" oninput="onLocationInput('inp')" onblur="setTimeout(()=>hideSuggest('inp'),200)" /><div class="loc-suggest" id="inp-loc-suggest"></div></div></div>
     <p style="font-size:11px;color:var(--text-muted);margin-top:-10px;margin-bottom:17px">Used to calculate distances — not shown to other users.</p><div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="inp-email" autocomplete="email" list="based-remembered-emails" tabindex="4" /></div>
@@ -692,6 +693,7 @@ button.ins-tile:active{opacity:0.75;}
       <input type="file" id="edit-extra-photo-input" accept="image/*" style="display:none" onchange="handleExtraPhoto(this,'edit')" />
     </div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" id="edit-name" /></div>
+    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Surname</label><input class="form-input" type="text" id="edit-surname" autocomplete="family-name" /><p style="font-size:12px;color:var(--text-muted);margin-top:7px;line-height:1.45">Other members only see its first letter: <span id="edit-shown-as"></span></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="edit-dob" oninput="formatDobInput(this)" /><p id="edit-dob-note" style="display:none;font-size:11px;color:var(--text-muted);margin-top:7px;line-height:1.5"><i class="ti ti-lock" style="margin-right:4px"></i><span id="edit-dob-note-text">Confirmed by your ID, so it can’t be changed.</span></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Country</label><select class="form-input" id="edit-country" onchange="onCountryChange('edit')"></select><p id="edit-country-note" style="font-size:12px;color:var(--red);margin-top:7px;display:none"></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block" id="edit-location-label">Postcode</label><div class="loc-wrap"><input class="form-input" type="text" id="edit-location" oninput="onLocationInput('edit')" onblur="setTimeout(()=>hideSuggest('edit'),200)" /><div class="loc-suggest" id="edit-loc-suggest"></div></div><p style="font-size:11px;color:var(--text-muted);margin-top:7px">Used to calculate distances — not shown to other users.</p></div>
@@ -1009,7 +1011,7 @@ sb.auth.onAuthStateChange(async(event,session)=>{
     const pending=await getPendingSignup(session.user.id);
     if(pending){
       currentUser=session.user;
-      myProfile.name=pending.name;myProfile.dob=pending.dob;myProfile.location=pending.location;
+      myProfile.name=pending.name;myProfile.surname=pending.surname||null;myProfile.dob=pending.dob;myProfile.location=pending.location;
       myProfile.sex=pending.sex;myProfile.religion=pending.religion;myProfile.photo=pending.photo;
       myProfile.marketing_consent=pending.marketing_consent;myProfile.terms_accepted_at=pending.terms_accepted_at;
       myProfile.referred_by=pending.referred_by;
@@ -1212,7 +1214,7 @@ const NAME_RULE='Names can use letters, numbers, spaces, hyphens, apostrophes an
 function nameOk(n){return /^\p{L}[\p{L}\p{N} .'’-]{0,39}$/u.test(n);}
 // Names on BASED's Blocked names list (e.g. "BASED Support", "Admin") can't be used.
 // The server checks too; if this check can't run, it doesn't stop anyone.
-const NAME_BLOCKED_MSG='That name can’t be used on BASED. Please use your own first name.';
+const NAME_BLOCKED_MSG='That name can’t be used on BASED. Please use your own name.';
 async function isNameAllowed(n){try{const {data,error}=await sb.rpc('name_allowed',{p_name:n});return error?true:data!==false;}catch(e){return true;}}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function ja(v){return esc(String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' '));}
@@ -1644,7 +1646,7 @@ function addTileHtml(onClick){return `<button type="button" class="photo-tile ph
 function resetSignupForm(){
   myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null,extra_photos:[]};
   myAnswers=new Array(NUM_Q).fill(0);
-  ['inp-name','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.classList.remove('input-error');}});
+  ['inp-name','inp-surname','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.classList.remove('input-error');}});
   ['inp-agree-terms','inp-agree-special','inp-marketing-consent'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
   const rem=document.getElementById('inp-remember-password');if(rem)rem.checked=true;
   ['sex-male','sex-female'].forEach(id=>document.getElementById(id).classList.remove('selected'));
@@ -1743,7 +1745,8 @@ function fieldErr(id,msg){
 }
 const EMAIL_RE=/^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const DETAIL_CHECKS={
-  'inp-name':v=>!v?'Please enter your name.':!nameOk(v)?NAME_RULE:'',
+  'inp-name':v=>!v?'Please enter your first name.':!nameOk(v)?NAME_RULE:'',
+  'inp-surname':v=>!v?'Please enter your surname.':!nameOk(v)?NAME_RULE:'',
   'inp-dob':v=>{if(!v)return 'Please enter your date of birth.';const d=parseDobToISO(v);if(!d)return 'Please enter a valid date of birth (DD/MM/YYYY).';return calcAge(d)<18?'You must be at least 18 to use BASED.':'';},
   'inp-location':v=>!v?(document.getElementById('inp-country').value==='GB'?'Please enter your postcode.':'Please enter your nearest town or city.'):'',
   'inp-email':v=>!v?'Please enter your email.':!EMAIL_RE.test(v)?'Please enter a valid email address.':'',
@@ -1762,12 +1765,12 @@ function updatePasswordHints(){
   if(h){const ok=p.length>=8;h.classList.toggle('ok',ok);h.innerHTML=ok?'<i class="ti ti-check"></i> 8 characters or more':'8 characters or more';}
   if(m)m.style.display=c&&c===p?'block':'none';
 }
-let nameChecked={name:null,bad:false};
-async function checkNameNow(){
-  const n=document.getElementById('inp-name').value.trim();
-  if(!n||nameChecked.name===n){if(nameChecked.name===n&&nameChecked.bad)fieldErr('inp-name',NAME_BLOCKED_MSG);return;}
-  const bad=!(await isNameAllowed(n));nameChecked={name:n,bad};
-  if(document.getElementById('inp-name').value.trim()===n&&bad)fieldErr('inp-name',NAME_BLOCKED_MSG);
+const nameCheckCache={};
+async function checkNameNow(id){
+  id=id||'inp-name';
+  const n=document.getElementById(id).value.trim();if(!n)return;
+  if(!(n in nameCheckCache))nameCheckCache[n]=!(await isNameAllowed(n));
+  if(document.getElementById(id).value.trim()===n&&nameCheckCache[n])fieldErr(id,NAME_BLOCKED_MSG);
 }
 let breachChecked={pass:null,bad:false};
 async function checkBreachedNow(){
@@ -1781,7 +1784,7 @@ async function checkBreachedNow(){
     const el=document.getElementById(id);if(!el)return;
     el.addEventListener('blur',()=>setTimeout(()=>{ // a moment, so picking a town suggestion counts first
       const ok=checkDetail(id);
-      if(id==='inp-name'&&ok)checkNameNow();
+      if((id==='inp-name'||id==='inp-surname')&&ok)checkNameNow(id);
       if(id==='inp-password'&&ok)checkBreachedNow();
       if(id==='inp-password'&&document.getElementById('inp-password-confirm').value)checkDetail('inp-password-confirm');
     },id==='inp-location'?250:0));
@@ -1799,8 +1802,8 @@ function validateAllDetails(){
   detailsTried=true;
   const bad=[];
   if(!myProfile.photo){fieldErr('upload-area','Please add a photo. It’s needed to create your profile.');bad.push('upload-area');}else fieldErr('upload-area','');
-  ['inp-name','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{if(!checkDetail(id))bad.push(id);});
-  if(nameChecked.name===document.getElementById('inp-name').value.trim()&&nameChecked.bad){fieldErr('inp-name',NAME_BLOCKED_MSG);if(!bad.includes('inp-name'))bad.unshift('inp-name');}
+  ['inp-name','inp-surname','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{if(!checkDetail(id))bad.push(id);});
+  ['inp-surname','inp-name'].forEach(id=>{if(nameCheckCache[document.getElementById(id).value.trim()]){fieldErr(id,NAME_BLOCKED_MSG);if(!bad.includes(id))bad.unshift(id);}});
   if(breachChecked.pass===document.getElementById('inp-password').value&&breachChecked.bad){fieldErr('inp-password',BREACHED_MSG);if(!bad.includes('inp-password'))bad.push('inp-password');}
   if(!myProfile.sex){fieldErr('sex-male','Please choose your biological sex.');bad.push('sex-male');}
   if(myProfile.married!==false){fieldErr('married-no','Please say whether you’re married.');bad.push('married-no');}
@@ -1827,7 +1830,12 @@ async function tryDetails(){
   const location=locationEl.value.trim();
   if(!name){err.style.display='block';err.textContent='Please enter your name.';nameEl.classList.add('input-error');return;}
   if(!nameOk(name)){err.style.display='block';err.textContent=NAME_RULE;nameEl.classList.add('input-error');return;}
-  if(!(await isNameAllowed(name))){nameChecked={name,bad:true};err.style.display='block';err.textContent=NAME_BLOCKED_MSG;fieldErr('inp-name',NAME_BLOCKED_MSG);nameEl.classList.add('input-error');detailsBox('inp-name')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
+  const surname=document.getElementById('inp-surname').value.trim();
+  if(!surname||!nameOk(surname)){err.style.display='block';err.textContent=!surname?'Please enter your surname.':NAME_RULE;fieldErr('inp-surname',err.textContent);detailsBox('inp-surname')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
+  for(const [id,v] of [['inp-name',name],['inp-surname',surname]]){
+    if(!(await isNameAllowed(v))){nameCheckCache[v]=true;err.style.display='block';err.textContent=NAME_BLOCKED_MSG;fieldErr(id,NAME_BLOCKED_MSG);detailsBox(id)?.scrollIntoView({behavior:'smooth',block:'center'});return;}
+  }
+  myProfile.surname=surname;
   if(!email){err.style.display='block';err.textContent='Please enter your email.';emailEl.classList.add('input-error');return;}
   if(!dobRaw){err.style.display='block';err.textContent='Please enter your date of birth.';dobEl.classList.add('input-error');return;}
   const signupCountry=document.getElementById('inp-country').value;
@@ -1912,8 +1920,8 @@ async function finishProfileCreation(userId,email){
 
   const religion=myAnswers[FAITH_Q_INDEX]>0?myProfile.religion:null;
   myProfile.religion=religion;
-  const {error:profileErr}=await sb.from('profiles').upsert({
-    id:userId,name:myProfile.name,dob:myProfile.dob,location:myProfile.location,
+  const profileRow={
+    id:userId,name:myProfile.name,...(myProfile.surname?{surname:myProfile.surname}:{}),dob:myProfile.dob,location:myProfile.location,
     sex:myProfile.sex,photo_url,photo_paths,based_score,answers:myAnswers,
     is_hidden:false,is_premium:false,lat,lng,
     country:myProfile.country||'GB',units:myProfile.units||defaultUnitsFor(myProfile.country||'GB'),
@@ -1923,7 +1931,10 @@ async function finishProfileCreation(userId,email){
     special_data_consent_at:myProfile.terms_accepted_at||new Date().toISOString(), // both boxes are required on the same screen, at the same moment
     referred_by:myProfile.referred_by||null,
     married:false,has_children:typeof myProfile.has_children==='boolean'?myProfile.has_children:null
-  });
+  };
+  let {error:profileErr}=await sb.from('profiles').upsert(profileRow);
+  // Before the server has the surname column: create the profile without it rather than fail
+  if(profileErr&&/surname/.test(profileErr.message||'')){delete profileRow.surname;({error:profileErr}=await sb.from('profiles').upsert(profileRow));}
   if(profileErr){
     console.error('Profile save error:', profileErr);
     removeModal();
@@ -1975,7 +1986,7 @@ async function stageSignupRemotely(userId){
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},
       body:JSON.stringify({
-        user_id:userId,name:myProfile.name,dob:myProfile.dob,location:myProfile.location,
+        user_id:userId,name:myProfile.name,surname:myProfile.surname||null,dob:myProfile.dob,location:myProfile.location,
         sex:myProfile.sex,religion:myProfile.religion,photo:myProfile.photo,answers:myAnswers,
         extra_photos:(myProfile.extra_photos||[]).map(x=>x.url),
         marketing_consent:!!myProfile.marketing_consent,terms_accepted_at:myProfile.terms_accepted_at,
@@ -2288,7 +2299,7 @@ async function restoreSession(){
   }
   if(p){
     profileLoaded=true;
-    myProfile={name:p.name,dob:p.dob,dob_changes:p.dob_changes||0,location:p.location,sex:p.sex,photo:null,photo_ref:p.photo_url||null,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null,country:p.country||'GB',units:p.units||defaultUnitsFor(p.country||'GB')};
+    myProfile={name:p.name,surname:p.surname||null,dob:p.dob,dob_changes:p.dob_changes||0,location:p.location,sex:p.sex,photo:null,photo_ref:p.photo_url||null,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null,country:p.country||'GB',units:p.units||defaultUnitsFor(p.country||'GB')};
     // Your own photo is private too — open it through a short-lived signed link
     await loadMyPhotos(p);myProfile.photo=myPhotos[0]?myPhotos[0].url:null;
     myAnswers=fullAnswers(myStoredAnswers);
@@ -6073,6 +6084,7 @@ function openEditProfile(){
   renderSoundsToggle();renderMiniScore();
   if(!profileLoaded){showProfileLoadError();return;} // never show (and let anyone save) blank details
   document.getElementById('edit-name').value=myProfile.name||'';
+  document.getElementById('edit-surname').value=myProfile.surname||'';updateShownAs();
   document.getElementById('edit-dob').value=isoToDobDisplay(myProfile.dob);
   {const verified=myVerificationStatus==='approved',used=(myProfile.dob_changes||0)>=1,locked=verified||used;
    const d=document.getElementById('edit-dob');d.readOnly=locked;d.style.opacity=locked?'0.6':'1';
@@ -6107,6 +6119,7 @@ let editSnapshot=null,editBefore=null;
 function editFormState(){
   return JSON.stringify({
     name:document.getElementById('edit-name').value.trim(),
+    surname:document.getElementById('edit-surname').value.trim(),
     dob:document.getElementById('edit-dob').value.trim(),
     country:document.getElementById('edit-country').value,
     location:document.getElementById('edit-location').value.trim(),
@@ -6138,11 +6151,22 @@ function confirmDobChange(iso){
     <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:20px">You can only correct your date of birth <b style="color:var(--text-on-dark)">once</b>, so please check it's right. When you verify with ID, your date of birth will be taken from your document.</p>
     <div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1" onclick="removeModal();dobChangeConfirmed=true;saveProfile()">Change it</button></div>`);
 }
+function updateShownAs(){
+  const el=document.getElementById('edit-shown-as');if(!el)return;
+  const f=document.getElementById('edit-name').value.trim()||'Your name',sn=document.getElementById('edit-surname').value.trim();
+  el.textContent=f+(sn?' '+sn.charAt(0).toUpperCase()+'.':'');
+}
+document.addEventListener('input',e=>{if(e.target&&(e.target.id==='edit-name'||e.target.id==='edit-surname'))updateShownAs();});
 async function saveProfile(){
   if(!profileLoaded){showProfileLoadError();return;}
   {const nv=document.getElementById('edit-name').value.trim();if(nv&&!nameOk(nv)){showToast(NAME_RULE,true,4000);return;}
    if(nv&&nv!==myProfile.name&&!(await isNameAllowed(nv))){showToast(NAME_BLOCKED_MSG,true,4500);document.getElementById('edit-name').classList.add('input-error');document.getElementById('edit-name').focus();return;}
-   document.getElementById('edit-name').classList.remove('input-error');}
+   document.getElementById('edit-name').classList.remove('input-error');
+   const se=document.getElementById('edit-surname'),sv=se.value.trim();se.classList.remove('input-error');
+   if(sv&&!nameOk(sv)){showToast(NAME_RULE,true,4000);se.classList.add('input-error');se.focus();return;}
+   if(!sv&&myProfile.surname){showToast('Please enter your surname.',true,3500);se.classList.add('input-error');se.focus();return;}
+   if(sv&&sv!==(myProfile.surname||'')&&!(await isNameAllowed(sv))){showToast(NAME_BLOCKED_MSG,true,4500);se.classList.add('input-error');se.focus();return;}}
+  const prevSurname=myProfile.surname;myProfile.surname=document.getElementById('edit-surname').value.trim()||myProfile.surname||null;
   myProfile.name=document.getElementById('edit-name').value.trim()||myProfile.name;
   const editDobEl=document.getElementById('edit-dob'),editLocationEl=document.getElementById('edit-location');
   editDobEl.classList.remove('input-error');editLocationEl.classList.remove('input-error');
@@ -6194,7 +6218,11 @@ async function saveProfile(){
       editLocationEl.classList.add('input-error');
       return;
     }
-    const {error:saveErr}=await sb.from('profiles').update({name:myProfile.name,dob:myProfile.dob,location:geo.location,country:editCountry,units:myUnits(),sex:myProfile.sex,is_hidden:profileHidden,...photoUpdate,lat:geo.lat,lng:geo.lng}).eq('id',currentUser.id);
+    const upd={name:myProfile.name,...(myProfile.surname?{surname:myProfile.surname}:{}),dob:myProfile.dob,location:geo.location,country:editCountry,units:myUnits(),sex:myProfile.sex,is_hidden:profileHidden,...photoUpdate,lat:geo.lat,lng:geo.lng};
+    let {error:saveErr}=await sb.from('profiles').update(upd).eq('id',currentUser.id);
+    if(saveErr&&/surname/.test(saveErr.message||'')&&!/NOT_ALLOWED|INVALID/.test(saveErr.message||'')){delete upd.surname;({error:saveErr}=await sb.from('profiles').update(upd).eq('id',currentUser.id));} // before the server has surnames
+    if(saveErr)myProfile.surname=prevSurname;
+    if(saveErr&&/NAME_NOT_ALLOWED/.test(saveErr.message||'')){showToast(NAME_BLOCKED_MSG,true,4500);return;}
     if(saveErr&&photoPlan&&photoPlan.uploaded.length)sb.storage.from('avatars').remove(photoPlan.uploaded); // nothing points at them
     if(saveErr&&/LOCATION_CHANGE_LIMIT/.test(saveErr.message))resetEditLocation(); // the account still has the old country and town: show those again
     if(saveErr&&dobChanged){myProfile.dob=previousDob;editDobEl.value=isoToDobDisplay(previousDob);}
@@ -6450,7 +6478,7 @@ async function executeDelete(){
   myAnswers=new Array(NUM_Q).fill(0);
   expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();mySuper=new Set();theirSuper=new Set();profileHidden=false;
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
-  ['inp-name','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['inp-name','inp-surname','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('sex-male').classList.remove('selected');document.getElementById('sex-female').classList.remove('selected');
   showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-check" style="font-size:24px;color:var(--green)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px">Account deleted</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Your profile and all data have been permanently removed.${wasPremium?' Your subscription has been cancelled.':''} We hope to see you again someday.</p><button onclick="window.location.replace(window.location.pathname)" class="btn-primary">Back to home</button>`);
 }
