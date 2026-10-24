@@ -107,8 +107,8 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 @supports (-webkit-touch-callout:none){input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]),textarea,select{font-size:16px!important}}
 .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .card-badges{display:flex;flex-direction:column;align-items:stretch;gap:6px;flex-shrink:0;}
-.compat-badge{font-size:12px;font-weight:600;text-align:center;white-space:nowrap;border:0.5px solid currentColor;border-radius:6px;padding:3px 6px;}
-.based-badge{display:flex;justify-content:center;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--text-on-dark);border:0.5px solid rgba(201,168,76,0.3);border-radius:6px;padding:2px 6px;}
+.compat-badge{font-size:12px;font-weight:600;text-align:center;white-space:nowrap;border:1px solid currentColor;border-color:color-mix(in srgb,currentColor 55%,transparent);border-radius:6px;padding:2.5px 5.5px;}
+.based-badge{display:flex;justify-content:center;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--text-on-dark);border:1px solid rgba(201,168,76,0.22);border-radius:6px;padding:2px 6px;}
 .tab-bar{display:flex;border-bottom:1px solid rgba(255,255,255,0.05);flex-shrink:0;background:var(--navy);}
 .tab-btn{flex:1;background:transparent;border:none;padding:13px 8px;font-size:12px;color:var(--text-muted);cursor:pointer;font-family:var(--sans);border-bottom:2px solid transparent;display:flex;align-items:center;justify-content:center;gap:5px;position:relative;}
 .tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
@@ -1210,6 +1210,10 @@ function goTo(id){if((id==='screen-main'||id==='screen-waiting')&&typeof needsRe
 // Names: letters, spaces, hyphens, apostrophes and full stops (matches the server's rule)
 const NAME_RULE='Names can use letters, numbers, spaces, hyphens, apostrophes and full stops, up to 40 characters.';
 function nameOk(n){return /^\p{L}[\p{L}\p{N} .'’-]{0,39}$/u.test(n);}
+// Names on BASED's Blocked names list (e.g. "BASED Support", "Admin") can't be used.
+// The server checks too; if this check can't run, it doesn't stop anyone.
+const NAME_BLOCKED_MSG='That name can’t be used on BASED. Please use your own first name.';
+async function isNameAllowed(n){try{const {data,error}=await sb.rpc('name_allowed',{p_name:n});return error?true:data!==false;}catch(e){return true;}}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function ja(v){return esc(String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' '));}
 function showModal(html){removeModal();const bd=document.createElement('div');bd.className='modal-backdrop';bd.id='modal-bd';bd.innerHTML=`<div class="modal-box">${html}</div>`;document.getElementById('app-shell').appendChild(bd);}
@@ -1758,6 +1762,13 @@ function updatePasswordHints(){
   if(h){const ok=p.length>=8;h.classList.toggle('ok',ok);h.innerHTML=ok?'<i class="ti ti-check"></i> 8 characters or more':'8 characters or more';}
   if(m)m.style.display=c&&c===p?'block':'none';
 }
+let nameChecked={name:null,bad:false};
+async function checkNameNow(){
+  const n=document.getElementById('inp-name').value.trim();
+  if(!n||nameChecked.name===n){if(nameChecked.name===n&&nameChecked.bad)fieldErr('inp-name',NAME_BLOCKED_MSG);return;}
+  const bad=!(await isNameAllowed(n));nameChecked={name:n,bad};
+  if(document.getElementById('inp-name').value.trim()===n&&bad)fieldErr('inp-name',NAME_BLOCKED_MSG);
+}
 let breachChecked={pass:null,bad:false};
 async function checkBreachedNow(){
   const pass=document.getElementById('inp-password').value;
@@ -1770,6 +1781,7 @@ async function checkBreachedNow(){
     const el=document.getElementById(id);if(!el)return;
     el.addEventListener('blur',()=>setTimeout(()=>{ // a moment, so picking a town suggestion counts first
       const ok=checkDetail(id);
+      if(id==='inp-name'&&ok)checkNameNow();
       if(id==='inp-password'&&ok)checkBreachedNow();
       if(id==='inp-password'&&document.getElementById('inp-password-confirm').value)checkDetail('inp-password-confirm');
     },id==='inp-location'?250:0));
@@ -1788,6 +1800,7 @@ function validateAllDetails(){
   const bad=[];
   if(!myProfile.photo){fieldErr('upload-area','Please add a photo. It’s needed to create your profile.');bad.push('upload-area');}else fieldErr('upload-area','');
   ['inp-name','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{if(!checkDetail(id))bad.push(id);});
+  if(nameChecked.name===document.getElementById('inp-name').value.trim()&&nameChecked.bad){fieldErr('inp-name',NAME_BLOCKED_MSG);if(!bad.includes('inp-name'))bad.unshift('inp-name');}
   if(breachChecked.pass===document.getElementById('inp-password').value&&breachChecked.bad){fieldErr('inp-password',BREACHED_MSG);if(!bad.includes('inp-password'))bad.push('inp-password');}
   if(!myProfile.sex){fieldErr('sex-male','Please choose your biological sex.');bad.push('sex-male');}
   if(myProfile.married!==false){fieldErr('married-no','Please say whether you’re married.');bad.push('married-no');}
@@ -1814,6 +1827,7 @@ async function tryDetails(){
   const location=locationEl.value.trim();
   if(!name){err.style.display='block';err.textContent='Please enter your name.';nameEl.classList.add('input-error');return;}
   if(!nameOk(name)){err.style.display='block';err.textContent=NAME_RULE;nameEl.classList.add('input-error');return;}
+  if(!(await isNameAllowed(name))){nameChecked={name,bad:true};err.style.display='block';err.textContent=NAME_BLOCKED_MSG;fieldErr('inp-name',NAME_BLOCKED_MSG);nameEl.classList.add('input-error');detailsBox('inp-name')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
   if(!email){err.style.display='block';err.textContent='Please enter your email.';emailEl.classList.add('input-error');return;}
   if(!dobRaw){err.style.display='block';err.textContent='Please enter your date of birth.';dobEl.classList.add('input-error');return;}
   const signupCountry=document.getElementById('inp-country').value;
@@ -6126,7 +6140,9 @@ function confirmDobChange(iso){
 }
 async function saveProfile(){
   if(!profileLoaded){showProfileLoadError();return;}
-  {const nv=document.getElementById('edit-name').value.trim();if(nv&&!nameOk(nv)){showToast(NAME_RULE,true,4000);return;}}
+  {const nv=document.getElementById('edit-name').value.trim();if(nv&&!nameOk(nv)){showToast(NAME_RULE,true,4000);return;}
+   if(nv&&nv!==myProfile.name&&!(await isNameAllowed(nv))){showToast(NAME_BLOCKED_MSG,true,4500);document.getElementById('edit-name').classList.add('input-error');document.getElementById('edit-name').focus();return;}
+   document.getElementById('edit-name').classList.remove('input-error');}
   myProfile.name=document.getElementById('edit-name').value.trim()||myProfile.name;
   const editDobEl=document.getElementById('edit-dob'),editLocationEl=document.getElementById('edit-location');
   editDobEl.classList.remove('input-error');editLocationEl.classList.remove('input-error');
