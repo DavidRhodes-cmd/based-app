@@ -220,7 +220,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 .photo-tile-add{border:1px dashed rgba(201,168,76,0.5);background:rgba(201,168,76,0.05);color:var(--gold);font-size:22px;display:flex;align-items:center;justify-content:center;font-family:var(--sans);}
 .photo-tile-x{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;border:none;background:rgba(10,13,22,0.8);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
 .photo-tile-main{position:absolute;left:0;right:0;bottom:0;background:rgba(10,13,22,0.75);color:var(--gold-light);font-size:10px;font-weight:600;letter-spacing:0.5px;text-align:center;padding:3px 0;font-family:var(--sans);}
-.pd-top{position:sticky;top:-20px;z-index:4;background:var(--navy);margin:-20px -16px 0;padding:20px 16px 1px;box-shadow:0 10px 12px -10px rgba(0,0,0,0.55);}
+.pd-top{position:sticky;top:0;z-index:4;background:var(--navy);margin:0 -16px;padding:20px 16px 1px;box-shadow:0 -3px 0 var(--navy),0 10px 12px -10px rgba(0,0,0,0.55);transform:translateZ(0);}
 .pd-top>div:last-child{margin-bottom:12px!important;}
 .photo-strip{display:flex;gap:8px;overflow-x:auto;margin:-8px 0 20px;padding-bottom:2px;}
 .photo-strip button{flex:0 0 64px;width:64px;height:64px;border-radius:12px;overflow:hidden;border:0.5px solid rgba(201,168,76,0.4);padding:0;cursor:pointer;background:none;}
@@ -626,7 +626,7 @@ button.ins-tile:active{opacity:0.75;}
     <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
     <div style="width:28px"></div>
   </div>
-  <div class="scrollable" style="padding:20px 16px" id="profile-detail-body"></div>
+  <div class="scrollable" style="padding:0 16px 20px" id="profile-detail-body"></div>
 </div>
 
 <!-- CHAT -->
