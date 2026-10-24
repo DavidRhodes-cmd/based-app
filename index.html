@@ -2689,7 +2689,8 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   }).join('');
   let topBanner='';
   if(!isMutual&&theirSuper.has(profileKey))topBanner=`<div class="super-note"><i class="ti ti-confetti" style="font-size:22px;color:var(--gold)"></i><div><p style="font-size:15px;color:var(--gold-light);font-weight:600">${esc(name)} sent you a super interest</p><p style="font-size:13px;color:var(--text-muted)">They’re especially keen to get to know you.<br>Express interest back to start talking.</p></div></div>`;
-  if(isMutual)topBanner=`<div style="background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.35);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px"><i class="ti ti-heart" style="font-size:22px;color:var(--green)"></i><div><p style="font-size:15px;color:var(--green);font-weight:600">It's mutual!</p><p style="font-size:13px;color:var(--text-muted)">You both expressed interest.<br>You can now message each other.</p></div></div>`;
+  // Not when opened from the chat: you already know it's mutual
+  if(isMutual&&context!=='chat')topBanner=`<div style="background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.35);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px"><i class="ti ti-heart" style="font-size:22px;color:var(--green)"></i><div><p style="font-size:15px;color:var(--green);font-weight:600">It's mutual!</p><p style="font-size:13px;color:var(--text-muted)">You both expressed interest.<br>You can now message each other.</p></div></div>`;
   const aEncoded=JSON.stringify(answers).replace(/"/g,'&quot;');
   let actionRow='';
   if(isMutual){
