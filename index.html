@@ -2813,11 +2813,15 @@ async function doWithdrawInterest(profileKey){
     await loadMyInteractions();renderMatchesTab();
     return;
   }
-  expressedInterest.delete(profileKey);
+  expressedInterest.delete(profileKey);mySuper.delete(profileKey);
   delete myInterestedAt[profileKey];
   showToast('Interest withdrawn');
   renderMatchesTab();
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  // The server only sends people you're interested in as "related" (for the Interest tab), so fetch
+  // Search again to put them back in it, ready for when you swipe back
+  await loadBrowseProfiles();
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);renderMatchesTab();
 }
 
 // ─── Congratulations (verified, upgraded) ────────────────────────────────────
