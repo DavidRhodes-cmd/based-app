@@ -3801,7 +3801,7 @@ async function loadTopUps(){
 }
 let topUpCheckedAt=0;
 const CURRENCY_SIGN={gbp:'£',usd:'$',aud:'A$',cad:'C$'};
-function moneyText(cur,amount){return (CURRENCY_SIGN[cur]||'')+(amount/100).toFixed(2);}
+function moneyText(cur,amount){return curSign(cur||'gbp')+(amount/100).toFixed(2);}
 async function callTopUp(body){
   const {data:{session}}=await sb.auth.getSession();
   if(!session)return {ok:false,data:{error:'Please sign in again.'}};
@@ -3818,10 +3818,10 @@ async function openTopUp(){
   showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:6px;text-align:center">Top up</p>
     <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:16px;text-align:center">A one-off payment for extra views and interests. They’re used once your usual allowance runs out.</p>
     ${offers.map(o=>`<div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(201,168,76,0.3);border-radius:13px;padding:14px;margin-bottom:10px;text-align:left">
-      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${esc(o.name)}</span><span style="font-family:var(--serif);font-size:19px;color:var(--gold)">${moneyText(TOPUP.currency,o.amount)}</span></div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${esc(o.name)}</span><span style="font-family:var(--serif);font-size:19px;color:var(--gold)">${moneyText(o.currency||TOPUP.currency,o.amount)}</span></div>
       <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--text-muted);margin-bottom:${o.valid_days?6:12}px">${line(o)}</div>
       ${o.valid_days?`<p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Lasts ${o.valid_days} day${o.valid_days===1?'':'s'}</p>`:''}
-      <button class="btn-primary" style="font-size:15px" data-topup="${o.id}" onclick="buyTopUp(${Number(o.id)})">Buy for ${moneyText(TOPUP.currency,o.amount)}</button></div>`).join('')}
+      <button class="btn-primary" style="font-size:15px" data-topup="${o.id}" onclick="buyTopUp(${Number(o.id)})">Buy for ${moneyText(o.currency||TOPUP.currency,o.amount)}</button></div>`).join('')}
     ${myTierNow()!=='gold'?`<button class="btn-ghost" style="font-size:15px;margin-top:4px;color:var(--gold);border-color:var(--gold)" onclick="removeModal();openPlanUpgrade('gold')">Upgrade instead</button>`:''}
     <button class="btn-ghost" style="font-size:14px;margin-top:8px" onclick="removeModal()">Not now</button>
     <p style="font-size:11.5px;color:var(--text-muted);text-align:center;margin-top:12px;line-height:1.5">Want more every month? <span style="color:var(--gold);text-decoration:underline;cursor:pointer" onclick="removeModal();upgradeState=null;openPlans()">See the plans</span></p>`);
@@ -3918,9 +3918,14 @@ const TIER_LABEL={liveness:'Selfie verified',id:'ID verified',plus:'BASED+',gold
 // first-month price, offered only to members who have never subscribed. The Stripe functions
 // charge from the same table. If it can't be loaded, these are shown (the prices at launch).
 const LOCAL_PRICES={GB:{cur:'gbp',plus:499,gold:999},US:{cur:'usd',plus:699,gold:1299},AU:{cur:'aud',plus:999,gold:1999},CA:{cur:'cad',plus:899,gold:1799}};
-const CUR_SIGN={gbp:'£',usd:'$',aud:'A$',cad:'C$'};
+const CUR_SIGN={gbp:'£',usd:'$',aud:'A$',cad:'C$',eur:'€',nzd:'NZ$'};
+// Any other currency a country is opened in: the sign from the browser (e.g. "CHF", "kr")
+function curSign(cur){
+  if(CUR_SIGN[cur])return CUR_SIGN[cur];
+  try{const v=new Intl.NumberFormat('en-GB',{style:'currency',currency:String(cur).toUpperCase()}).formatToParts(0).find(x=>x.type==='currency').value;return /^[A-Za-z]+$/.test(v)?v+' ':v;}catch(e){return String(cur||'').toUpperCase()+' ';}
+}
 let PRICES=null; // {currency, first_month, plans:{plus:{currency,amount,intro}, gold:{…}}}
-function money(cur,n){return (CUR_SIGN[cur]||'£')+(n%100?(n/100).toFixed(2):String(n/100));}
+function money(cur,n){return curSign(cur||'gbp')+(n%100?(n/100).toFixed(2):String(n/100));}
 function planPrice(t){
   if(PRICES&&PRICES.plans&&PRICES.plans[t])return PRICES.plans[t];
   const c=(myProfile&&myProfile.country)||(PERMS&&PERMS.country)||'GB',l=LOCAL_PRICES[c]||LOCAL_PRICES.GB;
@@ -6390,6 +6395,7 @@ async function toggleReadReceipts(){
     if(error){readReceipts=!readReceipts;renderReceiptsToggle();showToast('Couldn’t change read receipts — please try again.',true);return;}
   }
   showToast(readReceipts?'Read receipts on':'Read receipts off',false,1500);
+  refreshPartnerRead(); // your own setting decides whether you see theirs too
 }
 async function refreshPartnerRead(){
   if(!currentUser||!activeChatPartnerId)return;
@@ -6401,13 +6407,18 @@ async function refreshPartnerRead(){
   if(pid!==activeChatPartnerId)return;
   if(at!==partnerReadAt){partnerReadAt=at;drawChatMessages(false);}
 }
+// While a chat is open, check every 5 seconds whether they've read your messages (or switched
+// read receipts off), and straight away when you come back to the chat or the app
 function startReadPolling(){
   clearInterval(readPollTimer);
   readPollTimer=setInterval(()=>{
-    if(!document.getElementById('screen-chat').classList.contains('active')){clearInterval(readPollTimer);return;}
+    if(!document.getElementById('screen-chat').classList.contains('active')){clearInterval(readPollTimer);readPollTimer=null;return;}
     if(document.visibilityState==='visible')refreshPartnerRead();
-  },8000);
+  },5000);
 }
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&document.getElementById('screen-chat').classList.contains('active'))refreshPartnerRead();});
+// Coming back to a chat (e.g. from their profile or Settings): check straight away and keep checking
+{const goToBefore=goTo;goTo=function(id){goToBefore(id);if(id==='screen-chat'&&currentUser&&activeChatPartnerId){if(!readPollTimer)startReadPolling();refreshPartnerRead();}};}
 function readMarkHtml(at){
   const d=new Date(at),today=new Date().toDateString()===d.toDateString();
   const when=today?d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString([], {weekday:'short',day:'numeric',month:'short'});
