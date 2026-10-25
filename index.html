@@ -2779,7 +2779,9 @@ async function doDismissIncoming(profileKey){
   dismissedIncoming.add(profileKey);
   incomingInterest.delete(profileKey);
   renderMatchesTab();
-  renderProfiles(parseInt(document.getElementById('filter-min').value)||0); // they're back in Search
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0); // they're back in Search…
+  await loadBrowseProfiles(); // …once the server sends them as a Search result, not just for the Interest tab
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);renderMatchesTab();
 }
 
 function confirmWithdrawInterest(profileKey){
