@@ -2404,6 +2404,8 @@ async function loadMyInteractions(){
   // How many people are interested in me (names hidden on tiers without "see who's interested")
   let hiddenCnt=0;
   try{const {data:cnt}=await sb.rpc('incoming_interest_count');hiddenCnt=Math.max(0,(cnt||0));}catch(e){hiddenCnt=0;}
+  let hiddenOldest=null; // when the longest-waiting interest arrived (not who), for the dot's colour
+  if(hiddenCnt>0){try{const {data:t,error:tE}=await sb.rpc('incoming_interest_oldest');if(!tE&&t)hiddenOldest=t;}catch(e){}}
   // What others have done to me (to detect mutual, and incoming interest)
   const {data:theirs,error:tErr}=await sb.from('interactions').select('from_user,action,created_at,is_super').eq('to_user',currentUser.id).eq('action','interested');
   if(vErr||mErr||tErr){console.warn('loadMyInteractions failed — keeping the previous lists:',(vErr||mErr||tErr).message);return;}
@@ -2427,6 +2429,7 @@ async function loadMyInteractions(){
   // Keep any profile you've just opened this session (recorded before the server caught up)
   viewedProfiles.forEach(id=>V.add(id));viewedProfiles=V;
   incomingHiddenCount=canUse('see_interested')?0:Math.max(0,hiddenCnt-[...I].filter(id=>!D.has(id)&&!H.has(id)).length);
+  incomingHiddenOldest=incomingHiddenCount>0?hiddenOldest:null;
   updateMatchNotifs();
 }
 
@@ -3908,7 +3911,7 @@ function renderWaiting(){
 // per feature → access 'allowed' | 'locked' (padlock + upgrade prompt) | 'hidden',
 // plus any limit, how much of it is used, and which tier unlocks more.
 let PERMS=null; // {tier, country, features:{name:{access,limit,period,used,upgrade}}}
-let incomingHiddenCount=0;
+let incomingHiddenCount=0,incomingHiddenOldest=null;
 let TIER_RULES=null; // raw feature_permissions rows, for "BASED+ gives you …" wording // people interested in me whose names this tier can't see
 const TIER_LABEL={liveness:'Selfie verified',id:'ID verified',plus:'BASED+',gold:'BASED Gold'};
 // Monthly prices in the member's own currency, set in the console (my_plan_prices). intro is a
@@ -5875,7 +5878,12 @@ async function setReaction(id,emoji){
 function updateMatchNotifs(){
   const badge=document.getElementById('matches-notif');
   const incomingIds=Array.from(incomingInterest).filter(id=>!hiddenForever.has(id)&&!dismissedIncoming.has(id));
-  if(!incomingIds.length&&incomingHiddenCount>0){badge.style.background='var(--gold)';badge.style.display='block';return;}
+  const dotColour=(days)=>days>=3?'var(--red)':days>=2?'var(--gold)':'var(--green)';
+  if(!incomingIds.length&&incomingHiddenCount>0){
+    // Can't see who yet: same timing colours, from when the oldest one arrived (gold if that's not known)
+    badge.style.background=incomingHiddenOldest?dotColour((Date.now()-new Date(incomingHiddenOldest).getTime())/86400000):'var(--gold)';
+    badge.style.display='block';return;
+  }
   if(!incomingIds.length){badge.style.display='none';return;}
   let oldestDays=0;
   incomingIds.forEach(id=>{
