@@ -2331,7 +2331,7 @@ async function restoreSession(){
     readReceipts=p.read_receipts!==false;
     myStripeCustomer=!!p.stripe_customer_id;
     myCancelAt=p.subscription_cancel_at||null;
-    mySubStatus=p.subscription_status||null;mySubEnd=p.subscription_expires_at||null;
+    mySubStatus=p.subscription_status||null;mySubEnd=p.subscription_expires_at||null;mySubTier=p.subscription_tier||null;
     savedIntro=p.saved_intro||'';
     myVerificationStatus=p.verification_status||'unverified';
     myVerificationIssue=p.verification_issue||null;
@@ -3872,7 +3872,7 @@ async function confirmTopUps(show,paid=true){
 // The server decides (my_prereg_status); without an answer the app carries on as normal,
 // and the server still refuses anything a waiting member isn't allowed to do yet.
 let PRE=null;
-let mySubStatus=null,mySubEnd=null; // e.g. 'trialing' during a BASED+ free trial
+let mySubStatus=null,mySubEnd=null,mySubTier=null; // e.g. 'trialing' during a BASED+ free trial
 function needsWaiting(){return !!currentUser&&!!PRE&&PRE.on===true&&PRE.open===false;}
 async function loadPrereg(){
   if(!currentUser){PRE=null;return;}
@@ -4195,6 +4195,9 @@ async function showUpgradePrompt(f,reason){
   if(permsFailed){showToast('We couldn’t load your plan just now — please try again in a moment.',true,3000);refreshPermissions(true);return;}
   if(needsWaiting()){notOpenYet();return;}
   if(!TIER_RULES){try{const {data:rows}=await sb.from('feature_permissions').select('country,feature,tier,access,limit_value,limit_period');TIER_RULES=rows||[];}catch(e){TIER_RULES=[];}}
+  // Already paid for a plan that includes this: it just needs the ID check
+  const waitingFor=paidAwaitingId();
+  if(waitingFor&&(tierBetter(f,myTierNow(),waitingFor)||!tierValue(f,waitingFor).lock)){showUnlockPaidPrompt(waitingFor);return;}
   const p=perm(f),my=myTierNow();
   const isLimit=(reason==='limit'||p.access==='allowed')&&p.limit!=null;
   const above=TIER_ORDER.slice(TIER_ORDER.indexOf(my)+1).filter(t=>t!=='liveness');
@@ -4289,7 +4292,11 @@ async function openPlans(){
   const lockI='<i class="ti ti-lock" style="font-size:15px;color:#5d627a" aria-label="Not included"></i>';
   const checkI='<i class="ti ti-check" style="font-size:18px;color:var(--gold)" aria-label="Included"></i>';
   let html=`<div class="plans-grid"><div style="border-bottom:0.5px solid rgba(201,168,76,0.3)"></div>${TIER_ORDER.map(t=>`<div class="plans-cell${colClass(t)}" style="flex-direction:column;justify-content:flex-end;gap:3px;padding:8px 0 6px;border-radius:10px 10px 0 0;border-bottom:0.5px solid rgba(201,168,76,0.3)">${t===my?'<span style="font-size:9px;letter-spacing:1px;font-weight:700;color:var(--navy);background:var(--text-muted);padding:2px 6px;border-radius:10px">YOU</span>':''}<span style="font-size:12px;font-weight:600;color:${t==='plus'||t==='gold'?'var(--gold-light)':'var(--text-on-dark)'}">${TIER_SHORT[t]}</span>${introPrice(t)?`<span style="color:var(--text-on-dark);font-weight:600">${introPrice(t)}*</span><span style="color:var(--text-muted);font-size:10px">then ${TIER_PRICE[t]}</span>`:`<span style="color:var(--text-muted)">${TIER_PRICE[t]||'Free'}</span>`}</div>`).join('')}`;
-  PLAN_FEATURES.filter(f=>TIER_ORDER.some(t=>{const r=ruleFor(f,t);return r&&r.access!=='hidden';})).forEach(f=>{
+  // Rows from the plan rules (anything Hidden on every level isn't shown), in a staircase: what every
+  // level gets first, then what starts at ID, BASED+, then Gold — so the ticks build up left to right
+  const firstLevel=f=>{const i=TIER_ORDER.findIndex(t=>{const v=tierValue(f,t);return !v.lock&&v.text!=='Count only';});return i<0?TIER_ORDER.length:i;};
+  PLAN_FEATURES.filter(f=>TIER_ORDER.some(t=>{const r=ruleFor(f,t);return r&&r.access!=='hidden';}))
+    .map((f,i)=>[f,i]).sort((a,b)=>firstLevel(a[0])-firstLevel(b[0])||a[1]-b[1]).map(x=>x[0]).forEach(f=>{
     html+=`<div style="padding:11px 8px 11px 0;font-size:13px;line-height:1.35;color:var(--text-on-dark);display:flex;align-items:center">${COMPARE_LABEL[f]}</div>`;
     TIER_ORDER.forEach((t,i)=>{
       const v=tierValue(f,t);
@@ -4382,7 +4389,9 @@ async function goCheckout(tier){
   if(ok&&data.status==='already'){
     await refreshPermissions(true);
     closeUpgradeScreens();
-    showToast(`You’re already on ${TIER_LABEL[data.tier]||'that plan'}`);
+    const waitingFor=paidAwaitingId();
+    if(waitingFor)showUnlockPaidPrompt(waitingFor);
+    else showToast(`You’re already on ${TIER_LABEL[data.tier]||'that plan'}`);
     return;
   }
   showToast(data.error||'Payments aren’t available just now. Please try again shortly.',true,4000);
@@ -4398,6 +4407,23 @@ async function openBilling(){
   if(ok&&data.url){goToStripe('billing',data.url);return;}
   removeModal();
   showToast(data.error||'Couldn’t open billing just now. Please try again shortly.',true,4000);
+}
+// Paid for BASED+ or Gold, but the plan can't start until the ID check is done: which plan, or null
+function paidAwaitingId(){
+  const t=mySubTier;
+  if(t!=='plus'&&t!=='gold')return null;
+  if(!['active','trialing','past_due'].includes(mySubStatus||'active'))return null;
+  if(mySubEnd&&new Date(mySubEnd).getTime()<Date.now())return null;
+  if(myVerificationStatus==='approved'||myTierNow()===t||myTierNow()==='gold')return null;
+  return t;
+}
+function showUnlockPaidPrompt(t){
+  const name=TIER_LABEL[t]||'your plan';
+  const st=myVerificationStatus;
+  const why=st==='in_review'?'Your ID check is being reviewed. As soon as it’s approved, they unlock.'
+          :st==='declined'?'Your ID check wasn’t approved, so they’re still locked. Try again and they unlock as soon as it’s approved.'
+          :'They unlock as soon as you’ve verified your ID. It takes about two minutes.';
+  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-lock-open" style="font-size:24px;color:var(--gold)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">You’re already on ${name}</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">Your ${name} features are waiting for you. ${why}</p><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();openVerifyScreen('header')">Unlock my ${name} features</button><button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Not now</button></div>`);
 }
 function showPaidVerifyPrompt(label){
   showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-check" style="font-size:24px;color:var(--green)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Payment received</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">Now a quick ID check, then ${label||'your new plan'} unlocks straight away.</p><button class="btn-primary" style="font-size:15px" onclick="removeModal();openVerifyScreen('header')">Verify my ID</button>`);
@@ -4800,7 +4826,7 @@ let lastPlanKey=null,permRefreshAt=0;
 function onMyPlanMaybeChanged(p){
   if(p&&p.stripe_customer_id)myStripeCustomer=true;
   if(p&&'subscription_cancel_at' in p&&(p.subscription_cancel_at||null)!==myCancelAt){myCancelAt=p.subscription_cancel_at||null;renderPlanRow();}
-  if(p&&'subscription_status' in p){mySubStatus=p.subscription_status||null;mySubEnd=p.subscription_expires_at||null;renderPlanRow();}
+  if(p&&'subscription_status' in p){mySubStatus=p.subscription_status||null;mySubEnd=p.subscription_expires_at||null;if('subscription_tier' in p)mySubTier=p.subscription_tier||null;renderPlanRow();}
   const key=(p.subscription_tier||'none')+'|'+(p.subscription_expires_at||'');
   if(key!==lastPlanKey)refreshPermissions(true);
   lastPlanKey=key;
@@ -4846,7 +4872,7 @@ function onMyVerificationChanged(p){
       if(id==='approved'){congratulate('id');loadPermissions().then(()=>renderProfiles(parseInt(document.getElementById('filter-min').value)||0));}
       else if(id==='declined')showToast(issue==='dob_mismatch'?'Your ID check needs a quick fix: see Settings':'Your ID check wasn’t approved: you can try again in Settings');
     }
-    updateGetVerifiedBtn();renderVerifyRow();
+    updateGetVerifiedBtn();renderVerifyRow();renderPlanRow(); // a paid plan waiting for the ID check
   }
 }
 
@@ -4888,24 +4914,26 @@ function renderRewardRow(){
 function renderPlanRow(){
   renderRewardRow();
   const row=document.getElementById('plan-row');if(!row)return;
-  const t=myTierNow(),paid=t==='plus'||t==='gold';
-  const name=paid?TIER_LABEL[t]+(mySubStatus==='trialing'&&mySubEnd&&!myCancelAt?` · free until ${shortDate(new Date(new Date(mySubEnd).getTime()-2*86400000))}, then ${TIER_PRICE[t]}/month`:''):'Free';
+  const t=myTierNow(),paid=t==='plus'||t==='gold',waitingFor=paidAwaitingId();
+  const name=waitingFor?`${TIER_LABEL[waitingFor]} · unlocks when your ID is verified`:paid?TIER_LABEL[t]+(mySubStatus==='trialing'&&mySubEnd&&!myCancelAt?` · free until ${shortDate(new Date(new Date(mySubEnd).getTime()-2*86400000))}, then ${TIER_PRICE[t]}/month`:''):'Free';
   const ending=paid&&myCancelAt?new Date(myCancelAt):null;
   // A free plan given by BASED: say until when (the end time is midnight, so show the day before)
   const gift=PERMS&&PERMS.gift&&PERMS.gift.tier===t?new Date(new Date(PERMS.gift.until).getTime()-1000):null;
   const bs='border-radius:11px;padding:9px 13px;font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap';
-  const up=t==='gold'||ending||needsWaiting()?'':`<button onclick="openPlanUpgrade()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Upgrade</button>`;
+  const up=waitingFor?`<button onclick="showUnlockPaidPrompt('${waitingFor}')" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Unlock</button>`
+    :t==='gold'||ending||needsWaiting()?'':`<button onclick="openPlanUpgrade()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Upgrade</button>`;
   // Manage = Stripe's page to change card, see receipts or cancel (only once you've paid through Stripe)
   const manage=myStripeCustomer?`<button onclick="openBilling()" style="background:transparent;border:0.5px solid rgba(255,255,255,0.18);color:var(--text-muted);${bs}">Manage</button>`:'';
   // Cancelled but still paid up: offer to carry on instead of upgrading
   const resume=ending&&myStripeCustomer?`<button onclick="resumePlan()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Resume</button>`:'';
   const btn=`<div style="display:flex;gap:8px">${manage}${resume}${up}</div>`;
-  row.innerHTML=`<i class="ti ti-crown" style="font-size:24px;color:${paid?'var(--gold)':'var(--text-muted)'}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Current plan</p><p style="font-size:13px;color:${paid?'var(--gold-light)':'var(--text-muted)'}">${name}${gift?` until ${gift.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`:''}</p>${gift?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">A free gift from BASED</p>`:ending?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">Cancels ${ending.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p>`:''}</div>${btn}`;
+  row.innerHTML=`<i class="ti ti-crown" style="font-size:24px;color:${paid||waitingFor?'var(--gold)':'var(--text-muted)'}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Current plan</p><p style="font-size:13px;color:${paid||waitingFor?'var(--gold-light)':'var(--text-muted)'}">${name}${gift?` until ${gift.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`:''}</p>${gift?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">A free gift from BASED</p>`:ending?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">Cancels ${ending.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p>`:''}</div>${btn}`;
 }
 // The upgrade screen without a particular feature in mind: both paid plans from Free,
 // just Gold from BASED+
 function openPlanUpgrade(prefer){
   if(needsWaiting()){notOpenYet();return;}
+  if(paidAwaitingId()==='gold'){showUnlockPaidPrompt('gold');return;}
   const my=myTierNow();
   const options=['plus','gold'].filter(t=>TIER_ORDER.indexOf(t)>TIER_ORDER.indexOf(my));
   if(!options.length)return;
