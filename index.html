@@ -5888,6 +5888,7 @@ function updateMatchNotifs(){
 }
 
 function renderMatchesTab(){
+  updateMatchNotifs(); // the Interest badge always matches what the tab shows
   const inList=document.getElementById('incoming-interest-list'),ee=document.getElementById('expressed-list');
   const lockedCard=(!canUse('see_interested')&&incomingHiddenCount>0)?`<div onclick="showUpgradePrompt('see_interested')" style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.35);border-radius:15px;padding:16px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer"><div class="avatar" style="background:rgba(201,168,76,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--gold)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${incomingHiddenCount} ${incomingHiddenCount===1?'person is':'people are'} interested in you</div><div style="font-size:13px;color:var(--gold);margin-top:3px">Upgrade to BASED+ to see who</div></div><i class="ti ti-chevron-right" style="color:var(--text-muted)"></i></div>`:'';
   const visible=id=>browseProfiles.some(x=>(x.id||x.name)===id);
