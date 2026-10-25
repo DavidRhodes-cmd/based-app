@@ -747,6 +747,7 @@ button.ins-tile:active{opacity:0.75;}
           <button class="btn-ghost filter-btn" data-feature="dealbreakers" onclick="openDealbreakerScreen()"><span>Dealbreaker filters</span><span class="filter-count" id="dealbreaker-count"></span></button>
           <button class="btn-ghost filter-btn" data-feature="religion_filter" onclick="openReligionScreen()"><span>Religion filters</span><span class="filter-count" id="religion-count"></span></button>
         </div>
+        <button class="btn-ghost filter-btn" data-feature="country_filter" onclick="openCountryScreen()" style="margin-top:8px;width:100%"><span><i class="ti ti-world" style="margin-right:6px"></i>Country filters</span><span class="filter-count" id="country-count"></span></button>
         <button class="btn-ghost filter-btn" data-feature="planet_filter" onclick="openPlanetScreen()" style="margin-top:8px;width:100%"><span><i class="ti ti-planet" style="margin-right:6px"></i>Inter-planetary filter</span><span class="filter-count" id="planet-count"></span></button>
         <button class="btn-ghost filter-btn" data-feature="saved_intro" onclick="openIntroEditor()" style="margin-top:8px;width:100%"><span>Pre-saved introduction</span><span class="filter-count" id="intro-status"></span></button>
         <button class="btn-ghost filter-btn" data-feature="profile_insights" onclick="openInsights()" style="margin-top:8px;width:100%"><span>Profile insights</span><span class="filter-count">Who’s viewing you, interest and activity</span></button>
@@ -827,6 +828,21 @@ button.ins-tile:active{opacity:0.75;}
     <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:6px">Show me the following religions</p>
     <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Tap a religion to hide or show people of that faith in Search.</p>
     <div id="religion-filter-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+  </div>
+</div>
+
+<!-- COUNTRY FILTERS -->
+<div id="screen-country-filter" class="screen">
+  <div class="app-header">
+    <button onclick="cancelCountryScreen()" style="background:transparent;border:none;font-size:14px;color:var(--text-muted);cursor:pointer;font-family:var(--sans)">Cancel</button>
+    <span style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark)">Country filters</span>
+    <button onclick="saveCountryScreen()" style="background:transparent;border:none;font-size:14px;color:var(--gold);cursor:pointer;font-family:var(--sans);font-weight:600">Save</button>
+  </div>
+  <div class="scrollable" style="padding:20px 16px">
+    <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:6px">Show me people in</p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Tap a country to show or hide people there in Search. At least one must be on. Your distance setting still applies.</p>
+    <div id="country-filter-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+    <button class="btn-ghost bottom-safe" id="country-reset-btn" onclick="resetCountryFilter()" style="font-size:14px;margin-top:14px"><i class="ti ti-rotate" style="margin-right:7px"></i>Reset</button>
   </div>
 </div>
 
@@ -2305,6 +2321,7 @@ async function restoreSession(){
     myAnswers=fullAnswers(myStoredAnswers);
     isPremium=p.is_premium||false;
     loadReligionFilter(p);
+    loadCountryFilter(p);
     loadPlanets(p);
     myProfile.has_children=typeof p.has_children==='boolean'?p.has_children:null;pickYesNo('edit-children',myProfile.has_children);
     hideWithChildren=!!p.hide_with_children;
@@ -3943,6 +3960,7 @@ const FEATURE_INFO={
   express_interest:{name:'More interests',icon:'ti-heart',unit:'interests'},
   super_interest:{name:'Super interest',icon:'ti-confetti',unit:'super interests'},
   religion_filter:{name:'Religion filter',icon:'ti-filter'},
+  country_filter:{name:'Country filter',icon:'ti-world'},
   see_interested:{name:'See who’s interested in you',icon:'ti-heart'},
   verified_only_filter:{name:'Verified members only filter',icon:'ti-discount-check'},
   travel_mode:{name:'Travel mode',icon:'ti-current-location'},
@@ -4093,6 +4111,7 @@ function applyPermissions(){
     el.style.display=isHidden(f)?'none':'';
     el.classList.toggle('feature-locked',!canUse(f)&&!isHidden(f));
   });
+  try{updateFilterCounts();}catch(e){} // e.g. the Country filters label depends on the plan
 }
 // Any tap on a locked feature opens its upgrade prompt instead
 document.addEventListener('click',e=>{
@@ -4109,13 +4128,14 @@ const TIER_ORDER=['liveness','id','plus','gold'];
 const TIER_SHORT={liveness:'Selfie',id:'ID',plus:'BASED+',gold:'Gold'};
 const OPTION_LABEL={id:'ID verified',plus:'BASED+',gold:'BASED Gold'};
 const OPTION_TAGLINE={id:'Quick photo ID check',plus:'Unlimited views and interests',gold:'Everything in BASED+, and more'};
-const PLAN_FEATURES=['profile_views','express_interest','super_interest','see_interested','religion_filter','verified_only_filter','travel_mode','priority_support','ad_free','dealbreakers','profile_insights','read_receipts','saved_intro','planet_filter'];
-const COMPARE_LABEL={planet_filter:'Inter-planetary filter',profile_views:'Profile views',express_interest:'Express interest',super_interest:'Super interest',see_interested:'See who’s interested in you',religion_filter:'Religion filter',verified_only_filter:'Verified members only filter',travel_mode:'Travel mode',priority_support:'Priority support',ad_free:'Ad-free',dealbreakers:'Dealbreaker filters',profile_insights:'Profile insights',read_receipts:'Read receipts',saved_intro:'Pre-saved introduction'};
+const PLAN_FEATURES=['profile_views','express_interest','super_interest','see_interested','religion_filter','country_filter','verified_only_filter','travel_mode','priority_support','ad_free','dealbreakers','profile_insights','read_receipts','saved_intro','planet_filter'];
+const COMPARE_LABEL={planet_filter:'Inter-planetary filter',profile_views:'Profile views',express_interest:'Express interest',super_interest:'Super interest',see_interested:'See who’s interested in you',religion_filter:'Religion filter',country_filter:'Country filter',verified_only_filter:'Verified members only filter',travel_mode:'Travel mode',priority_support:'Priority support',ad_free:'Ad-free',dealbreakers:'Dealbreaker filters',profile_insights:'Profile insights',read_receipts:'Read receipts',saved_intro:'Pre-saved introduction'};
 const FEATURE_ONE={profile_views:'profile view',express_interest:'interest',super_interest:'super interest'};
 const FEATURE_PITCH={
   planet_filter:['Love might be out there','Open your Search to members from other planets in the solar system.'],
   travel_mode:['Meet people wherever you are','Travel mode lets you search and appear at your current location.'],
   religion_filter:['Choose which faiths you see','Filter Search by religion, so you see the people you’re looking for.'],
+  country_filter:['Search beyond your country','Choose which countries Search shows people from.'],
   see_interested:['See who’s interested in you','Find out exactly who has expressed interest in you, and decide whether to reply.'],
   verified_only_filter:['Only see verified members','Show only people who have verified their photo ID.'],
   dealbreakers:['Set your dealbreakers','Filter out anyone whose answers you can’t live with.'],
@@ -4269,7 +4289,7 @@ async function openPlans(){
   const lockI='<i class="ti ti-lock" style="font-size:15px;color:#5d627a" aria-label="Not included"></i>';
   const checkI='<i class="ti ti-check" style="font-size:18px;color:var(--gold)" aria-label="Included"></i>';
   let html=`<div class="plans-grid"><div style="border-bottom:0.5px solid rgba(201,168,76,0.3)"></div>${TIER_ORDER.map(t=>`<div class="plans-cell${colClass(t)}" style="flex-direction:column;justify-content:flex-end;gap:3px;padding:8px 0 6px;border-radius:10px 10px 0 0;border-bottom:0.5px solid rgba(201,168,76,0.3)">${t===my?'<span style="font-size:9px;letter-spacing:1px;font-weight:700;color:var(--navy);background:var(--text-muted);padding:2px 6px;border-radius:10px">YOU</span>':''}<span style="font-size:12px;font-weight:600;color:${t==='plus'||t==='gold'?'var(--gold-light)':'var(--text-on-dark)'}">${TIER_SHORT[t]}</span>${introPrice(t)?`<span style="color:var(--text-on-dark);font-weight:600">${introPrice(t)}*</span><span style="color:var(--text-muted);font-size:10px">then ${TIER_PRICE[t]}</span>`:`<span style="color:var(--text-muted)">${TIER_PRICE[t]||'Free'}</span>`}</div>`).join('')}`;
-  PLAN_FEATURES.forEach(f=>{
+  PLAN_FEATURES.filter(f=>TIER_ORDER.some(t=>{const r=ruleFor(f,t);return r&&r.access!=='hidden';})).forEach(f=>{
     html+=`<div style="padding:11px 8px 11px 0;font-size:13px;line-height:1.35;color:var(--text-on-dark);display:flex;align-items:center">${COMPARE_LABEL[f]}</div>`;
     TIER_ORDER.forEach((t,i)=>{
       const v=tierValue(f,t);
@@ -5018,15 +5038,16 @@ let pendingReligions=null;
 function sameSet(a,b){if(a.size!==b.size)return false;for(const x of a)if(!b.has(x))return false;return true;}
 function filterScreenChanged(which){
   if(which==='planets')return pendingPlanets&&!sameSet(pendingPlanets,includedPlanets);
+  if(which==='countries')return pendingCountries&&!sameSet(pendingCountries,searchCountries);
   return which==='religion'?(pendingReligions&&!sameSet(pendingReligions,excludedReligions))
                            :((pendingDealbreakers&&!sameSet(pendingDealbreakers,dealbreakers))
                              ||(pendingHideChildren!=null&&pendingHideChildren!==hideWithChildren)); // the children toggle counts too
 }
 function leaveFilterScreen(which){
-  const save=which==='religion'?'saveReligionScreen()':which==='planets'?'savePlanetScreen()':'saveDealbreakerScreen()';
-  const discard=which==='religion'?'cancelReligionScreen()':which==='planets'?'cancelPlanetScreen()':'cancelDealbreakerScreen()';
-  if(!filterScreenChanged(which)){(which==='religion'?cancelReligionScreen:which==='planets'?cancelPlanetScreen:cancelDealbreakerScreen)();return;}
-  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Save your changes?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">You’ve changed your ${which==='religion'?'religion':which==='planets'?'inter-planetary':'dealbreaker'} filters but haven’t saved them.</p><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();${save}">Save changes</button><button class="btn-ghost" style="font-size:15px" onclick="removeModal();${discard}">Discard changes</button><button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Keep editing</button></div>`);
+  const save=which==='religion'?'saveReligionScreen()':which==='planets'?'savePlanetScreen()':which==='countries'?'saveCountryScreen()':'saveDealbreakerScreen()';
+  const discard=which==='religion'?'cancelReligionScreen()':which==='planets'?'cancelPlanetScreen()':which==='countries'?'cancelCountryScreen()':'cancelDealbreakerScreen()';
+  if(!filterScreenChanged(which)){(which==='religion'?cancelReligionScreen:which==='planets'?cancelPlanetScreen:which==='countries'?cancelCountryScreen:cancelDealbreakerScreen)();return;}
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Save your changes?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">You’ve changed your ${which==='religion'?'religion':which==='planets'?'inter-planetary':which==='countries'?'country':'dealbreaker'} filters but haven’t saved them.</p><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();${save}">Save changes</button><button class="btn-ghost" style="font-size:15px" onclick="removeModal();${discard}">Discard changes</button><button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Keep editing</button></div>`);
 }
 function openReligionScreen(){
   pendingReligions=new Set(excludedReligions);renderReligionFilter();
@@ -5064,6 +5085,67 @@ function loadReligionFilter(p){
     sb.from('profiles').update({excluded_religions:[...excludedReligions].sort()}).eq('id',currentUser.id).then(({error})=>{if(!error){try{localStorage.removeItem('basedReligionFilter');}catch(e){}}});
   }else{try{localStorage.removeItem('basedReligionFilter');}catch(e){}}
   renderReligionFilter();updateFilterCounts();
+}
+// ─── Country filters (Settings → "Show me people in") ─────────────────────────
+// Which open countries Search shows people from. Starts as your home country; at least one
+// must be on. Saved on the account (profiles.search_countries) and applied by the server.
+let searchCountries=new Set(),pendingCountries=null;
+function homeCountry(){return (myProfile&&myProfile.country)||'GB';}
+function countryLabel(cc){return cc==='GB'?'United Kingdom':countryName(cc);}
+// Home first, then the other open countries A–Z
+function countryFilterList(){
+  const home=homeCountry();
+  return [home,...[...openCountries].filter(c=>c!==home).sort((a,b)=>countryLabel(a).localeCompare(countryLabel(b)))];
+}
+// Only open countries count; with none left, it's your home country
+function tidyCountries(list){
+  const s=new Set((list||[]).filter(c=>c===homeCountry()||openCountries.has(c)));
+  return s.size?s:new Set([homeCountry()]);
+}
+function renderCountryFilter(){
+  const grid=document.getElementById('country-filter-grid');if(!grid)return;
+  const set=pendingCountries||searchCountries,home=homeCountry();
+  grid.innerHTML=countryFilterList().map(c=>`<button type="button" class="religion-box ${set.has(c)?'selected':'filter-off'}" aria-pressed="${set.has(c)}" onclick="toggleCountryFilter('${c}')"><span style="font-size:17px;margin-right:6px;vertical-align:-2px">${countryFlag(c)}</span>${esc(countryLabel(c))}${c===home?' <span style="font-weight:400;opacity:.7">(home)</span>':''}</button>`).join('');
+  const rb=document.getElementById('country-reset-btn');
+  if(rb)rb.innerHTML=`<i class="ti ti-rotate" style="margin-right:7px"></i>Reset to ${countryFlag(home)} ${esc(countryLabel(home))} only`;
+}
+function toggleCountryFilter(c){
+  if(!pendingCountries)pendingCountries=new Set(searchCountries);
+  if(pendingCountries.has(c)){
+    if(pendingCountries.size===1){showToast('Choose at least one country',false,1800);return;}
+    pendingCountries.delete(c);
+  }else pendingCountries.add(c);
+  renderCountryFilter();
+}
+function resetCountryFilter(){pendingCountries=new Set([homeCountry()]);renderCountryFilter();}
+async function openCountryScreen(){
+  await loadOpenCountries();
+  searchCountries=tidyCountries([...searchCountries]);
+  pendingCountries=new Set(searchCountries);renderCountryFilter();
+  goTo('screen-country-filter');
+}
+function cancelCountryScreen(){pendingCountries=null;renderCountryFilter();goTo('screen-edit-profile');}
+function saveCountryScreen(){
+  if(pendingCountries&&!sameSet(pendingCountries,searchCountries)){
+    const before=searchCountries;
+    searchCountries=new Set(pendingCountries);
+    const home=homeCountry(),onlyHome=searchCountries.size===1&&searchCountries.has(home);
+    if(currentUser)sb.from('profiles').update({search_countries:onlyHome?null:[...searchCountries].sort()}).eq('id',currentUser.id).then(({error})=>{
+      if(error){console.warn('Saving country filter failed:',error.message);searchCountries=before;updateFilterCounts();showToast('Couldn’t save your country filters — please try again.',true);}
+      else loadBrowseProfiles().then(()=>renderProfiles(parseInt(document.getElementById('filter-min').value)||0)); // Search filters this on the server, so fetch and redraw it
+    });
+  }
+  pendingCountries=null;updateFilterCounts();
+  showToast('Country filters saved',false,1600);
+  goTo('screen-edit-profile');
+}
+// The open-countries list may still be loading here, so keep what's saved and tidy it once it arrives
+function loadCountryFilter(p){
+  const saved=(Array.isArray(p&&p.search_countries)?p.search_countries:[]).filter(c=>/^[A-Z]{2}$/.test(c));
+  searchCountries=saved.length?new Set(saved):new Set([homeCountry()]);
+  pendingCountries=null;
+  loadOpenCountries().then(()=>{if(!pendingCountries)searchCountries=tidyCountries([...searchCountries]);renderCountryFilter();updateFilterCounts();});
+  renderCountryFilter();updateFilterCounts();
 }
 // ─── Dealbreaker filters (BASED Gold) ─────────────────────────────────────────
 // Questions where someone must be on the same side as you to appear in Search.
@@ -5121,6 +5203,9 @@ function updateFilterCounts(){
   if(d)d.textContent=nDb?`${nDb} set`:'None set';
   const pc=document.getElementById('planet-count');
   if(pc){const n=includedPlanets.size;pc.textContent=n===1&&includedPlanets.has('earth')?'Earth only':n===PLANETS.length?'The whole solar system':n===1?PLANETS.find(x=>includedPlanets.has(x[0]))[1]+' only':`${n} planets`;}
+  const cc=document.getElementById('country-count');
+  if(cc){const set=canUse('country_filter')?searchCountries:new Set([homeCountry()]); // without the feature, Search is home only
+    const n=set.size,only=[...set][0];cc.textContent=!n?'':n===1?`${countryFlag(only)} ${countryLabel(only)} only`:`${n} countries`;}
   if(r){const total=RELIGIONS.length+1,shown=total-[...excludedReligions].filter(x=>x===NONE_STATED||RELIGIONS.includes(x)).length;r.textContent=shown===total?'All shown':`${shown} of ${total} shown`;}
 }
 function clearDealbreakers(){pendingDealbreakers=new Set();pendingHideChildren=false;renderDealbreakers();renderChildrenToggle();}
@@ -5289,7 +5374,7 @@ async function switchTab(tab){if(tab==='browse')setTimeout(()=>quietSearchRefres
 })();
 
 // ─── Swipe right on the upgrade / compare-plans / filter screens to go back ──
-['screen-upgrade','screen-plans','screen-dealbreakers','screen-religion-filter','screen-planet-filter','screen-insights','screen-insight-list'].forEach(id=>{
+['screen-upgrade','screen-plans','screen-dealbreakers','screen-religion-filter','screen-country-filter','screen-planet-filter','screen-insights','screen-insight-list'].forEach(id=>{
   const container=document.getElementById(id);
   let startX=0,startY=0,tracking=false;
   container.addEventListener('touchstart',e=>{
@@ -5305,6 +5390,7 @@ async function switchTab(tab){if(tab==='browse')setTimeout(()=>quietSearchRefres
     if(id==='screen-plans')closePlans();
     else if(id==='screen-dealbreakers')leaveFilterScreen('dealbreakers');
     else if(id==='screen-religion-filter')leaveFilterScreen('religion');
+    else if(id==='screen-country-filter')leaveFilterScreen('countries');
     else if(id==='screen-planet-filter')leaveFilterScreen('planets');
     else if(id==='screen-insights')closeInsights();
     else if(id==='screen-insight-list')goTo('screen-insights');
