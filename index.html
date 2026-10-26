@@ -98,6 +98,19 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .slider-bubble::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--gold);}
 .slider-bubble.on{opacity:1;}
 .q-slider::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--gold);cursor:pointer;border:2.5px solid var(--navy);}
+.ad-card{background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;overflow:hidden;margin-bottom:12px;cursor:pointer;position:relative;}
+.ad-tag{position:absolute;top:9px;left:9px;background:rgba(15,18,28,0.78);color:var(--text-on-dark);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:8px;z-index:1}
+.ad-img{display:block;width:100%;aspect-ratio:3/2;object-fit:cover;background:var(--navy-light)}
+.ad-text{padding:13px 15px 15px;display:flex;flex-direction:column;gap:6px}
+.ad-title{font-family:var(--serif);font-size:18px;color:var(--text-on-dark);line-height:1.3}
+.ad-noimg .ad-text{padding-top:38px}
+#ad-pop .ad-title{padding-right:34px}
+.ad-body{font-size:13px;color:var(--text-muted);line-height:1.5}
+.ad-btn{margin-top:6px;background:var(--gold);color:var(--navy);border:none;border-radius:11px;padding:11px;font-size:14px;font-weight:600;font-family:var(--sans);cursor:pointer;width:100%}
+#ad-pop{position:fixed;inset:0;z-index:9000;background:rgba(5,7,14,0.72);display:flex;align-items:center;justify-content:center;padding:24px;animation:adFade .2s ease}
+#ad-pop .ad-box{position:relative;width:100%;max-width:380px;max-height:86vh;overflow:auto;background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.35);border-radius:20px;box-shadow:0 18px 50px rgba(0,0,0,0.6)}
+#ad-pop .ad-x{position:absolute;top:9px;right:9px;width:34px;height:34px;border-radius:50%;border:none;background:rgba(15,18,28,0.8);color:var(--text-on-dark);font-size:17px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center}
+@keyframes adFade{from{opacity:0}to{opacity:1}}
 .profile-card{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:17px;padding:15px;display:flex;align-items:center;gap:13px;cursor:pointer;position:relative;}
 .profile-card:active{background:rgba(255,255,255,0.05);}
 .profile-card.locked{opacity:0.4;pointer-events:none;filter:blur(2px);}
@@ -2346,6 +2359,7 @@ async function restoreSession(){
   subscribeToMyVerification();
   setTimeout(()=>{refreshUnreadCounts();},0); // after profiles load; doesn't hold up sign-in
   setTimeout(()=>{checkNotices();},2500);    // warnings or removed content from the BASED team
+  setTimeout(()=>{startAdverts();},1500);   // adverts (none on ad-free plans)
   return true;
 }
 
@@ -2638,7 +2652,11 @@ function renderProfiles(minPct){
   renderMoreButton();watchMoreButton();
   if(!list.length){container.innerHTML='<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px 0">No profiles match your filters.</p>';return;}
   let html='';
-  list.forEach(p=>{
+  // Sponsored cards: one after every N profiles (each advert in turn), or one at the end of a short list
+  const adCards=(ADS||[]).filter(a=>a.format==='card');
+  const adEvery=adCards.length?Math.min(...adCards.map(a=>a.every_n||8)):0;
+  let adNext=0;
+  list.forEach((p,i)=>{
     const profileKey=p.id||p.name;
     const isLocked=p.locked||(!viewedProfiles.has(profileKey)&&outOfFreeViews());
     const isMutual=mutualMatches.has(profileKey);
@@ -2650,10 +2668,66 @@ function renderProfiles(minPct){
     const aStr=JSON.stringify(p.answers).replace(/"/g,'&quot;');
     if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="showUpgradePrompt('profile_views','limit')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted)">${perm('profile_views').period==='day'?'More views tomorrow, or upgrade':'Upgrade to view'}</div></div><div class="card-badges"><div class="compat-badge" style="color:${compatColor}">${p.compat}% Compatible</div></div></div>`;}
     else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${ja(aStr)}',${p.compat},${p.basedScore},'${ja(p.initials)}','${ja(p.name)}',${p.age},'','${ja(p.photo_url||'')}','${profileKey}','${ja(p.religion||'')}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</div>${badge?`<div style="margin-top:6px">${badge}</div>`:''}</div><div class="card-badges"><div class="based-badge">${leanBadgeHtml(p.basedScore)}</div><div class="compat-badge" style="color:${compatColor}">${p.compat}% Compatible</div></div></div>`;}
+    if(adEvery&&((i+1)%adEvery===0||(i===list.length-1&&list.length<adEvery&&list.length>=2)))html+=adCardHtml(adCards[adNext++%adCards.length]);
   });
   if(outOfFreeViews()){const pv=perm('profile_views');html+=`<div style="background:rgba(15,18,30,0.95);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;padding:22px;margin-top:6px;text-align:center"><i class="ti ti-crown" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:8px">${pv.period==='day'?`You’ve used today’s ${pv.limit} profile views`:`You’ve seen your ${pv.limit} free profiles`}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">${pv.period==='day'?'More tomorrow — or upgrade for unlimited browsing.':'Verify your ID for 5 a day, or upgrade for unlimited browsing.'}</p><button class="btn-primary" onclick="showUpgradePrompt('profile_views','limit')" style="font-size:15px;padding:14px">See options</button></div>`;}
   container.innerHTML=html;
+  if(adEvery)watchAdCards();
 }
+
+// ─── Adverts (console → Adverts): a "Sponsored" card in Search, and a pop-up on opening ───
+// The server only sends adverts to members whose plan doesn't include Ad-free, and limits how often
+// each pop-up shows. Only "seen" and "tapped" are recorded, never anything else.
+let ADS=[],adsLoadedAt=0,adPopupDone=false;
+const adSeen=new Set();
+const AD_IMG_BASE='https://okubbpsvaogqzdtajiqz.supabase.co/storage/v1/object/public/adverts/';
+async function loadAdverts(force){
+  if(!currentUser)return;
+  if(!force&&Date.now()-adsLoadedAt<5*60*1000)return;
+  adsLoadedAt=Date.now();
+  let list=[];
+  try{const {data,error}=await sb.rpc('my_adverts');if(error)throw error;list=Array.isArray(data)?data.filter(a=>a&&/^https:\/\//.test(a.link||'')):[];}
+  catch(e){return;} // no adverts is fine (e.g. before SQL 62)
+  const sig=a=>a.map(x=>x.id+':'+x.v).join(',');
+  const cardsBefore=sig(ADS.filter(a=>a.format==='card'));
+  ADS=list;
+  if(sig(ADS.filter(a=>a.format==='card'))!==cardsBefore&&document.getElementById('profile-cards'))renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+}
+function adInner(a){
+  return `<span class="ad-tag">Sponsored</span>${a.image?`<img class="ad-img" src="${esc(AD_IMG_BASE+encodeURIComponent(a.image))}" alt="" loading="lazy">`:''}<div class="ad-text"><div class="ad-title">${esc(a.title)}</div>${a.body?`<div class="ad-body">${esc(a.body)}</div>`:''}<button type="button" class="ad-btn">${esc(a.button||'Find out more')}</button></div>`;
+}
+function adCardHtml(a){return `<div class="ad-card${a.image?'':' ad-noimg'}" data-ad="${Number(a.id)}" role="link" aria-label="Sponsored: ${esc(a.title)}" onclick="openAdvert(${Number(a.id)})">${adInner(a)}</div>`;}
+function adEvent(id,kind){sb.rpc('advert_event',{p_id:id,p_kind:kind}).then(()=>{},()=>{});}
+// Count a card as seen once it's at least half on screen (once per advert each time the app is open)
+let adObserver=null;
+function watchAdCards(){
+  if(!('IntersectionObserver' in window))return;
+  if(!adObserver)adObserver=new IntersectionObserver(es=>es.forEach(e=>{
+    if(!e.isIntersecting)return;const id=Number(e.target.dataset.ad);adObserver.unobserve(e.target);
+    if(!adSeen.has(id)){adSeen.add(id);adEvent(id,'view');}
+  }),{threshold:0.5});
+  document.querySelectorAll('#profile-cards .ad-card').forEach(el=>{if(!adSeen.has(Number(el.dataset.ad)))adObserver.observe(el);});
+}
+function openAdvert(id){
+  const a=ADS.find(x=>x.id===id);if(!a||!/^https:\/\//.test(a.link))return;
+  adEvent(id,'click');closeAdPopup();
+  window.open(a.link,'_blank','noopener,noreferrer');
+}
+function closeAdPopup(){const el=document.getElementById('ad-pop');if(el)el.remove();}
+// The pop-up: once each time the app opens, on Search, when nothing else is showing
+function maybeShowAdPopup(){
+  if(adPopupDone||!currentUser||document.getElementById('ad-pop'))return;
+  const main=document.getElementById('screen-main');
+  if(!main||!main.classList.contains('active')||document.getElementById('modal-bd')||document.visibilityState!=='visible')return;
+  const a=ADS.find(x=>x.format==='popup');if(!a)return;
+  adPopupDone=true;
+  const el=document.createElement('div');el.id='ad-pop';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-label','Sponsored');
+  el.innerHTML=`<div class="ad-box${a.image?'':' ad-noimg'}" onclick="event.stopPropagation()"><button type="button" class="ad-x" aria-label="Close" onclick="closeAdPopup()">✕</button><div style="cursor:pointer" onclick="openAdvert(${Number(a.id)})">${adInner(a)}</div></div>`;
+  el.addEventListener('click',closeAdPopup); // tapping outside closes it
+  document.body.appendChild(el);
+  adEvent(a.id,'view');
+}
+async function startAdverts(){await loadAdverts(true);setTimeout(maybeShowAdPopup,1200);}
 
 // Search doesn't hold anyone's answers or faith until you open their profile: opening it asks the
 // server, which records the view first and refuses once your allowance is used up.
@@ -4843,6 +4917,7 @@ async function refreshPermissions(force){
   if(typeof renderMatchesTab==='function')renderMatchesTab();
   if(typeof updateFilterCounts==='function')updateFilterCounts();
   renderPlanRow();renderReceiptsToggle();
+  if(before!==after)loadAdverts(true); // e.g. moving to an ad-free plan
   // Moved up to a paid plan (a free plan given by BASED has its own notice instead)
   const rank={plus:1,gold:2};
   if(before&&after&&before!==after&&rank[after]&&(rank[after]>(rank[before]||0))){
@@ -5348,6 +5423,7 @@ async function quietSearchRefresh(force){
   if(!force&&Date.now()-browseLoadedAt<60*1000)return;
   const key=()=>browseProfiles.filter(x=>!x.isDemo).map(x=>x.id+(x.locked?'L':'')).sort().join(',');
   const before=key(),top=tab.scrollTop;
+  loadAdverts(false);
   await loadBrowseProfiles();
   if(key()!==before){renderProfiles(parseInt(document.getElementById('filter-min').value)||0);tab.scrollTop=top;}
 }
