@@ -579,9 +579,9 @@ button.ins-tile:active{opacity:0.75;}
 <div id="screen-main" class="screen">
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:9px"><div class="brand-lockup" role="img" aria-label="BASED on values"><svg width="23" height="22" viewBox="190 205 640 620" aria-hidden="true" style="flex-shrink:0"><defs><linearGradient id="hd-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient><linearGradient id="hd-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5e3ad"/><stop offset=".5" stop-color="#d9bb66"/><stop offset="1" stop-color="#b08d3c"/></linearGradient></defs><g transform="translate(232 275) rotate(-14 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="none" stroke="url(#hd-g1)" stroke-width="11" stroke-linejoin="round"/></g><g transform="translate(352 335) rotate(12 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="#252a38" stroke="url(#hd-g2)" stroke-width="11" stroke-linejoin="round"/></g></svg><span class="brand-words"><span class="brand-name">BASED</span><span class="brand-tag">on values</span></span></div><i id="header-verified-tick" class="ti ti-discount-check-filled" title="You’re verified" style="display:none;font-size:22px;line-height:22px;color:var(--verified)"></i><span id="hdr-tier-icon" style="display:none;flex-shrink:0;line-height:0"></span></div>
-    <button id="get-verified-btn" onclick="openVerifyScreen('header')" style="display:none;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:10px;padding:6px 10px;color:var(--verified);font-size:14px;font-weight:600;font-family:var(--sans);line-height:20px;cursor:pointer;white-space:nowrap;margin-left:auto;margin-right:10px"><i class="ti ti-discount-check" style="font-size:16px"></i>Get verified</button>
+    <button id="get-verified-btn" onclick="openVerifyScreen('header')" style="display:none;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:10px;padding:6px 10px;color:var(--verified);font-size:14px;font-weight:600;font-family:var(--sans);line-height:20px;cursor:pointer;white-space:nowrap;margin-left:auto;margin-right:10px"><i class="ti ti-discount-check" style="font-size:16px"></i>Verify ID</button>
     <div style="position:relative"><button id="settings-btn" aria-label="Menu" aria-haspopup="true" onclick="toggleMainMenu(event)" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:24px;padding:4px;line-height:1"><i class="ti ti-dots"></i></button>
-      <div id="main-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" data-menu="verify" onclick="closeMainMenu();openVerifyScreen('header')"><i class="ti ti-discount-check"></i>Get verified</button><button role="menuitem" data-menu="upgrade" onclick="closeMainMenu();upgradeState=null;openPlans()"><i class="ti ti-sparkles"></i>Upgrade</button><button role="menuitem" data-menu="topup" onclick="closeMainMenu();openTopUp()"><i class="ti ti-circle-plus"></i>Top up</button><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openSupport()"><i class="ti ti-lifebuoy"></i>Support</button><button role="menuitem" onclick="closeMainMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button></div></div>
+      <div id="main-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" data-menu="verify" onclick="closeMainMenu();openVerifyScreen('header')"><i class="ti ti-discount-check"></i>Verify ID</button><button role="menuitem" data-menu="upgrade" onclick="closeMainMenu();upgradeState=null;openPlans()"><i class="ti ti-sparkles"></i>Upgrade</button><button role="menuitem" data-menu="topup" onclick="closeMainMenu();openTopUp()"><i class="ti ti-circle-plus"></i>Top up</button><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openSupport()"><i class="ti ti-lifebuoy"></i>Support</button><button role="menuitem" onclick="closeMainMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button></div></div>
   </div>
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-browse" onclick="switchTab('browse')"><i class="ti ti-search" style="font-size:15px"></i> Search</button>
@@ -654,7 +654,7 @@ button.ins-tile:active{opacity:0.75;}
     <div style="position:relative">
       <button id="chat-menu-btn" onclick="toggleChatMenu(event)" aria-label="More options" aria-haspopup="true" style="background:transparent;border:none;color:var(--text-on-dark);font-size:22px;cursor:pointer;width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center"><i class="ti ti-dots"></i></button>
       <div id="chat-menu" class="chat-menu" role="menu" style="min-width:190px">
-        <button role="menuitem" data-menu="verify" onclick="closeChatMenu();menuReturn='screen-chat';openVerifyScreen('header')"><i class="ti ti-discount-check"></i>Get verified</button>
+        <button role="menuitem" data-menu="verify" onclick="closeChatMenu();menuReturn='screen-chat';openVerifyScreen('header')"><i class="ti ti-discount-check"></i>Verify ID</button>
         <button role="menuitem" data-menu="upgrade" onclick="closeChatMenu();upgradeState=null;openPlans()"><i class="ti ti-sparkles"></i>Upgrade</button>
         <button role="menuitem" data-menu="topup" onclick="closeChatMenu();openTopUp()"><i class="ti ti-circle-plus"></i>Top up</button>
         <button role="menuitem" onclick="closeChatMenu();menuReturn='screen-chat';openEditProfile()"><i class="ti ti-settings"></i>Settings</button>
@@ -687,6 +687,7 @@ button.ins-tile:active{opacity:0.75;}
     </div>
     <!-- Verification and plan first: the two things members most often come to Settings for -->
     <div style="display:flex;flex-direction:column;gap:2px;margin-bottom:24px">
+      <div id="selfie-row" style="display:none;align-items:center;gap:12px;padding:0 0 16px;margin-bottom:16px;border-bottom:0.5px solid rgba(255,255,255,0.07)"></div>
       <div id="verify-row" style="display:flex;align-items:center;gap:12px;padding:0 0 16px;border-bottom:0.5px solid rgba(255,255,255,0.07)"></div>
       <div id="plan-row" style="display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)"></div>
       <div id="reward-row" style="display:none;align-items:center;gap:12px;padding:16px 0;border-bottom:0.5px solid rgba(255,255,255,0.07)"></div>
@@ -3395,7 +3396,7 @@ function agreeToTerms(){
 
 // ─── ⋯ menu (Settings / Support) ─────────────────────────────────────────────
 function toggleMainMenu(e){e.stopPropagation();const m=document.getElementById('main-menu');syncAccountMenu(m);m.classList.toggle('open');}
-// Get verified until verified; Upgrade until on Gold; Top up on the free plans when packs are on sale
+// Verify ID until verified; Upgrade until on Gold; Top up on the free plans when packs are on sale
 function syncAccountMenu(m){
   if(!m)return;
   const t=myTierNow(),verified=myVerificationStatus==='approved';
@@ -4343,7 +4344,7 @@ function renderUpgrade(){
     <div style="text-align:center"><button onclick="openPlans()" style="background:transparent;border:none;color:var(--gold);font-size:14px;font-family:var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:8px 12px">Compare all plans</button></div>`;
   let cta,note;
   if(sel==='id'){
-    cta=`<button class="btn-primary" onclick="upgradeState=null;openVerifyScreen('header')">Get verified · Free</button>`;
+    cta=`<button class="btn-primary" onclick="upgradeState=null;openVerifyScreen('header')">Verify ID · Free</button>`;
     note='Takes about two minutes. BASED only keeps whether you passed, not your document.';
   }else{
     const intro=introPrice(sel),trial=sel==='plus'?plusTrialEnd():null;
@@ -4597,7 +4598,7 @@ function updateGetVerifiedBtn(){
   // Once verified, the same pill offers an upgrade (until they're on Gold)
   const tier=myTierNow();
   const upgrade=!!currentUser&&myVerificationStatus==='approved'&&tier!=='gold'&&!!PERMS;
-  b.innerHTML=upgrade?'<i class="ti ti-sparkles" style="font-size:16px"></i>Upgrade':reviewing?'<i class="ti ti-clock" style="font-size:16px"></i>Under review':'<i class="ti ti-discount-check" style="font-size:16px"></i>Get verified';
+  b.innerHTML=upgrade?'<i class="ti ti-sparkles" style="font-size:16px"></i>Upgrade':reviewing?'<i class="ti ti-clock" style="font-size:16px"></i>Under review':'<i class="ti ti-discount-check" style="font-size:16px"></i>Verify ID';
   b.onclick=upgrade?()=>{upgradeState=null;openPlans();}:()=>openVerifyScreen('header');
   b.setAttribute('aria-label',upgrade?'Upgrade your plan':'');if(!upgrade)b.removeAttribute('aria-label');
   updateHeaderTierIcon(tier);
@@ -4619,7 +4620,7 @@ function goMain(){
 }
 function afterResults(){
   if(needsAgeGate()){openAgeCheck();return;}
-  if(requireAgeCheck){goMain();return;} // ID verification is the optional step up, via "Get verified"
+  if(requireAgeCheck){goMain();return;} // ID verification is the optional step up, via "Verify ID"
   if(myVerificationStatus==='approved'){goTo('screen-main');return;}
   openVerifyScreen(requireVerification?'gate':'signup');
 }
@@ -4858,10 +4859,19 @@ function showAgeOutcome(d){
 }
 async function onAgePassed(){
   myAgeStatus='passed';
-  showToast('You’re all set ✓');
   await loadPermissions();
   await loadBrowseProfiles();
   goMain();
+  setTimeout(showSelfiePassed,400);
+}
+// Didit's own page says "verified" at the end of the selfie, so make clear it was the selfie
+// check, and that verifying the photo ID is a separate (free) step
+async function showSelfiePassed(){
+  if(needsWaiting()||myVerificationStatus==='approved'){showToast('Selfie check passed ✓');return;}
+  if(!TIER_RULES){try{const {data:rows}=await sb.from('feature_permissions').select('country,feature,tier,access,limit_value,limit_period');TIER_RULES=rows||[];}catch(e){TIER_RULES=[];}}
+  const more=['profile_views','express_interest'].filter(f=>tierBetter(f,'liveness','id')).map(f=>gainLine(f,'id'));
+  const extras=more.length?`, ${more.join(' and ')}`:'';
+  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-face-id" style="font-size:26px;color:var(--green)"></i></div><p style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Selfie check passed ✓</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:8px;text-align:center">You’re in, and you can start browsing now.</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">For a <span style="color:var(--verified);white-space:nowrap"><i class="ti ti-discount-check-filled"></i> Verified</span> badge${esc(extras)}, verify your photo ID. It’s free and takes about two minutes.</p><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();openVerifyScreen('header')">Verify my ID</button><button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Later</button></div>`);
 }
 
 function onVerified(){
@@ -4983,7 +4993,7 @@ function renderRewardRow(){
   if(!founding&&!lines.length){row.style.display='none';row.innerHTML='';return;}
   const title=founding?(rs.some(r=>r.kind==='founding')?'Founding member':'You’ll be a founding member'):'Invite reward';
   const bs='border-radius:11px;padding:9px 13px;font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified)';
-  row.innerHTML=`<i class="ti ti-gift" style="font-size:24px;color:var(--gold)"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">${title}</p>${lines.map(l=>`<p style="font-size:13px;color:var(--text-muted);line-height:1.45">${esc(l)}</p>`).join('')}</div>${showVerify?`<button onclick="openVerifyScreen('settings')" style="${bs}">Get verified</button>`:''}`;
+  row.innerHTML=`<i class="ti ti-gift" style="font-size:24px;color:var(--gold)"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">${title}</p>${lines.map(l=>`<p style="font-size:13px;color:var(--text-muted);line-height:1.45">${esc(l)}</p>`).join('')}</div>${showVerify?`<button onclick="openVerifyScreen('settings')" style="${bs}">Verify ID</button>`:''}`;
   row.style.display='flex';
 }
 function renderPlanRow(){
@@ -5019,14 +5029,18 @@ function openPlanUpgrade(prefer){
   document.getElementById('upgrade-body').scrollTop=0;
 }
 function renderVerifyRow(){
+  // The selfie check (done at sign-up) is its own line, so it isn't mistaken for ID verification
+  const sr=document.getElementById('selfie-row');
+  if(sr){const show=myAgeStatus==='passed'&&myVerificationStatus!=='approved';sr.style.display=show?'flex':'none';
+    if(show)sr.innerHTML='<i class="ti ti-face-id" style="font-size:24px;color:var(--green)"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Selfie check</p><p style="font-size:13px;color:var(--green)">Passed ✓</p></div>';}
   const row=document.getElementById('verify-row');
   if(!row)return;
   const st=myVerificationStatus;
   const iss=st==='approved'?null:myVerificationIssue;
   const label=iss==='dob_mismatch'?'Date of birth doesn’t match your ID':iss==='underage'?'Not eligible (under 18)':({approved:'Verified',in_review:'Under review',declined:'Not approved',pending:'Not finished',unverified:'Not verified'}[st]||'Not verified');
   const col=st==='approved'?'var(--verified)':st==='declined'?'var(--red)':'var(--text-muted)';
-  const btn=(st==='approved'||iss==='underage')?'':`<button onclick="openVerifyScreen('settings')" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);border-radius:11px;padding:9px 15px;color:var(--verified);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">${(st==='in_review'||iss==='dob_mismatch')?'Check':st==='declined'?'Try again':'Get verified'}</button>`;
-  row.innerHTML=`<i class="ti ${st==='approved'?'ti-discount-check-filled':'ti-discount-check'}" style="font-size:24px;color:${col}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Identity verification</p><p style="font-size:13px;color:${col}">${label}</p></div>${btn}`;
+  const btn=(st==='approved'||iss==='underage')?'':`<button onclick="openVerifyScreen('settings')" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);border-radius:11px;padding:9px 15px;color:var(--verified);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">${(st==='in_review'||iss==='dob_mismatch')?'Check':st==='declined'?'Try again':'Verify ID'}</button>`;
+  row.innerHTML=`<i class="ti ${st==='approved'?'ti-discount-check-filled':'ti-discount-check'}" style="font-size:24px;color:${col}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">ID verification</p><p style="font-size:13px;color:${col}">${label}</p></div>${btn}`;
 }
 
 function updateFilter(source){
