@@ -4768,6 +4768,7 @@ async function startVerification(){
     window.location.href=data.url;return;
   }
   sdk.shared.onComplete=handleDiditResult;
+  setDiditBusy(false,btn); // Didit's window takes over from here; never leave the button greyed out waiting for it to report back
   try{
     await sdk.shared.startVerification({url:data.url,configuration:{showExitConfirmation:true,closeModalOnComplete:true,zIndex:10000}});
   }catch(e){
@@ -4857,6 +4858,7 @@ async function startAgeCheck(){
     const err=r&&r.error&&r.error.type;
     setAgeMsg(err==='cameraAccessDenied'?'We need your camera for the selfie. Please allow camera access for this site, then try again.':'Something went wrong. Please try again.','error');
   };
+  setDiditBusy(false,btn); // Didit's window takes over from here; never leave the button greyed out waiting for it to report back
   try{await sdk.shared.startVerification({url:data.url,configuration:{showExitConfirmation:true,closeModalOnComplete:true,zIndex:10000}});}
   catch(e){setDiditBusy(false,btn);try{sessionStorage.setItem('basedVerifyContext','age');}catch(_){}window.location.href=data.url;}
 }
