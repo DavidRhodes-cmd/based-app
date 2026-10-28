@@ -1300,7 +1300,10 @@ async function copyInviteLink(text){
 }
 
 function calcAge(dob){if(!dob)return'?';const d=new Date(dob),n=new Date();let a=n.getFullYear()-d.getFullYear();if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate()))a--;return a;}
-function calcCompat(pa){let d=0;for(const i of SCORING_IDX)d+=Math.abs(myAnswers[i]-(pa[i]||0));return Math.round((1-d/(NUM_SCORING*20))*100);}
+// Compatibility (option C; the server's private.compat works it out the same way).
+// Per counted question, gap = how far apart the answers are (0–20). Same side, or either is 0: costs gap/20.
+// Opposite sides: costs gap/20 × (1 + gap/20), at most the whole question. Score = 100% − the average cost.
+function calcCompat(pa){if(!NUM_SCORING)return 0;let c=0;for(const i of SCORING_IDX){const x=myAnswers[i]||0,y=pa[i]||0,g=Math.abs(x-y)/20;c+=Math.min(1,x*y<0?g*(1+g):g);}return Math.round((1-c/NUM_SCORING)*100);}
 function calcBasedScore(answers){const raw=SCORING_IDX.reduce((s,i)=>s+(answers[i]||0),0);return Math.round(((raw+NUM_SCORING*10)/(NUM_SCORING*20))*100);}
 function initials(name){return(name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 
