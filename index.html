@@ -4697,7 +4697,7 @@ function openVerifyScreen(context){
   document.getElementById('verify-start-btn').style.display='block';
   document.getElementById('verify-logout-btn').style.display=gate&&verifyContext!=='settings'&&verifyContext!=='header'?'inline-block':'none';
   const start=document.getElementById('verify-start-btn');
-  start.disabled=false;start.style.opacity='1';
+  start.disabled=false;start.style.opacity='1';diditBusy=false; // nothing can be starting as the screen opens
   setVerifyMsg('');
   if(myVerificationIssue&&myVerificationStatus!=='approved'&&showVerifyIssue(myVerificationIssue)){goTo('screen-verify');return;}
   if(myVerificationStatus==='in_review'){
@@ -4740,13 +4740,20 @@ function loadDiditSdk(){
 
 // One check at a time: extra taps while Didit is starting (or open) are ignored, so a slow
 // start can't open a second check on top of the first
-let diditBusy=false;
+let diditBusy=false,diditBusyAt=0;
 function setDiditBusy(on,btn){
-  diditBusy=on;
+  diditBusy=on;diditBusyAt=on?Date.now():0;
   if(btn){btn.disabled=on;btn.style.opacity=on?'0.6':'1';}
 }
+// A check is only "already starting" while its spinner is showing, and for at most 20 seconds. A check
+// that ended some other way (e.g. the result arrived while BASED moved on) must never leave the button dead.
+function diditStarting(){
+  if(!diditBusy)return false;
+  if(document.getElementById('busy-box')&&Date.now()-diditBusyAt<20000)return true;
+  diditBusy=false;return false;
+}
 async function startVerification(){
-  if(diditBusy)return;
+  if(diditStarting())return;
   const btn=document.getElementById('verify-start-btn');
   setDiditBusy(true,btn);
   setVerifyMsg('<i class="ti ti-loader" style="animation:spin 1s linear infinite;margin-right:6px"></i>Starting verification…');
@@ -4824,14 +4831,14 @@ function setAgeMsg(text,kind){
 }
 function openAgeCheck(){
   const b=document.getElementById('agecheck-start-btn');
-  b.style.display='block';b.disabled=false;b.style.opacity='1';b.textContent='Start selfie check';b.onclick=startAgeCheck;
+  b.style.display='block';b.disabled=false;b.style.opacity='1';b.textContent='Start selfie check';b.onclick=startAgeCheck;diditBusy=false;
   setAgeMsg('');
   if(myVerificationIssue==='underage')showAgeOutcome({status:'failed',issue:'underage'});
   else if(myAgeStatus==='in_review')showAgeOutcome({status:'in_review'});
   goTo('screen-agecheck');
 }
 async function startAgeCheck(){
-  if(diditBusy)return;
+  if(diditStarting())return;
   const btn=document.getElementById('agecheck-start-btn');
   setDiditBusy(true,btn);
   setAgeMsg('<i class="ti ti-loader" style="animation:spin 1s linear infinite;margin-right:6px"></i>Starting…');
@@ -4883,7 +4890,7 @@ function showAgeOutcome(d){
   setAgeMsg(st==='failed'?'We couldn’t confirm you’re 18 or over from that selfie. Please try again in good light, looking straight at the camera.':'The check wasn’t completed. Please try again.','error');
 }
 async function onAgePassed(){
-  myAgeStatus='passed';
+  myAgeStatus='passed';diditBusy=false;
   await loadPermissions();
   await loadBrowseProfiles();
   goMain();
