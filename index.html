@@ -2345,7 +2345,7 @@ async function restoreSession(){
     readReceipts=p.read_receipts!==false;
     myStripeCustomer=!!p.stripe_customer_id;
     myCancelAt=p.subscription_cancel_at||null;
-    mySubStatus=p.subscription_status||null;mySubEnd=p.subscription_expires_at||null;mySubTier=p.subscription_tier||null;
+    mySubStatus=p.subscription_status||null;mySubEnd=p.subscription_expires_at||null;mySubTier=p.subscription_tier||null;mySubNext=subNextOf(p);
     savedIntro=p.saved_intro||'';
     myVerificationStatus=p.verification_status||'unverified';
     myVerificationIssue=p.verification_issue||null;
@@ -3947,7 +3947,7 @@ async function confirmTopUps(show,paid=true){
 // The server decides (my_prereg_status); without an answer the app carries on as normal,
 // and the server still refuses anything a waiting member isn't allowed to do yet.
 let PRE=null;
-let mySubStatus=null,mySubEnd=null,mySubTier=null; // e.g. 'trialing' during a BASED+ free trial
+let mySubStatus=null,mySubEnd=null,mySubTier=null,mySubNext=null; // mySubNext: a plan change booked for the end of the paid month // e.g. 'trialing' during a BASED+ free trial
 function needsWaiting(){return !!currentUser&&!!PRE&&PRE.on===true&&PRE.open===false;}
 async function loadPrereg(){
   if(!currentUser){PRE=null;return;}
@@ -4483,6 +4483,22 @@ async function openBilling(){
   removeModal();
   showToast(data.error||'Couldn’t open billing just now. Please try again shortly.',true,4000);
 }
+// The plan change booked for the end of the paid month (set by the server from Stripe), or null
+function subNextOf(p){
+  if(!p||!['plus','gold'].includes(p.subscription_next_tier)||!p.subscription_next_at)return null;
+  if(new Date(p.subscription_next_at).getTime()<Date.now())return null;
+  return {tier:p.subscription_next_tier,at:p.subscription_next_at,amount:p.subscription_next_amount,currency:p.subscription_next_currency};
+}
+// Back from Stripe's page: read the plan details again, so a booked change shows straight away
+async function reloadMySubscription(){
+  if(!currentUser)return;
+  try{
+    const {data,error}=await sb.from('profiles').select('subscription_tier,subscription_status,subscription_expires_at,subscription_cancel_at,subscription_next_tier,subscription_next_at,subscription_next_amount,subscription_next_currency').eq('id',currentUser.id).maybeSingle();
+    if(error||!data)return; // e.g. before SQL 66
+    mySubTier=data.subscription_tier||null;mySubStatus=data.subscription_status||null;mySubEnd=data.subscription_expires_at||null;
+    myCancelAt=data.subscription_cancel_at||null;mySubNext=subNextOf(data);renderPlanRow();
+  }catch(e){}
+}
 // Settings → Cancel plan: Stripe's own cancel step for the current subscription (it asks to confirm,
 // and the plan carries on until the end of the month already paid for)
 async function cancelPlan(){
@@ -4520,7 +4536,7 @@ async function afterCheckoutReturn(kind,trip){
     const {ok,data}=await callStripe('sync');
     myStripeCustomer=true;
     await refreshPermissions(true);
-    renderPlanRow();
+    renderPlanRow();reloadMySubscription();
     const paidNow=ok&&data.tier&&data.tier!=='none';
     if(trip.kind==='checkout'&&paidNow&&data.tier!==trip.tier){
       if(myVerificationStatus!=='approved')showPaidVerifyPrompt(TIER_LABEL[data.tier]);
@@ -4540,7 +4556,7 @@ async function afterCheckoutReturn(kind,trip){
   myStripeCustomer=true;
   await refreshPermissions(true);
   removeModal();
-  if(kind==='billing'){renderPlanRow();return;}
+  if(kind==='billing'){renderPlanRow();reloadMySubscription();return;}
   const label=TIER_LABEL[tier!=='none'?tier:plan]||'your new plan';
   if(myVerificationStatus!=='approved'){
     // Paid plans start once your ID is verified
@@ -4919,7 +4935,7 @@ let lastPlanKey=null,permRefreshAt=0;
 function onMyPlanMaybeChanged(p){
   if(p&&p.stripe_customer_id)myStripeCustomer=true;
   if(p&&'subscription_cancel_at' in p&&(p.subscription_cancel_at||null)!==myCancelAt){myCancelAt=p.subscription_cancel_at||null;renderPlanRow();}
-  if(p&&'subscription_status' in p){mySubStatus=p.subscription_status||null;mySubEnd=p.subscription_expires_at||null;if('subscription_tier' in p)mySubTier=p.subscription_tier||null;renderPlanRow();}
+  if(p&&'subscription_status' in p){mySubStatus=p.subscription_status||null;mySubEnd=p.subscription_expires_at||null;if('subscription_tier' in p)mySubTier=p.subscription_tier||null;if('subscription_next_tier' in p)mySubNext=subNextOf(p);renderPlanRow();}
   const key=(p.subscription_tier||'none')+'|'+(p.subscription_expires_at||'');
   if(key!==lastPlanKey)refreshPermissions(true);
   lastPlanKey=key;
@@ -5011,6 +5027,9 @@ function renderPlanRow(){
   const t=myTierNow(),paid=t==='plus'||t==='gold',waitingFor=paidAwaitingId();
   const name=waitingFor?`${TIER_LABEL[waitingFor]} · unlocks when your ID is verified`:paid?TIER_LABEL[t]+(mySubStatus==='trialing'&&mySubEnd&&!myCancelAt?` · free until ${shortDate(new Date(new Date(mySubEnd).getTime()-2*86400000))}, then ${TIER_PRICE[t]}/month`:''):'Free';
   const ending=paid&&myCancelAt?new Date(myCancelAt):null;
+  // Moving down at the end of the paid month: "BASED Gold until 28 Nov, then BASED+ at £9.99 a month"
+  const next=paid&&!ending&&mySubNext&&mySubNext.tier!==t?mySubNext:null;
+  const nextLine=next?`${TIER_LABEL[t]} until ${shortDate(next.at)}, then ${TIER_LABEL[next.tier]}${next.amount!=null?` at ${money(next.currency,next.amount)} a month`:''}`:'';
   // A free plan given by BASED: say until when (the end time is midnight, so show the day before)
   const gift=PERMS&&PERMS.gift&&PERMS.gift.tier===t?new Date(new Date(PERMS.gift.until).getTime()-1000):null;
   const bs='border-radius:11px;padding:9px 13px;font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap';
@@ -5024,7 +5043,7 @@ function renderPlanRow(){
   // Cancel plan: straight to Stripe's cancel step (shown while a paid subscription is running and not already cancelled)
   const canCancel=myStripeCustomer&&!ending&&['plus','gold'].includes(mySubTier)&&['active','trialing','past_due'].includes(mySubStatus||'');
   const cancelLink=canCancel?`<button onclick="cancelPlan()" style="display:block;background:none;border:none;padding:8px 0 2px;min-height:32px;color:var(--text-muted);font-size:12px;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-family:var(--sans)">Cancel plan</button>`:'';
-  row.innerHTML=`<i class="ti ti-crown" style="font-size:24px;color:${paid||waitingFor?'var(--gold)':'var(--text-muted)'}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Current plan</p><p style="font-size:13px;color:${paid||waitingFor?'var(--gold-light)':'var(--text-muted)'}">${name}${gift?` until ${gift.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`:''}</p>${gift?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">A free gift from BASED</p>`:ending?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">Cancels ${ending.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p>`:''}${cancelLink}</div>${btn}`;
+  row.innerHTML=`<i class="ti ti-crown" style="font-size:24px;color:${paid||waitingFor?'var(--gold)':'var(--text-muted)'}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Current plan</p><p style="font-size:13px;color:${paid||waitingFor?'var(--gold-light)':'var(--text-muted)'}">${next?esc(nextLine):name}${gift?` until ${gift.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`:''}</p>${gift?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">A free gift from BASED</p>`:ending?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">Cancels ${ending.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p>`:''}${cancelLink}</div>${btn}`;
 }
 // The upgrade screen without a particular feature in mind: both paid plans from Free,
 // just Gold from BASED+
