@@ -498,7 +498,9 @@ button.ins-tile:active{opacity:0.75;}
           <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="9"/>
           <line x1="80" y1="141" x2="80" y2="156" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
           <line x1="80" y1="4" x2="80" y2="19" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-          <circle cx="80" cy="80" r="68" fill="none" stroke="#c9a84c" stroke-width="9" stroke-linecap="butt" id="score-arc" stroke-dasharray="0 428" transform="rotate(90 80 80)" style="transition:stroke-dasharray .9s ease"/>
+          <circle cx="80" cy="80" r="68" fill="none" stroke="#c9a84c" stroke-width="9" stroke-linecap="butt" id="score-arc" stroke-dasharray="0 428" transform="rotate(90 80 80)"/>
+          <circle cx="80" cy="148" r="6.5" fill="#c9a84c" stroke="#1a1f2e" stroke-width="2" id="score-start"/><!-- where the ring starts filling from -->
+          <g id="score-end-side"><path id="score-tip" fill="#c9a84c" d=""/></g><!-- the pointed end, no wider than the line -->
         </svg>
         <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;width:120px">
           <div id="score-end-img" style="height:38px;display:flex;align-items:center"></div>
@@ -3823,24 +3825,40 @@ async function saveModifyAnswers(){
   goTo('screen-edit-profile');
 }
 
+// The My Score ring ends in a point: an equilateral triangle as wide as the line. The arc stops short
+// and a tip finishes it, so line + tip together reach pct% of the half circle.
+// Angles run from the bottom of the ring; the right-hand side is drawn mirrored by the caller.
+function scoreTip(pct,r,w){
+  const a=Math.max(0,Math.min(100,pct||0))/100*180;       // where it finishes, degrees from the bottom
+  if(!a)return {len:0,d:''};
+  const t=Math.min(a,(w*Math.sqrt(3)/2)/r*180/Math.PI);     // tip length: an equilateral triangle, each side as long as the line is wide
+  const len=(a-t)/360*2*Math.PI*r;                           // what the plain line still covers
+  const b=Math.max(0,a-t-0.3);                               // the tip's base, square across the line (a hair behind, so no seam shows)
+  // Two straight sides from the line's edges meet in a point on its centre line
+  const pt=(rad,deg)=>{const q=(90+deg)*Math.PI/180;return (80+rad*Math.cos(q)).toFixed(2)+' '+(80+rad*Math.sin(q)).toFixed(2);};
+  return {len,d:'M '+pt(r+w/2,b)+' L '+pt(r,a)+' L '+pt(r-w/2,b)+' Z'};
+}
 // A smaller copy of Your Score, in Settings above Modify my answers (redrawn whenever the answers change)
 function renderMiniScore(){
   const box=document.getElementById('mini-score');if(!box)return;
   const l=leanOf(calcBasedScore(myAnswers))||{pct:0,side:null};
   const allZero=QUESTIONS.every(q=>(myAnswers[q.slot]||0)===0);
-  const C=2*Math.PI*68,len=(l.pct/100)*(C/2);
+  const C=2*Math.PI*68,tip=scoreTip(l.pct,68,10),len=tip.len;
   const tf=l.side==='right'?'translate(160 0) scale(-1 1) rotate(90 80 80)':'rotate(90 80 80)';
   const end=side=>{const on=l.side===side&&l.pct;return `<div style="width:62px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center"><div style="opacity:${on?1:0.45}">${endImg(side,20,52)}</div>${SCALE[side].name?`<div style="font-size:10px;line-height:1.25;color:${on?'var(--gold)':'var(--text-muted)'}">${esc(SCALE[side].name)}</div>`:''}</div>`;};
   const label=l.side&&l.pct?towardsText(l.side):allZero?'On the fence':'In the middle';
   box.innerHTML=`${end('left')}<div style="position:relative;width:104px;height:104px;flex-shrink:0" role="img" aria-label="Your score: ${l.pct}% ${esc(label)}">
     <svg width="104" height="104" viewBox="0 0 160 160" aria-hidden="true"><circle cx="80" cy="80" r="68" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10"/>
       <line x1="80" y1="141" x2="80" y2="156" stroke="rgba(255,255,255,0.3)" stroke-width="2"/><line x1="80" y1="4" x2="80" y2="19" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-      <circle cx="80" cy="80" r="68" fill="none" stroke="#c9a84c" stroke-width="10" stroke-linecap="butt" stroke-dasharray="${len} ${C}" transform="${tf}" style="opacity:${l.pct?1:0}"/></svg>
+      <circle cx="80" cy="80" r="68" fill="none" stroke="#c9a84c" stroke-width="10" stroke-linecap="butt" stroke-dasharray="${len} ${C}" transform="${tf}" style="opacity:${l.pct?1:0}"/>
+      <circle cx="80" cy="148" r="7" fill="${l.pct?'#c9a84c':'#5a5f73'}" stroke="#1a1f2e" stroke-width="2"/>
+      <g transform="${l.side==='right'?'translate(160 0) scale(-1 1)':''}"><path fill="#c9a84c" d="${tip.d}"/></g></svg>
     <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
       <div style="font-size:11px;letter-spacing:1px;color:var(--text-muted);margin-bottom:1px">MY SCORE</div>
       <div style="font-size:22px;line-height:1.1;font-weight:700;color:var(--gold);font-family:var(--serif)">${l.pct}%</div>
       <div style="font-size:9.5px;line-height:1.2;color:var(--text-muted);max-width:76px">${esc(label)}</div></div></div>${end('right')}`;
 }
+let scoreAnimId=0;
 function showResults(){
   const score=calcBasedScore(myAnswers),l=leanOf(score)||{pct:0,side:null};
   document.getElementById('results-answer-count').textContent='Calculated from your '+NUM_SCORING+' answers';
@@ -3848,8 +3866,15 @@ function showResults(){
   const C=2*Math.PI*68,arc=document.getElementById('score-arc');
   arc.setAttribute('transform',l.side==='right'?'translate(160 0) scale(-1 1) rotate(90 80 80)':'rotate(90 80 80)');
   arc.style.opacity=l.pct?'1':'0';
-  arc.setAttribute('stroke-dasharray',`0 ${C}`);
-  requestAnimationFrame(()=>requestAnimationFrame(()=>arc.setAttribute('stroke-dasharray',`${(l.pct/100)*(C/2)} ${C}`)));
+  document.getElementById('score-start').setAttribute('fill',l.pct?'#c9a84c':'#5a5f73'); // the start point: gold once the ring has something to fill
+  // The line and its pointed tip grow together from the bottom to where the score finishes
+  const tipEl=document.getElementById('score-tip');
+  document.getElementById('score-end-side').setAttribute('transform',l.side==='right'?'translate(160 0) scale(-1 1)':'');
+  const draw=p=>{const t=scoreTip(p,68,9);arc.setAttribute('stroke-dasharray',`${t.len} ${C}`);tipEl.setAttribute('d',t.d);};
+  draw(0);cancelAnimationFrame(scoreAnimId);
+  const t0=performance.now(),dur=900,ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+  const step=now=>{const k=Math.min(1,(now-t0)/dur);draw(l.pct*ease(k));if(k<1)scoreAnimId=requestAnimationFrame(step);};
+  scoreAnimId=requestAnimationFrame(step);
   document.getElementById('score-pct-display').textContent=l.pct+'%';
   // The fence only goes up when every answer was 0, not when answers on both sides balance out
   const allZero=QUESTIONS.every(q=>(myAnswers[q.slot]||0)===0);
