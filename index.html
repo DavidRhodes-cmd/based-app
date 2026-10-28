@@ -111,6 +111,20 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 #ad-pop .ad-box{position:relative;width:100%;max-width:380px;max-height:86vh;overflow:auto;background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.35);border-radius:20px;box-shadow:0 18px 50px rgba(0,0,0,0.6)}
 #ad-pop .ad-x{position:absolute;top:9px;right:9px;width:34px;height:34px;border-radius:50%;border:none;background:rgba(15,18,28,0.8);color:var(--text-on-dark);font-size:17px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center}
 @keyframes adFade{from{opacity:0}to{opacity:1}}
+.filter-bar{display:flex;align-items:center;gap:9px;width:100%;min-height:44px;margin-bottom:12px;padding:0 14px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.14);border-radius:13px;color:var(--text-on-dark);font-family:var(--sans);font-size:13px;cursor:pointer;text-align:left}
+.filter-bar .ti{font-size:17px;color:var(--gold)}.filter-bar .fb-title{font-weight:600}.filter-bar .fb-sum{flex:1;min-width:0;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-card{gap:12px;padding:12px}
+.sr-ring,.sr-photo{position:relative;width:76px;height:76px;flex-shrink:0}
+.sr-ring svg{display:block;width:100%;height:100%}
+.sr-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.sr-pct{font-family:var(--serif);font-size:19px;font-weight:700}
+.sr-cap{font-size:8.5px;letter-spacing:0.8px;color:var(--text-muted);margin-top:3px}
+.sr-photo{border-radius:50%;overflow:hidden;background:var(--navy-light);border:1.5px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:22px;color:var(--gold);box-sizing:border-box}
+.sr-photo img{width:100%;height:100%;object-fit:cover}
+.sr-legend{display:flex;flex-direction:column;gap:3px;margin-top:6px;font-size:12px;line-height:1.3}
+.sr-legend span{display:flex;align-items:center;gap:6px;min-width:0}
+.sr-legend i{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+@media (max-width:360px){.sr-ring,.sr-photo{width:64px;height:64px}.sr-pct{font-size:16px}.sr-card{gap:9px}}
 .profile-card{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:17px;padding:15px;display:flex;align-items:center;gap:13px;cursor:pointer;position:relative;}
 .profile-card:active{background:rgba(255,255,255,0.05);}
 .profile-card.locked{opacity:0.4;pointer-events:none;filter:blur(2px);}
@@ -594,7 +608,11 @@ button.ins-tile:active{opacity:0.75;}
     <!-- The filters, allowances and toggles stay in view while the profiles scroll underneath.
          Pinned at the very top of the scroll area (no padding above it), so nothing can show through a gap. -->
     <div id="search-sticky" style="position:sticky;top:0;z-index:5;background:var(--navy);margin:0 -16px;padding:16px 16px 1px;box-shadow:0 -6px 0 0 var(--navy),0 8px 12px -10px rgba(0,0,0,0.6);transform:translateZ(0)">
-    <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:13px;padding:13px;margin-bottom:16px">
+    <!-- Collapsed while you scroll the list; tap to open the filters again -->
+    <button type="button" id="filter-bar" class="filter-bar" onclick="expandSearchFilters()" aria-expanded="false" aria-controls="filter-box" style="display:none">
+      <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i><span class="fb-title">Filters</span><span class="fb-sum" id="filter-bar-sum"></span><i class="ti ti-chevron-down" aria-hidden="true"></i>
+    </button>
+    <div id="filter-box" style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:13px;padding:13px;margin-bottom:16px">
       <div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:11px">Filter matches</div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
         <span style="font-size:13px;color:var(--text-on-dark);min-width:90px;display:flex;align-items:center;gap:5px">Min compatibility<button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="What does compatibility mean?">i</button></span>
@@ -2623,6 +2641,19 @@ async function maybeAutoWiden(){
 }
 
 // ─── Profile rendering ────────────────────────────────────────────────────────
+// Search cards: two rings around the compatibility %. Outer = them, inner = you. Each fills from the
+// bottom up the side of the end that person leans towards, finishing in the same point as My Score.
+function leanLabel(l){if(!l)return '';if(!l.side||!l.pct)return 'in the middle';const n=(SCALE[l.side]&&SCALE[l.side].name)||'';return l.pct+'%'+(n?' '+n:'');}
+function scoreRingArc(l,r,w,colour){
+  if(!l||!l.side||!l.pct)return '';
+  const C=2*Math.PI*r,t=scoreTip(l.pct,r,w),right=l.side==='right';
+  return `<circle cx="80" cy="80" r="${r}" fill="none" stroke="${colour}" stroke-width="${w}" stroke-dasharray="${t.len.toFixed(2)} ${C.toFixed(2)}" transform="${right?'translate(160 0) scale(-1 1) ':''}rotate(90 80 80)"/><path fill="${colour}" d="${t.d}"${right?' transform="translate(160 0) scale(-1 1)"':''}/>`;
+}
+function searchRingsSvg(them,me){
+  return `<svg viewBox="0 0 160 160" aria-hidden="true"><circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="11"/><circle cx="80" cy="80" r="54" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="11"/>`
+    +`<line x1="80" y1="1" x2="80" y2="16" stroke="rgba(255,255,255,0.28)" stroke-width="2"/><line x1="80" y1="144" x2="80" y2="159" stroke="rgba(255,255,255,0.28)" stroke-width="2"/>`
+    +scoreRingArc(them,70,11,'#e8e4dc')+scoreRingArc(me,54,11,'#c9a84c')+`</svg>`;
+}
 function renderProfiles(minPct){
   if(minPct===undefined)minPct=0;
   const container=document.getElementById('profile-cards');
@@ -2658,6 +2689,7 @@ function renderProfiles(minPct){
   renderMoreButton();watchMoreButton();
   if(!list.length){container.innerHTML='<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:20px 0">No profiles match your filters.</p>';return;}
   let html='';
+  const myLean=leanOf(calcBasedScore(myAnswers));
   // Sponsored cards: one after every N profiles (each advert in turn), or one at the end of a short list
   const adCards=(ADS||[]).filter(a=>a.format==='card');
   const adEvery=adCards.length?Math.min(...adCards.map(a=>a.every_n||8)):0;
@@ -2670,10 +2702,16 @@ function renderProfiles(minPct){
     const hasInterest=expressedInterest.has(profileKey);
     const compatColor=p.compat>=80?'var(--green)':p.compat>=60?'var(--gold)':'var(--red)';
     const badge=isMutual?`<span style="font-size:10px;color:var(--green);border:0.5px solid rgba(111,207,151,0.4);border-radius:5px;padding:2px 7px;margin-left:5px"><i class="ti ti-heart" style="font-size:10px"></i> Match</span>`:'';
-    const avatarContent=p.photo_url?`<img src="${esc(p.photo_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" />`:`<span style="color:var(--text-on-dark)">${esc(p.initials)}</span>`;
+    const avatarContent=p.photo_url?`<img src="${esc(p.photo_url)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${isMutual?'':'filter:blur(7px);transform:scale(1.15)'}" />`:`<span style="color:var(--text-on-dark)">${esc(p.initials)}</span>`;
     const aStr=JSON.stringify(p.answers).replace(/"/g,'&quot;');
     if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="showUpgradePrompt('profile_views','limit')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted)">${perm('profile_views').period==='day'?'More views tomorrow, or upgrade':'Upgrade to view'}</div></div><div class="card-badges"><div class="compat-badge" style="color:${compatColor}">${p.compat}% Compatible</div></div></div>`;}
-    else{html+=`<div class="profile-card" style="margin-bottom:12px" onclick="handleProfileTap('${ja(aStr)}',${p.compat},${p.basedScore},'${ja(p.initials)}','${ja(p.name)}',${p.age},'','${ja(p.photo_url||'')}','${profileKey}','${ja(p.religion||'')}')"><div class="avatar">${avatarContent}</div><div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</div>${badge?`<div style="margin-top:6px">${badge}</div>`:''}</div><div class="card-badges"><div class="based-badge">${leanBadgeHtml(p.basedScore)}</div><div class="compat-badge" style="color:${compatColor}">${p.compat}% Compatible</div></div></div>`;}
+    else{const them=leanOf(p.basedScore),first=String(p.name||'').split(' ')[0]||'Them',dt=distanceText(p);
+      html+=`<div class="profile-card sr-card" style="margin-bottom:12px" onclick="handleProfileTap('${ja(aStr)}',${p.compat},${p.basedScore},'${ja(p.initials)}','${ja(p.name)}',${p.age},'','${ja(p.photo_url||'')}','${profileKey}','${ja(p.religion||'')}')">`
+        +`<div class="sr-ring" role="img" aria-label="${p.compat}% compatible. ${esc(first)} ${esc(leanLabel(them))}, you ${esc(leanLabel(myLean))}">${searchRingsSvg(them,myLean)}<div class="sr-mid"><span class="sr-pct" style="color:${compatColor}">${p.compat}%</span><span class="sr-cap">MATCH</span></div></div>`
+        +`<div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}</div>`
+        +`${dt?`<div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${esc(dt.replace(/^\(|\)$/g,''))}</div>`:''}${badge?`<div style="margin-top:5px">${badge}</div>`:''}`
+        +`<div class="sr-legend"><span style="color:#e8e4dc"><i style="background:#e8e4dc"></i>${esc(first)} ${esc(leanLabel(them))}</span><span style="color:var(--gold)"><i style="background:var(--gold)"></i>You ${esc(leanLabel(myLean))}</span></div></div>`
+        +`<div class="sr-photo">${avatarContent}</div></div>`;}
     if(adEvery&&((i+1)%adEvery===0||(i===list.length-1&&list.length<adEvery&&list.length>=2)))html+=adCardHtml(adCards[adNext++%adCards.length]);
   });
   if(outOfFreeViews()){const pv=perm('profile_views');html+=`<div style="background:rgba(15,18,30,0.95);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;padding:22px;margin-top:6px;text-align:center"><i class="ti ti-crown" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);margin-bottom:8px">${pv.period==='day'?`You’ve used today’s ${pv.limit} profile views`:`You’ve seen your ${pv.limit} free profiles`}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">${pv.period==='day'?'More tomorrow — or upgrade for unlimited browsing.':'Verify your ID for 5 a day, or upgrade for unlimited browsing.'}</p><button class="btn-primary" onclick="showUpgradePrompt('profile_views','limit')" style="font-size:15px;padding:14px">See options</button></div>`;}
@@ -5151,6 +5189,7 @@ function updateFilter(source){
   document.getElementById('filter-dist-val').textContent=distLabel(d);
   document.getElementById('filter-age-min-val').textContent=aMin;
   document.getElementById('filter-age-max-val').textContent=aMax;
+  {const fs=document.getElementById('filter-bar-sum');if(fs)fs.textContent=filterSummary();}
   mySearchFilters={min:v,dist:d,units:myUnits(),ageMin:aMin,ageMax:aMax,verifiedOnly};
   searchAuto=false; // the member's own choice from now on — no more automatic widening
   clearTimeout(filterSaveTimer);filterSaveTimer=setTimeout(()=>saveFilterPrefs(mySearchFilters),700);
@@ -5534,6 +5573,47 @@ async function quietSearchRefresh(force){
 }
 setInterval(()=>quietSearchRefresh(false),2*60*1000);
 async function switchTab(tab){if(tab==='browse')setTimeout(()=>quietSearchRefresh(false),0);['browse','matches','messages'].forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===tab);document.getElementById('tab-'+t+'-content').style.display=t===tab?'block':'none';});refreshPermissions();if(tab==='matches'){await loadMyInteractions();await loadBrowseProfiles();renderMatchesTab();celebrateNewSupers();}if(tab==='messages'){await loadMyInteractions();await loadBrowseProfiles();renderConversationsTab();}}
+
+// ─── Search filters fold away while you scroll ──────────────────────────────────
+// Open when you land on Search. Scrolling the list folds them into one bar (showing what's set);
+// tapping the bar opens them again, and scrolling back to the very top opens them too.
+let filtersCollapsed=false,filtersLockUntil=0,filtersOpenedAt=0,searchLastTop=0;
+function filterSummary(){
+  const t=id=>(document.getElementById(id)||{}).textContent||'';
+  const min=parseInt(document.getElementById('filter-min').value)||0;
+  return [min?`${min}%+ match`:'Any match',t('filter-dist-val'),`${t('filter-age-min-val')}–${t('filter-age-max-val')}`].filter(Boolean).join(' · ');
+}
+function setSearchFiltersCollapsed(c){
+  const box=document.getElementById('filter-box'),bar=document.getElementById('filter-bar'),st=document.getElementById('search-status');
+  if(!box||!bar||filtersCollapsed===c)return;
+  const tab=document.getElementById('tab-browse-content'),before=box.offsetHeight+(st?st.offsetHeight:0);
+  filtersCollapsed=c;filtersLockUntil=Date.now()+400; // ignore the scroll this change itself causes
+  box.style.display=c?'none':'';if(st)st.style.display=c?'none':'';
+  bar.style.display=c?'flex':'none';bar.setAttribute('aria-expanded',String(!c));
+  if(c){
+    document.getElementById('filter-bar-sum').textContent=filterSummary();
+    // keep the card under your finger where it was, rather than letting the list jump up
+    const shrink=before-bar.offsetHeight-12;if(tab&&shrink>0)tab.scrollTop=Math.max(0,tab.scrollTop-shrink);
+  }
+  if(tab)searchLastTop=tab.scrollTop;
+}
+function expandSearchFilters(){
+  const tab=document.getElementById('tab-browse-content');
+  setSearchFiltersCollapsed(false);filtersOpenedAt=tab?tab.scrollTop:0;
+}
+(function initFilterFold(){
+  const tab=document.getElementById('tab-browse-content');if(!tab)return;
+  tab.addEventListener('scroll',()=>{
+    const top=tab.scrollTop,up=top<searchLastTop;searchLastTop=top;
+    if(Date.now()<filtersLockUntil)return;
+    if(!filtersCollapsed){
+      const box=document.getElementById('filter-box');
+      // only fold when there's enough list below to scroll through, so it can't flick open and shut
+      const room=tab.scrollHeight-tab.clientHeight>(box?box.offsetHeight:0)+80;
+      if(room&&top>filtersOpenedAt+50)setSearchFiltersCollapsed(true);
+    }else if(up&&top<=2){filtersOpenedAt=0;setSearchFiltersCollapsed(false);}
+  },{passive:true});
+})();
 
 // ─── Swipe left/right between Search, Interest, and It's mutual ───────────────
 (function initTabSwipe(){
