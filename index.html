@@ -111,6 +111,49 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 #ad-pop .ad-box{position:relative;width:100%;max-width:380px;max-height:86vh;overflow:auto;background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.35);border-radius:20px;box-shadow:0 18px 50px rgba(0,0,0,0.6)}
 #ad-pop .ad-x{position:absolute;top:9px;right:9px;width:34px;height:34px;border-radius:50%;border:none;background:rgba(15,18,28,0.8);color:var(--text-on-dark);font-size:17px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center}
 @keyframes adFade{from{opacity:0}to{opacity:1}}
+.pf-head{flex:1;min-width:0;display:flex;align-items:center;gap:10px}
+.pf-head .pf-av{width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(201,168,76,0.4);background:var(--navy-light);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:15px;color:var(--text-on-dark)}
+.pf-head .pf-av img{width:100%;height:100%;object-fit:cover}
+.pf-name{font-family:var(--serif);font-size:20px;color:var(--text-on-dark);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-sub{font-size:12.5px;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-rings{display:flex;align-items:center;justify-content:center;gap:8px;margin:8px 0 4px}
+.pf-ring{position:relative;width:210px;height:210px;flex-shrink:0}
+.pf-ring svg{display:block;width:100%;height:100%}
+.pf-end{width:54px;display:flex;justify-content:center}
+.pf-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.pf-cap{display:flex;align-items:center;gap:5px;font-size:11px;letter-spacing:1.3px;color:var(--text-muted)}
+.pf-pct{font-family:var(--serif);font-size:46px;font-weight:700;line-height:1.05}
+.pf-on{font-size:12px;color:var(--text-muted)}
+.pf-legend{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 16px;margin:2px 0 18px;font-size:13px}
+.pf-legend>span{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.pf-legend i{width:14px;height:4px;border-radius:2px;flex-shrink:0}
+.meet{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:13px 14px 6px;margin-bottom:8px}
+.meet-head{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:1.4px;color:var(--text-muted);margin-bottom:11px}
+.pd-hero{padding-top:14px}
+.meet-tabs{position:sticky;top:0;z-index:3;box-shadow:0 -13px 0 var(--navy-mid);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:#1f2434;border-radius:11px;padding:3px;margin-bottom:12px}
+.meet-tabs button{min-height:40px;border:none;border-radius:9px;background:transparent;color:var(--text-muted);font-family:var(--sans);font-size:12.5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;padding:3px 2px}
+.meet-tabs button b{font-size:11px;font-weight:600;opacity:0.8}
+.meet-tabs button.on{background:var(--navy-light);color:var(--text-on-dark)}
+.meet-row{display:block;width:100%;text-align:left;background:none;border:none;border-top:0.5px solid rgba(255,255,255,0.06);padding:11px 0 12px;color:inherit;font-family:var(--sans);cursor:pointer}
+.meet-row:first-child{border-top:none;padding-top:2px}
+.meet-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
+.meet-title{font-size:14px;color:var(--text-on-dark);line-height:1.35}
+.meet-title small{display:block;font-size:11px;color:var(--text-muted);margin-top:2px}
+.meet-tag{font-size:11px;padding:2px 8px;border-radius:999px;white-space:nowrap;flex-shrink:0}
+.meet-track{position:relative;height:20px;margin:0 9px}
+.meet-more{display:none;margin-top:6px}
+.meet-row.open .meet-more{display:block}
+.meet-empty{font-size:13px;color:var(--text-muted);text-align:center;padding:14px 0 16px}
+.meet-div{font-size:11px;color:var(--text-muted);letter-spacing:0.3px;border-top:0.5px solid rgba(255,255,255,0.12);padding:12px 0 4px;margin-top:4px}
+.pf-bar{flex-shrink:0;display:flex;gap:7px;padding-top:10px;padding-left:12px;padding-right:12px;background:var(--navy);border-top:0.5px solid rgba(255,255,255,0.08)}
+.pf-bar:empty{display:none}
+.pf-bar .act-btn{padding:9px 4px;font-size:11px;line-height:1.2;text-align:center;min-height:58px}
+.pf-bar .act-btn i,.pf-bar .act-btn svg{font-size:21px}
+.pf-bar .act-btn.super{border-color:rgba(201,168,76,0.55);background:linear-gradient(135deg,rgba(201,168,76,0.2),rgba(201,168,76,0.06));color:var(--gold-light)}
+.pf-bar .act-btn.super.spent{border-color:rgba(201,168,76,0.3);background:rgba(201,168,76,0.04);color:var(--text-muted)}
+.pf-bar .act-btn.sent{pointer-events:none;opacity:0.45}
+.pf-bar .act-btn small{font-size:10px;opacity:0.75}
+.pf-bar .btn-primary{flex:2;padding:12px 10px;font-size:15px}
 .filter-bar{display:flex;align-items:center;gap:9px;width:100%;min-height:44px;margin-bottom:12px;padding:0 14px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.14);border-radius:13px;color:var(--text-on-dark);font-family:var(--sans);font-size:13px;cursor:pointer;text-align:left}
 .filter-bar .ti{font-size:17px;color:var(--gold)}.filter-bar .fb-title{font-weight:600}.filter-bar .fb-sum{flex:1;min-width:0;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sr-card{gap:12px;padding:12px}
@@ -655,12 +698,12 @@ button.ins-tile:active{opacity:0.75;}
 
 <!-- PROFILE VIEW -->
 <div id="screen-profile" class="screen">
-  <div class="app-header">
+  <div class="app-header" style="justify-content:flex-start;gap:6px">
     <button class="btn-back" id="profile-back-btn" onclick="goTo('screen-main')"><i class="ti ti-arrow-left"></i></button>
-    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
-    <div style="width:28px"></div>
+    <div id="profile-head" class="pf-head"></div>
   </div>
   <div class="scrollable" style="padding:0 16px 20px" id="profile-detail-body"></div>
+  <div id="profile-actions" class="pf-bar bottom-safe"></div>
 </div>
 
 <!-- CHAT -->
@@ -2808,80 +2851,87 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   const hasInterest=expressedInterest.has(profileKey);
   const isMutual=mutualMatches.has(profileKey);
   const scoreColor=compat>=80?'var(--green)':compat>=60?'var(--gold)':'var(--red)';
-  const qRows=QUESTIONS.map((qObj,i)=>{
-    const q=qObj,s=qObj.slot;
-    const my=myAnswers[s]||0,them=answers[s]||0;
-    const diff=Math.abs(my-them);
+  // ── Where you meet: each question sorted into Matched / Aligned / Differs (same rules as before)
+  const mySex=myProfile.sex||'male',theirSex=mySex==='male'?'female':'male';
+  const genderIcon=(sex,color)=>sex==='male'
+    ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:${color}"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>`
+    :`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:${color}"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>`;
+  const themIcon=genderIcon(theirSex,'#fff'),myIcon=genderIcon(mySex,'var(--gold)');
+  const heartIcon=`<svg width="13" height="13" viewBox="0 0 24 24"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="var(--gold)"/></svg>`;
+  const rows=QUESTIONS.map((q,i)=>{
+    const sl=q.slot,my=myAnswers[sl]||0,them=answers[sl]||0,diff=Math.abs(my-them);
     const sameSign=(my===0&&them===0)||(my>0&&them>0)||(my<0&&them<0);
     // Differs: opposite sides, or one of you in the centre and the other not. Matched: same side, 0–3 apart. Aligned: same side, 4+ apart.
-    const col=!sameSign?'var(--red)':diff>=4?'var(--gold)':'var(--green)';
-    const label=!sameSign?'Differs':diff>=4?'Aligned':'Matched';
-    const mySex=myProfile.sex||'male',theirSex=mySex==='male'?'female':'male';
-    const genderIcon=(sex,color)=>sex==='male'
-      ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:${color}"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>`
-      :`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:${color}"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>`;
-    const themIcon=genderIcon(theirSex,'#fff'),myIcon=genderIcon(mySex,'var(--gold)');
-    const exactMatch=my===them;
-    const heartIcon=`<svg width="13" height="13" viewBox="0 0 24 24"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="var(--gold)"/></svg>`;
-    const toP=s=>((s+10)/20)*100;
-    const myP=toP(my),themP=toP(them);
-    const lineLeft=Math.min(myP,themP),lineWidth=Math.abs(myP-themP);
+    const cat=!sameSign?'differs':diff>=4?'aligned':'matched';
+    const col=cat==='differs'?'var(--red)':cat==='aligned'?'var(--gold)':'var(--green)';
+    const label=cat==='differs'?'Differs':cat==='aligned'?'Aligned':'Matched';
+    const toP=v=>((v+10)/20)*100,myP=toP(my),themP=toP(them);
     const myLabel=my>0?'+'+my:String(my),themLabel=them>0?'+'+them:String(them);
-    const sectionDivider=(!qObj.scoring&&QUESTIONS[i-1]&&QUESTIONS[i-1].scoring)?'<div style="border-top:0.5px solid rgba(255,255,255,0.12);margin:10px 0 16px"></div><p style="font-size:11px;color:var(--text-muted);letter-spacing:0.3px;margin-bottom:16px">Not counted in your score</p>':'';
-    const religionTag=(s===FAITH_Q_INDEX&&them>0&&theirReligion)?`<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(201,168,76,0.12);color:var(--gold);border:0.5px solid rgba(201,168,76,0.3);white-space:nowrap;flex-shrink:0;margin-top:1px">${esc(theirReligion)}</span>`:'';
-    return `${sectionDivider}<div class="q-card" style="margin-bottom:12px;padding:14px 14px 10px;background:rgba(255,255,255,0.035);border:0.5px solid rgba(255,255,255,0.08);border-radius:14px">
-      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
-        <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${esc(q.text)}</p>
-        <span style="font-size:11px;padding:3px 8px;border-radius:6px;background:${col}22;color:${col};border:0.5px solid ${col}55;white-space:nowrap;flex-shrink:0;margin-top:1px">${label}</span>
-        ${religionTag}
-        <button class="info-icon-btn" onclick="showInfoPopup(${i})" aria-label="What does this mean?">i</button>
-      </div>
-      ${stmtPairHtml(q)}
-      <div style="position:relative;height:20px;margin:0 4px">
+    const religionTag=(sl===FAITH_Q_INDEX&&them>0&&theirReligion)?` · ${esc(theirReligion)}`:'';
+    const dots=my===them
+      ?`<div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.6);display:flex;align-items:center;justify-content:center" title="You both: ${myLabel}">${heartIcon}</div>`
+      :`<div style="position:absolute;top:50%;left:${themP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(255,255,255,0.45);display:flex;align-items:center;justify-content:center" title="Them: ${themLabel}">${themIcon}</div><div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.5);display:flex;align-items:center;justify-content:center" title="You: ${myLabel}">${myIcon}</div>`;
+    const html=`<div class="meet-row" role="button" tabindex="0" aria-expanded="false" onclick="this.classList.toggle('open');this.setAttribute('aria-expanded',this.classList.contains('open'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+      <div class="meet-top"><span class="meet-title">${esc(q.text)}${!q.scoring?'<small>Not counted in your score</small>':''}</span><span class="meet-tag" style="border:1px solid ${col};color:${col}">${label}${religionTag}</span></div>
+      <div class="meet-track">
         <div style="position:absolute;top:50%;left:0;right:0;height:3px;background:rgba(255,255,255,0.08);border-radius:3px;transform:translateY(-50%)"></div>
-        <div style="position:absolute;top:50%;left:50%;width:1px;height:10px;background:rgba(255,255,255,0.2);transform:translate(-50%,-50%)"></div>
-        <div style="position:absolute;top:50%;left:${lineLeft}%;width:${lineWidth}%;height:3px;background:${col};transform:translateY(-50%);border-radius:3px;opacity:0.85"></div>
-        ${exactMatch
-          ?`<div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.6);display:flex;align-items:center;justify-content:center" title="You both: ${myLabel}">${heartIcon}</div>`
-          :`<div style="position:absolute;top:50%;left:${themP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center" title="Them: ${themLabel}">${themIcon}</div>
-        <div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.4);display:flex;align-items:center;justify-content:center" title="You: ${myLabel}">${myIcon}</div>`}
+        <div style="position:absolute;top:50%;left:50%;width:1px;height:10px;background:rgba(255,255,255,0.25);transform:translate(-50%,-50%)"></div>
+        <div style="position:absolute;top:50%;left:${Math.min(myP,themP)}%;width:${Math.abs(myP-themP)}%;height:6px;background:${col};opacity:0.45;border-radius:3px;transform:translateY(-50%)"></div>
+        ${dots}
       </div>
-      <div style="display:flex;justify-content:space-between;margin-top:5px;padding:0 4px">
-        <span style="font-size:10px;color:rgba(255,255,255,0.2)">−10</span>
-        <span style="font-size:10px;color:rgba(255,255,255,0.2)">0</span>
-        <span style="font-size:10px;color:rgba(255,255,255,0.2)">+10</span>
-      </div>
+      <div class="meet-more">${stmtPairHtml(q)}<div style="text-align:right"><span class="info-icon-btn" role="button" tabindex="0" onclick="event.stopPropagation();showInfoPopup(${i})" aria-label="What does this mean?">i</span></div></div>
     </div>`;
-  }).join('');
-  let topBanner='';
+    return {cat,html,scoring:!!q.scoring};
+  });
+  const counts={matched:0,aligned:0,differs:0};rows.forEach(r=>counts[r.cat]++);
+  profileMeetRows=rows;
+    let topBanner='';
   if(!isMutual&&theirSuper.has(profileKey))topBanner=`<div class="super-note"><i class="ti ti-confetti" style="font-size:22px;color:var(--gold)"></i><div><p style="font-size:15px;color:var(--gold-light);font-weight:600">${esc(name)} sent you a super interest</p><p style="font-size:13px;color:var(--text-muted)">They’re especially keen to get to know you.<br>Express interest back to start talking.</p></div></div>`;
   // Not when opened from the chat: you already know it's mutual
   if(isMutual&&context!=='chat')topBanner=`<div style="background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.35);border-radius:13px;padding:13px;margin-bottom:20px;display:flex;align-items:center;gap:11px"><i class="ti ti-heart" style="font-size:22px;color:var(--green)"></i><div><p style="font-size:15px;color:var(--green);font-weight:600">It's mutual!</p><p style="font-size:13px;color:var(--text-muted)">You both expressed interest.<br>You can now message each other.</p></div></div>`;
   const aEncoded=JSON.stringify(answers).replace(/"/g,'&quot;');
-  let actionRow='';
+  // ── Fixed bar at the bottom: the actions for this person
+  let bar='';
   if(isMutual){
-    actionRow=`<div style="margin-top:18px;display:flex;flex-direction:column;gap:11px"><button class="btn-primary" onclick="openChat('${profileKey}','${ja(inits)}','${ja(name)}','${ja(photoUrl||'')}')"><i class="ti ti-message" style="margin-right:7px"></i>Send a message</button><div class="action-btn-row"><button class="act-btn" onclick="confirmBlock('${profileKey}','${ja(name)}')"><i class="ti ti-ban" style="font-size:18px"></i>Block this user</button><button class="act-btn hide-profile" onclick="openReport('${profileKey}','${ja(name)}')"><i class="ti ti-flag" style="font-size:18px"></i>Report this user</button></div></div>`;
+    bar=`<button class="btn-primary" onclick="openChat('${profileKey}','${ja(inits)}','${ja(name)}','${ja(photoUrl||'')}')"><i class="ti ti-message" style="margin-right:7px"></i>Send a message</button><button class="act-btn" onclick="confirmBlock('${profileKey}','${ja(name)}')"><i class="ti ti-ban"></i>Block</button><button class="act-btn hide-profile" onclick="openReport('${profileKey}','${ja(name)}')"><i class="ti ti-flag"></i>Report</button>`;
   } else {
-    const intCls=hasInterest?'act-btn expressed':'act-btn interested';
-    const intClick=hasInterest?'':` onclick="doExpressInterest('${profileKey}','${ja(inits)}','${ja(aEncoded)}',${compat},${basedScore},'${ja(age)}','${ja(location)}','${ja(photoUrl||'')}','${ja(name)}','${ja(theirReligion||'')}')"`;
-    const intInner=hasInterest?'<i class="ti ti-check" style="margin-right:6px"></i>Interest sent':'<svg id="interest-heart-icon" width="15" height="15" viewBox="0 0 24 24" style="vertical-align:-3px;margin-right:6px" fill="none"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="none" stroke="currentColor" stroke-width="2"/></svg>Interested';
-    const moveOnBtn=context==='incoming'?'':`<button class="act-btn" onclick="doMoveOn('${profileKey}')"><i class="ti ti-arrow-right"></i>Move on</button>`;
     const sentSuper=mySuper.has(profileKey);
-    const intInner2=sentSuper?'<i class="ti ti-confetti" style="margin-right:6px"></i>Super interest sent':intInner;
-    actionRow=`<div class="action-btn-row" style="margin-top:18px"><button class="${intCls}${sentSuper?' super':''}"${intClick}>${intInner2}</button>${moveOnBtn}<button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don't show again</button></div>`;
+    const intArgs=`'${profileKey}','${ja(inits)}','${ja(aEncoded)}',${compat},${basedScore},'${ja(age)}','${ja(location)}','${ja(photoUrl||'')}','${ja(name)}','${ja(theirReligion||'')}'`;
+    bar+=hasInterest
+      ?`<button class="act-btn interested sent" aria-disabled="true"><i class="ti ti-check"></i>Interest sent</button>`
+      :`<button class="act-btn interested" onclick="doExpressInterest(${intArgs})"><svg id="interest-heart-icon" width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="none" stroke="currentColor" stroke-width="2"/></svg>Express interest</button>`;
     // Super interest: not needed if they're already interested in you (a normal interest makes it mutual)
-    if(!sentSuper&&!incomingInterest.has(profileKey)&&!isHidden('super_interest')){
-      const sp=perm('super_interest'),left=limitLeft('super_interest');
-      const leftTxt=!canUse('super_interest')||left===Infinity?'':` · ${left} left`;
-      const superArgs=`'${profileKey}','${ja(inits)}','${ja(aEncoded)}',${compat},${basedScore},'${ja(age)}','${ja(location)}','${ja(photoUrl||'')}','${ja(name)}','${ja(theirReligion||'')}',true`;
-      actionRow+=`<button class="super-btn${!canUse('super_interest')||left<=0?' spent':''}" id="super-btn" onclick="doExpressInterest(${superArgs})"><i class="ti ti-confetti"></i><span>${hasInterest?'Make it a super interest':'Send a super interest'}<span style="opacity:0.75;font-weight:400">${leftTxt}</span></span></button>`;
+    if(sentSuper)bar+=`<button class="act-btn super sent" aria-disabled="true"><i class="ti ti-confetti"></i>Super sent</button>`;
+    else if(!incomingInterest.has(profileKey)&&!isHidden('super_interest')){
+      const left=limitLeft('super_interest'),spent=!canUse('super_interest')||left<=0;
+      bar+=`<button class="act-btn super${spent?' spent':''}" id="super-btn" onclick="doExpressInterest(${intArgs},true)"><i class="ti ti-confetti"></i><span>Super interest${canUse('super_interest')&&left!==Infinity?`<br><small>${left} left</small>`:''}</span></button>`;
     }
+    if(context!=='incoming')bar+=`<button class="act-btn" onclick="doMoveOn('${profileKey}')"><i class="ti ti-arrow-right"></i>Move on</button>`;
+    bar+=`<button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don’t show again</button>`;
   }
-  const isRealProfile=/^[0-9a-f-]{36}$/.test(String(profileKey));
-  if(isRealProfile&&!isMutual)actionRow+=`<div style="text-align:center;margin-top:18px"><button onclick="openReport('${profileKey}','${ja(name)}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${esc(name)}</button></div>`;
+  document.getElementById('profile-actions').innerHTML=bar;
+  // ── Header (option B): photo, name, age, tick; religion and distance underneath
+  const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);
   const canGallery=isMutual&&/^[0-9a-f-]{36}$/.test(String(profileKey));
-  const avatarHtml=photoUrl?`<div style="width:68px;height:68px;border-radius:50%;border:2px solid rgba(201,168,76,0.4);overflow:hidden${canGallery?';cursor:pointer':''}"${canGallery?` role="button" aria-label="View ${esc(name)}’s photos" onclick="openMatchGallery('${profileKey}',0,'${ja(photoUrl)}')"`:''}><img src="${esc(photoUrl)}" style="width:100%;height:100%;object-fit:cover;${isMutual?'':'filter:blur(6px);transform:scale(1.1)'}" alt="${esc(name)}" /></div>`:`<div class="avatar" style="width:68px;height:68px;font-size:24px;border:2px solid rgba(201,168,76,0.4);color:var(--text-on-dark)">${esc(inits)}</div>`;
-  document.getElementById('profile-detail-body').innerHTML=`<div class="pd-top"><div style="display:flex;align-items:center;gap:15px;margin-bottom:22px">${avatarHtml}<div><div style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark)">${esc(name)}, ${age}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);return pp&&pp.verified?VERIFIED_TICK:'';})()}${(()=>{const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);const t=pp?distanceText(pp):'';return t?` <span style="font-family:var(--sans);font-size:14px;color:var(--text-muted);white-space:nowrap">${t}</span>`:'';})()}</div></div></div>${canGallery?'<div id="profile-photo-strip"></div>':''}${topBanner}<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px"><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">SCORE</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How the score is worked out">i</button></div>${(()=>{const l=leanOf(basedScore);return l&&l.side&&l.pct?`<div style="display:flex;align-items:center;justify-content:center;gap:8px"><span style="font-size:28px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif)">${l.pct}%</span>${endImg(l.side,30,84)}</div>${SCALE[l.side].name?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${esc(towardsText(l.side))}</div>`:''}`:`<div style="font-size:22px;font-weight:700;color:var(--text-on-dark);font-family:var(--serif);line-height:34px">Middle</div>`;})()}</div><div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:13px;text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px"><span style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px">COMPATIBILITY</span><button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></div><div style="font-size:28px;font-weight:700;color:${scoreColor};font-family:var(--serif)">${compat}%</div></div></div><div style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:13px">Values breakdown</div></div>${qRows}${actionRow}`;
+  const av=photoUrl?`<img src="${esc(photoUrl)}" alt="" style="${isMutual?'':'filter:blur(5px);transform:scale(1.15)'}">`:esc(inits);
+  const dist=pp?distanceText(pp).replace(/^\(|\)$/g,''):'';
+  const sub=[theirReligion||'',dist].filter(Boolean).map(esc).join(' · ');
+  document.getElementById('profile-head').innerHTML=`<div class="pf-av"${canGallery&&photoUrl?` role="button" style="cursor:pointer" aria-label="View ${esc(name)}’s photos" onclick="openMatchGallery('${profileKey}',0,'${ja(photoUrl)}')"`:''}>${av}</div><div style="min-width:0"><div class="pf-name">${esc(name)}, ${age}${pp&&pp.verified?VERIFIED_TICK:''}</div>${sub?`<div class="pf-sub">${sub}</div>`:''}</div>`;
+  // ── Two rings (option A): outer = them, inner = you, the compatibility in the middle
+  const them=leanOf(basedScore),me=leanOf(calcBasedScore(myAnswers)),first=String(name||'').split(' ')[0]||'Them';
+  const endCol=side=>`<div class="pf-end" style="opacity:${(them&&them.side===side&&them.pct)||(me&&me.side===side&&me.pct)?1:0.4}">${endImg(side,24,54)}</div>`;
+  const ringsSvg=`<svg viewBox="0 0 160 160" aria-hidden="true"><circle cx="80" cy="80" r="72" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8"/><circle cx="80" cy="80" r="60" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8"/><line x1="80" y1="1" x2="80" y2="13" stroke="rgba(255,255,255,0.28)" stroke-width="1.5"/><line x1="80" y1="147" x2="80" y2="159" stroke="rgba(255,255,255,0.28)" stroke-width="1.5"/>${scoreRingArc(them,72,8,'#e8e4dc')}${scoreRingArc(me,60,8,'#c9a84c')}</svg>`;
+  const ringLabel=`${compat}% compatible. ${first} ${leanLabel(them)}, you ${leanLabel(me)}`;
+  document.getElementById('profile-detail-body').innerHTML=`<div class="pd-hero">${topBanner}
+    <div class="pf-rings">${endCol('left')}<div class="pf-ring" role="img" aria-label="${esc(ringLabel)}">${ringsSvg}<div class="pf-mid"><span class="pf-cap">COMPATIBLE<button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></span><span class="pf-pct" style="color:${scoreColor}">${compat}%</span><span class="pf-on">on ${NUM_SCORING} questions</span></div></div>${endCol('right')}</div>
+    <div class="pf-legend"><span style="color:#e8e4dc"><i style="background:#e8e4dc"></i>${esc(first)} ${leanLabelHtml(them)}</span><span style="color:var(--gold)"><i style="background:var(--gold)"></i>You ${leanLabelHtml(me)}</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How the score is worked out">i</button></div>
+    ${canGallery?'<div id="profile-photo-strip"></div>':''}</div>
+    <div class="meet"><div class="meet-head">WHERE YOU MEET</div>
+      <div class="meet-tabs" role="tablist">${[['matched','Matched'],['aligned','Aligned'],['differs','Differs'],['all','See all']].map(([k,t])=>`<button role="tab" data-tab="${k}" onclick="showMeetTab('${k}')">${t}<b>${k==='all'?rows.length:counts[k]}</b></button>`).join('')}</div>
+      <div id="meet-list"></div></div>
+    ${/^[0-9a-f-]{36}$/.test(String(profileKey))&&!isMutual?`<div style="text-align:center;margin-top:12px"><button onclick="openReport('${profileKey}','${ja(name)}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${esc(name)}</button></div>`:''}`;
+  // Start on the first tab that has something in it
+  showMeetTab(['matched','aligned','differs'].find(k=>counts[k])||'all');
   goTo('screen-profile');
   if(canGallery)matchPhotos(profileKey).then(urls=>{
     const strip=document.getElementById('profile-photo-strip');
@@ -2890,6 +2940,18 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     strip.innerHTML=urls.map((u,k)=>`<button type="button" aria-label="Photo ${k+1} of ${urls.length}" onclick="openMatchGallery('${profileKey}',${k})"><img src="${esc(u)}" alt="" /></button>`).join('');
   });
   document.getElementById('profile-detail-body').scrollTop=0;
+}
+let profileMeetRows=[];
+function showMeetTab(k){
+  document.querySelectorAll('.meet-tabs button').forEach(b=>{const on=b.dataset.tab===k;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);});
+  const list=document.getElementById('meet-list');if(!list)return;
+  if(k==='all'){
+    const counted=profileMeetRows.filter(r=>r.scoring),other=profileMeetRows.filter(r=>!r.scoring);
+    list.innerHTML=counted.map(r=>r.html).join('')+(other.length?`<div class="meet-div">Not counted in your score</div>`+other.map(r=>r.html).join(''):'');
+    return;
+  }
+  const rs=profileMeetRows.filter(r=>r.cat===k);
+  list.innerHTML=rs.length?rs.map(r=>r.html).join(''):`<p class="meet-empty">No questions ${k==='differs'?'where you differ':k==='aligned'?'where you’re aligned':'you match on'} yet.</p>`;
 }
 
 async function advanceToNextProfile(profileKey){
