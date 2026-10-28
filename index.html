@@ -5045,7 +5045,9 @@ function renderPlanRow(){
   const up=waitingFor?`<button onclick="showUnlockPaidPrompt('${waitingFor}')" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Unlock</button>`
     :t==='gold'||ending||needsWaiting()?'':`<button onclick="openPlanUpgrade()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Upgrade</button>`;
   // Manage = Stripe's page to change card, see receipts or cancel (only once you've paid through Stripe)
-  const manage=myStripeCustomer?`<button onclick="openBilling()" style="background:transparent;border:0.5px solid rgba(255,255,255,0.18);color:var(--text-muted);${bs}">Manage</button>`:'';
+  // With no paid plan running, Stripe's page only has receipts and saved cards, so it's labelled that way
+  const planRunning=['plus','gold'].includes(mySubTier)&&['active','trialing','past_due'].includes(mySubStatus||'');
+  const manage=myStripeCustomer?`<button onclick="openBilling()" style="background:transparent;border:0.5px solid rgba(255,255,255,0.18);color:var(--text-muted);${bs}">${planRunning?'Manage':'Receipts'}</button>`:'';
   // Cancelled but still paid up: offer to carry on instead of upgrading
   const resume=ending&&myStripeCustomer?`<button onclick="resumePlan()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Resume</button>`:'';
   const btn=`<div style="display:flex;gap:8px">${manage}${resume}${up}</div>`;
