@@ -4763,8 +4763,17 @@ function diditStarting(){
   if(document.getElementById('busy-box')&&Date.now()-diditBusyAt<20000)return true;
   diditBusy=false;return false;
 }
+// The ID check compares the name on the ID with the profile's, so older accounts add a surname first
+function askForSurname(){
+  const btn=document.getElementById('verify-start-btn'),skip=document.getElementById('verify-skip-btn');
+  btn.disabled=false;btn.style.opacity='1';
+  skip.style.display='block';skip.textContent='Add my surname';
+  skip.onclick=()=>{openEditProfile();setTimeout(()=>document.getElementById('edit-surname').focus(),300);};
+  setVerifyMsg('Please add your surname to your profile first. It needs to match the name on your ID. Other members only ever see its first letter.','error');
+}
 async function startVerification(){
   if(diditStarting())return;
+  if(!(myProfile.surname||'').trim()){askForSurname();return;}
   const btn=document.getElementById('verify-start-btn');
   setDiditBusy(true,btn);
   setVerifyMsg('<i class="ti ti-loader" style="animation:spin 1s linear infinite;margin-right:6px"></i>Starting verification…');
@@ -4772,6 +4781,7 @@ async function startVerification(){
   const [{ok,data},sdk]=await Promise.all([callDiditSession('start'),loadDiditSdk()]);
   removeModal();
   if(data&&data.status==='approved'){setDiditBusy(false,btn);onVerified();return;}
+  if(data&&data.code==='NEED_SURNAME'){setDiditBusy(false,btn);myProfile.surname=null;askForSurname();return;}
   if(!ok||!data.url){setDiditBusy(false,btn);setVerifyMsg(data.error||'Couldn’t start verification. Please try again.','error');return;}
   setVerifyMsg('');
   if(!sdk){ // SDK couldn't load — fall back to Didit's own page, which returns here when done
