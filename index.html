@@ -122,7 +122,7 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .sr-photo{border-radius:50%;overflow:hidden;background:var(--navy-light);border:1.5px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:22px;color:var(--gold);box-sizing:border-box}
 .sr-photo img{width:100%;height:100%;object-fit:cover}
 .sr-legend{display:flex;flex-direction:column;gap:3px;margin-top:6px;font-size:12px;line-height:1.3}
-.sr-legend span{display:flex;align-items:center;gap:6px;min-width:0}
+.sr-legend>span{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap}
 .sr-legend i{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 @media (max-width:360px){.sr-ring,.sr-photo{width:64px;height:64px}.sr-pct{font-size:16px}.sr-card{gap:9px}}
 .profile-card{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:17px;padding:15px;display:flex;align-items:center;gap:13px;cursor:pointer;position:relative;}
@@ -1229,6 +1229,7 @@ async function loadScaleEnds(){
     try{localStorage.setItem(SCALE_CACHE_KEY,JSON.stringify(SCALE));}catch(e){}
     if(typeof renderMiniScore==='function')renderMiniScore();
     if(document.getElementById('screen-results')?.classList.contains('active'))showResults();
+    if(document.getElementById('profile-cards')?.children.length&&typeof renderProfiles==='function')renderProfiles(parseInt(document.getElementById('filter-min').value)||0); // the cards show the ends' pictures
     return true;
   }catch(e){return false;}
 }
@@ -2644,6 +2645,8 @@ async function maybeAutoWiden(){
 // Search cards: two rings around the compatibility %. Outer = them, inner = you. Each fills from the
 // bottom up the side of the end that person leans towards, finishing in the same point as My Score.
 function leanLabel(l){if(!l)return '';if(!l.side||!l.pct)return 'in the middle';const n=(SCALE[l.side]&&SCALE[l.side].name)||'';return l.pct+'%'+(n?' '+n:'');}
+// The same, with the end's picture from the console (e.g. THIS / THAT) in place of its name
+function leanLabelHtml(l){if(!l)return '';if(!l.side||!l.pct)return 'in the middle';const img=endImg(l.side,15,46),n=(SCALE[l.side]&&SCALE[l.side].name)||'';return `${l.pct}%${img?` ${img}<span class="visually-hidden">${esc(n)}</span>`:(n?' '+esc(n):'')}`;}
 function scoreRingArc(l,r,w,colour){
   if(!l||!l.side||!l.pct)return '';
   const C=2*Math.PI*r,t=scoreTip(l.pct,r,w),right=l.side==='right';
@@ -2710,7 +2713,7 @@ function renderProfiles(minPct){
         +`<div class="sr-ring" role="img" aria-label="${p.compat}% compatible. ${esc(first)} ${esc(leanLabel(them))}, you ${esc(leanLabel(myLean))}">${searchRingsSvg(them,myLean)}<div class="sr-mid"><span class="sr-pct" style="color:${compatColor}">${p.compat}%</span><span class="sr-cap">MATCH</span></div></div>`
         +`<div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}</div>`
         +`${dt?`<div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${esc(dt.replace(/^\(|\)$/g,''))}</div>`:''}${badge?`<div style="margin-top:5px">${badge}</div>`:''}`
-        +`<div class="sr-legend"><span style="color:#e8e4dc"><i style="background:#e8e4dc"></i>${esc(first)} ${esc(leanLabel(them))}</span><span style="color:var(--gold)"><i style="background:var(--gold)"></i>You ${esc(leanLabel(myLean))}</span></div></div>`
+        +`<div class="sr-legend"><span style="color:#e8e4dc"><i style="background:#e8e4dc"></i>${esc(first)} ${leanLabelHtml(them)}</span><span style="color:var(--gold)"><i style="background:var(--gold)"></i>You ${leanLabelHtml(myLean)}</span></div></div>`
         +`<div class="sr-photo">${avatarContent}</div></div>`;}
     if(adEvery&&((i+1)%adEvery===0||(i===list.length-1&&list.length<adEvery&&list.length>=2)))html+=adCardHtml(adCards[adNext++%adCards.length]);
   });
