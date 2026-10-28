@@ -706,7 +706,7 @@ button.ins-tile:active{opacity:0.75;}
       <p style="font-size:12px;color:var(--text-muted);margin-top:9px;line-height:1.5">Your main photo is shown blurred until you match. Your matches can see all your photos. Tap a photo to make it your main one.</p>
       <input type="file" id="edit-extra-photo-input" accept="image/*" style="display:none" onchange="handleExtraPhoto(this,'edit')" />
     </div>
-    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" id="edit-name" /></div>
+    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" id="edit-name" /><p id="edit-name-note" style="display:none;font-size:11px;color:var(--text-muted);margin-top:7px;line-height:1.5"><i class="ti ti-lock" style="margin-right:4px"></i>Your name is confirmed by your ID, so it can’t be changed. Email support@baseddatingonline.com if it needs correcting.</p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Surname</label><input class="form-input" type="text" id="edit-surname" autocomplete="family-name" /><p style="font-size:12px;color:var(--text-muted);margin-top:7px;line-height:1.45">Other members only see its first letter: <span id="edit-shown-as"></span></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="edit-dob" oninput="formatDobInput(this)" /><p id="edit-dob-note" style="display:none;font-size:11px;color:var(--text-muted);margin-top:7px;line-height:1.5"><i class="ti ti-lock" style="margin-right:4px"></i><span id="edit-dob-note-text">Confirmed by your ID, so it can’t be changed.</span></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Country</label><select class="form-input" id="edit-country" onchange="onCountryChange('edit')"></select><p id="edit-country-note" style="font-size:12px;color:var(--red);margin-top:7px;display:none"></p></div>
@@ -4572,7 +4572,7 @@ async function afterCheckoutReturn(kind,trip){
 // The server decides the result (webhook + check); the SDK's own result is only
 // used to know when to ask the server.
 let myVerificationStatus='unverified'; // unverified | pending | in_review | approved | declined
-let myVerificationIssue=null;          // dob_mismatch | underage | no_dob (why an ID check was held back)
+let myVerificationIssue=null;          // dob_mismatch | name_mismatch | sex_mismatch | underage | no_dob | no_name | no_sex (why an ID check was held back)
 let requireVerification=false;         // app_config.require_verification
 let verifyContext='signup';            // signup | gate | settings
 const VERIFIED_TICK='<i class="ti ti-discount-check-filled" title="Verified" style="color:var(--verified);font-size:0.95em;margin-left:4px;vertical-align:-1px"></i>';
@@ -4678,9 +4678,20 @@ function showVerifyIssue(issue){
     setVerifyMsg('Your ID checked out, but its date of birth doesn’t match the one on your profile. If your profile is wrong, correct it in Settings, then tap <b>Check again</b>. You won’t need to scan your ID again.','error');
     return true;
   }
-  if(issue==='no_dob'){
+  if(issue==='name_mismatch'){
     btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
-    setVerifyMsg('Thanks, we couldn’t read the date of birth on your ID automatically, so it’s being checked by hand. Your badge will appear once approved.');
+    skip.style.display='block';skip.textContent='Edit my name';skip.onclick=()=>{openEditProfile();setTimeout(()=>document.getElementById('edit-name').focus(),300);};
+    setVerifyMsg('The name on this ID doesn’t match the name on your profile, so we couldn’t verify you. The ID has to be your own. If your profile name is wrong, correct it in Settings, then tap <b>Check again</b>. Otherwise, <a href="#" onclick="event.preventDefault();startVerification()" style="color:var(--verified)">try again with your own ID</a>.','error');
+    return true;
+  }
+  if(issue==='sex_mismatch'){
+    btn.textContent='Try again with my ID';btn.onclick=startVerification;
+    setVerifyMsg('The sex on this ID doesn’t match the one on your profile, so we couldn’t verify you. The ID has to be your own. If your profile is wrong, email <a href="mailto:support@baseddatingonline.com" style="color:var(--verified)">support@baseddatingonline.com</a> and we’ll put it right.','error');
+    return true;
+  }
+  if(issue==='no_dob'||issue==='no_name'||issue==='no_sex'){
+    btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
+    setVerifyMsg('Thanks, we couldn’t read all the details on your ID automatically, so it’s being checked by hand. Your badge will appear once approved.');
     return true;
   }
   return false;
@@ -4989,7 +5000,7 @@ function onMyVerificationChanged(p){
       else if(id==='declined'||id==='in_review'||issue)pollVerification(1); // reuse the existing messages for each state
     }else if(prevId==='in_review'){
       if(id==='approved'){congratulate('id');loadPermissions().then(()=>renderProfiles(parseInt(document.getElementById('filter-min').value)||0));}
-      else if(id==='declined')showToast(issue==='dob_mismatch'?'Your ID check needs a quick fix: see Settings':'Your ID check wasn’t approved: you can try again in Settings');
+      else if(id==='declined')showToast(issue==='dob_mismatch'||issue==='name_mismatch'||issue==='sex_mismatch'?'Your ID check needs a quick fix: see Settings':'Your ID check wasn’t approved: you can try again in Settings');
     }
     updateGetVerifiedBtn();renderVerifyRow();renderPlanRow(); // a paid plan waiting for the ID check
   }
@@ -5079,9 +5090,9 @@ function renderVerifyRow(){
   if(!row)return;
   const st=myVerificationStatus;
   const iss=st==='approved'?null:myVerificationIssue;
-  const label=iss==='dob_mismatch'?'Date of birth doesn’t match your ID':iss==='underage'?'Not eligible (under 18)':({approved:'Verified',in_review:'Under review',declined:'Not approved',pending:'Not finished',unverified:'Not verified'}[st]||'Not verified');
+  const label=iss==='dob_mismatch'?'Date of birth doesn’t match your ID':iss==='name_mismatch'?'Name doesn’t match your ID':iss==='sex_mismatch'?'Sex doesn’t match your ID':iss==='underage'?'Not eligible (under 18)':({approved:'Verified',in_review:'Under review',declined:'Not approved',pending:'Not finished',unverified:'Not verified'}[st]||'Not verified');
   const col=st==='approved'?'var(--verified)':st==='declined'?'var(--red)':'var(--text-muted)';
-  const btn=(st==='approved'||iss==='underage')?'':`<button onclick="openVerifyScreen('settings')" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);border-radius:11px;padding:9px 15px;color:var(--verified);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">${(st==='in_review'||iss==='dob_mismatch')?'Check':st==='declined'?'Try again':'Verify ID'}</button>`;
+  const btn=(st==='approved'||iss==='underage')?'':`<button onclick="openVerifyScreen('settings')" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);border-radius:11px;padding:9px 15px;color:var(--verified);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">${(st==='in_review'||iss==='dob_mismatch'||iss==='name_mismatch')?'Check':st==='declined'?'Try again':'Verify ID'}</button>`;
   row.innerHTML=`<i class="ti ${st==='approved'?'ti-discount-check-filled':'ti-discount-check'}" style="font-size:24px;color:${col}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">ID verification</p><p style="font-size:13px;color:${col}">${label}</p></div>${btn}`;
 }
 
@@ -6355,7 +6366,9 @@ function openEditProfile(){
   {const verified=myVerificationStatus==='approved',used=(myProfile.dob_changes||0)>=1,locked=verified||used;
    const d=document.getElementById('edit-dob');d.readOnly=locked;d.style.opacity=locked?'0.6':'1';
    document.getElementById('edit-dob-note').style.display=locked?'block':'none';
-   document.getElementById('edit-dob-note-text').textContent=verified?'Confirmed by your ID, so it can’t be changed.':DOB_USED_TEXT;}
+   document.getElementById('edit-dob-note-text').textContent=verified?'Confirmed by your ID, so it can’t be changed.':DOB_USED_TEXT;
+   ['edit-name','edit-surname'].forEach(id=>{const el=document.getElementById(id);el.readOnly=verified;el.style.opacity=verified?'0.6':'1';});
+   document.getElementById('edit-name-note').style.display=verified?'block':'none';}
   const ec=document.getElementById('edit-country');ec.innerHTML=countryOptionsHtml(myProfile.country||'GB');editPrevCountry=myProfile.country||'GB';
   document.getElementById('edit-country-note').style.display='none';
   applyCountryUI('edit');locState.edit.picked=null;hideSuggest('edit');
@@ -6489,6 +6502,7 @@ async function saveProfile(){
     if(saveErr&&/surname/.test(saveErr.message||'')&&!/NOT_ALLOWED|INVALID/.test(saveErr.message||'')){delete upd.surname;({error:saveErr}=await sb.from('profiles').update(upd).eq('id',currentUser.id));} // before the server has surnames
     if(saveErr)myProfile.surname=prevSurname;
     if(saveErr&&/NAME_NOT_ALLOWED/.test(saveErr.message||'')){showToast(NAME_BLOCKED_MSG,true,4500);return;}
+    if(saveErr&&/NAME_LOCKED/.test(saveErr.message||'')){showToast('Your name is confirmed by your ID, so it can’t be changed.',true,5000);return;}
     if(saveErr&&photoPlan&&photoPlan.uploaded.length)sb.storage.from('avatars').remove(photoPlan.uploaded); // nothing points at them
     if(saveErr&&/LOCATION_CHANGE_LIMIT/.test(saveErr.message))resetEditLocation(); // the account still has the old country and town: show those again
     if(saveErr&&dobChanged){myProfile.dob=previousDob;editDobEl.value=isoToDobDisplay(previousDob);}
