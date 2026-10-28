@@ -4483,6 +4483,15 @@ async function openBilling(){
   removeModal();
   showToast(data.error||'Couldn’t open billing just now. Please try again shortly.',true,4000);
 }
+// Settings → Cancel plan: Stripe's own cancel step for the current subscription (it asks to confirm,
+// and the plan carries on until the end of the month already paid for)
+async function cancelPlan(){
+  busyModal('Opening the cancel page…');
+  const {ok,data}=await callStripe('portal',{flow:'cancel'});
+  if(ok&&data.url){goToStripe('billing',data.url);return;}
+  removeModal();
+  showToast(data.error||'Couldn’t open the cancel page just now. Please try again shortly.',true,4000);
+}
 // Paid for BASED+ or Gold, but the plan can't start until the ID check is done: which plan, or null
 function paidAwaitingId(){
   const t=mySubTier;
@@ -5012,7 +5021,10 @@ function renderPlanRow(){
   // Cancelled but still paid up: offer to carry on instead of upgrading
   const resume=ending&&myStripeCustomer?`<button onclick="resumePlan()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Resume</button>`:'';
   const btn=`<div style="display:flex;gap:8px">${manage}${resume}${up}</div>`;
-  row.innerHTML=`<i class="ti ti-crown" style="font-size:24px;color:${paid||waitingFor?'var(--gold)':'var(--text-muted)'}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Current plan</p><p style="font-size:13px;color:${paid||waitingFor?'var(--gold-light)':'var(--text-muted)'}">${name}${gift?` until ${gift.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`:''}</p>${gift?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">A free gift from BASED</p>`:ending?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">Cancels ${ending.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p>`:''}</div>${btn}`;
+  // Cancel plan: straight to Stripe's cancel step (shown while a paid subscription is running and not already cancelled)
+  const canCancel=myStripeCustomer&&!ending&&['plus','gold'].includes(mySubTier)&&['active','trialing','past_due'].includes(mySubStatus||'');
+  const cancelLink=canCancel?`<button onclick="cancelPlan()" style="display:block;background:none;border:none;padding:8px 0 2px;min-height:32px;color:var(--text-muted);font-size:12px;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-family:var(--sans)">Cancel plan</button>`:'';
+  row.innerHTML=`<i class="ti ti-crown" style="font-size:24px;color:${paid||waitingFor?'var(--gold)':'var(--text-muted)'}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Current plan</p><p style="font-size:13px;color:${paid||waitingFor?'var(--gold-light)':'var(--text-muted)'}">${name}${gift?` until ${gift.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`:''}</p>${gift?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">A free gift from BASED</p>`:ending?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">Cancels ${ending.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p>`:''}${cancelLink}</div>${btn}`;
 }
 // The upgrade screen without a particular feature in mind: both paid plans from Free,
 // just Gold from BASED+
