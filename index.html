@@ -116,36 +116,41 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .pf-head .pf-av img{width:100%;height:100%;object-fit:cover}
 .pf-name{font-family:var(--serif);font-size:20px;color:var(--text-on-dark);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pf-sub{font-size:12.5px;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pf-rings{display:flex;align-items:center;justify-content:center;gap:8px;margin:8px 0 4px}
-.pf-ring{position:relative;width:210px;height:210px;flex-shrink:0}
+.pf-rings{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:center;margin:6px 0 10px}
+.pf-ring{position:relative;width:100%;aspect-ratio:1/1}
+.pf-photo{width:95%;justify-self:center;aspect-ratio:1/1;border-radius:50%;overflow:hidden;background:var(--navy-light);border:2px solid rgba(201,168,76,0.35);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:44px;color:var(--text-on-dark);box-sizing:border-box}
+.pf-photo img{width:100%;height:100%;object-fit:cover}
 .pf-ring svg{display:block;width:100%;height:100%}
 .pf-end{width:54px;display:flex;justify-content:center}
 .pf-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .pf-cap{display:flex;align-items:center;gap:5px;font-size:11px;letter-spacing:1.3px;color:var(--text-muted)}
-.pf-pct{font-family:var(--serif);font-size:46px;font-weight:700;line-height:1.05}
+.pf-pct{font-family:var(--serif);font-size:38px;font-weight:700;line-height:1.05}
 .pf-on{font-size:12px;color:var(--text-muted)}
 .pf-legend{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 16px;margin:2px 0 18px;font-size:13px}
 .pf-legend>span{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .pf-legend i{width:14px;height:4px;border-radius:2px;flex-shrink:0}
-.meet{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:13px 14px 6px;margin-bottom:8px}
+.meet{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:13px 12px 4px;margin-bottom:8px}
 .meet-head{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:1.4px;color:var(--text-muted);margin-bottom:11px}
 .pd-hero{padding-top:14px}
 .meet-tabs{position:sticky;top:0;z-index:3;box-shadow:0 -13px 0 var(--navy-mid);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:#1f2434;border-radius:11px;padding:3px;margin-bottom:12px}
 .meet-tabs button{min-height:40px;border:none;border-radius:9px;background:transparent;color:var(--text-muted);font-family:var(--sans);font-size:12.5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;padding:3px 2px}
 .meet-tabs button b{font-size:11px;font-weight:600;opacity:0.8}
 .meet-tabs button.on{background:var(--navy-light);color:var(--text-on-dark)}
-.meet-row{display:block;width:100%;text-align:left;background:none;border:none;border-top:0.5px solid rgba(255,255,255,0.06);padding:11px 0 12px;color:inherit;font-family:var(--sans);cursor:pointer}
-.meet-row:first-child{border-top:none;padding-top:2px}
+.meet-row{display:block;width:100%;box-sizing:border-box;text-align:left;background:rgba(255,255,255,0.035);border:0.5px solid rgba(255,255,255,0.09);border-radius:13px;padding:12px 12px 13px;margin-bottom:9px;color:inherit;font-family:var(--sans);cursor:pointer}
+.meet-row.open{border-color:rgba(201,168,76,0.35);background:rgba(255,255,255,0.05)}
+.meet-row .chev{font-size:15px;color:var(--text-muted);transition:transform .2s}
+.meet-row.open .chev{transform:rotate(180deg)}
+.meet-info{font-size:13px;line-height:1.5;color:var(--text-on-dark);margin:0 0 6px}
 .meet-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
 .meet-title{font-size:14px;color:var(--text-on-dark);line-height:1.35}
 .meet-title small{display:block;font-size:11px;color:var(--text-muted);margin-top:2px}
 .meet-tag{font-size:11px;padding:2px 8px;border-radius:999px;white-space:nowrap;flex-shrink:0}
 .meet-track{position:relative;height:20px;margin:0 9px}
-.meet-more{display:none;margin-top:6px}
+.meet-more{display:none;margin:-2px 0 8px}
 .meet-row.open .meet-more{display:block}
 .meet-empty{font-size:13px;color:var(--text-muted);text-align:center;padding:14px 0 16px}
 .meet-div{font-size:11px;color:var(--text-muted);letter-spacing:0.3px;border-top:0.5px solid rgba(255,255,255,0.12);padding:12px 0 4px;margin-top:4px}
-.pf-bar{flex-shrink:0;display:flex;gap:7px;padding-top:10px;padding-left:12px;padding-right:12px;background:var(--navy);border-top:0.5px solid rgba(255,255,255,0.08)}
+.pf-bar{flex-shrink:0;display:flex;gap:7px;padding-top:10px;padding-left:16px;padding-right:16px;background:var(--navy);border-top:0.5px solid rgba(255,255,255,0.08)}
 .pf-bar:empty{display:none}
 .pf-bar .act-btn{padding:9px 4px;font-size:11px;line-height:1.2;text-align:center;min-height:58px}
 .pf-bar .act-btn i,.pf-bar .act-btn svg{font-size:21px}
@@ -157,10 +162,14 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .filter-bar{display:flex;align-items:center;gap:9px;width:100%;min-height:44px;margin-bottom:12px;padding:0 14px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.14);border-radius:13px;color:var(--text-on-dark);font-family:var(--sans);font-size:13px;cursor:pointer;text-align:left}
 .filter-bar .ti{font-size:17px;color:var(--gold)}.filter-bar .fb-title{font-weight:600}.filter-bar .fb-sum{flex:1;min-width:0;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sr-card{gap:12px;padding:12px}
+.list-tile{min-height:108px;box-sizing:border-box;padding:12px!important;gap:12px!important}
+.list-tile .avatar{width:76px;height:76px;font-size:24px}
+@media (max-width:360px){.list-tile{min-height:89px}.list-tile .avatar{width:64px;height:64px}}
 .sr-ring,.sr-photo{position:relative;width:76px;height:76px;flex-shrink:0}
 .sr-ring svg{display:block;width:100%;height:100%}
 .sr-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
-.sr-pct{font-family:var(--serif);font-size:19px;font-weight:700}
+.sr-pct{font-family:var(--serif);font-size:21px;font-weight:700}
+.sr-ring{cursor:help}
 .sr-cap{font-size:8.5px;letter-spacing:0.8px;color:var(--text-muted);margin-top:3px}
 .sr-photo{border-radius:50%;overflow:hidden;background:var(--navy-light);border:1.5px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:22px;color:var(--gold);box-sizing:border-box}
 .sr-photo img{width:100%;height:100%;object-fit:cover}
@@ -2750,12 +2759,17 @@ function renderProfiles(minPct){
     const badge=isMutual?`<span style="font-size:10px;color:var(--green);border:0.5px solid rgba(111,207,151,0.4);border-radius:5px;padding:2px 7px;margin-left:5px"><i class="ti ti-heart" style="font-size:10px"></i> Match</span>`:'';
     const avatarContent=p.photo_url?`<img src="${esc(p.photo_url)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${isMutual?'':'filter:blur(7px);transform:scale(1.15)'}" />`:`<span style="color:var(--text-on-dark)">${esc(p.initials)}</span>`;
     const aStr=JSON.stringify(p.answers).replace(/"/g,'&quot;');
-    if(isLocked){html+=`<div class="profile-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="showUpgradePrompt('profile_views','limit')"><div class="avatar" style="background:var(--navy-light);border-color:rgba(255,255,255,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--text-muted)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;margin-bottom:3px">Locked profile</div><div style="font-size:13px;color:var(--text-muted)">${perm('profile_views').period==='day'?'More views tomorrow, or upgrade':'Upgrade to view'}</div></div><div class="card-badges"><div class="compat-badge" style="color:${compatColor}">${p.compat}% Compatible</div></div></div>`;}
+    if(isLocked){const them=leanOf(p.basedScore),lockMsg=perm('profile_views').period==='day'?'More views tomorrow, or upgrade':'Upgrade to view';
+      html+=`<div class="profile-card sr-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="showUpgradePrompt('profile_views','limit')">`
+        +`<div class="sr-ring" role="button" tabindex="0" onclick="event.stopPropagation();showScoreInfoPopup('compat')" aria-label="${p.compat}% compatible. How is this worked out?">${searchRingsSvg(them,myLean)}<div class="sr-mid"><span class="sr-pct" style="color:${compatColor}">${p.compat}%</span></div></div>`
+        +`<div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">Locked profile</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${lockMsg}</div>`
+        +`${them?`<div class="sr-legend"><span style="color:#e8e4dc"><i style="background:#e8e4dc"></i>Them ${leanLabelHtml(them)}</span><span style="color:var(--gold)"><i style="background:var(--gold)"></i>You ${leanLabelHtml(myLean)}</span></div>`:''}</div>`
+        +`<div class="sr-photo" style="border-color:rgba(255,255,255,0.12)"><i class="ti ti-lock" style="font-size:24px;color:var(--text-muted)"></i></div></div>`;}
     else{const them=leanOf(p.basedScore),first=String(p.name||'').split(' ')[0]||'Them',dt=distanceText(p);
       html+=`<div class="profile-card sr-card" style="margin-bottom:12px" onclick="handleProfileTap('${ja(aStr)}',${p.compat},${p.basedScore},'${ja(p.initials)}','${ja(p.name)}',${p.age},'','${ja(p.photo_url||'')}','${profileKey}','${ja(p.religion||'')}')">`
-        +`<div class="sr-ring" role="img" aria-label="${p.compat}% compatible. ${esc(first)} ${esc(leanLabel(them))}, you ${esc(leanLabel(myLean))}">${searchRingsSvg(them,myLean)}<div class="sr-mid"><span class="sr-pct" style="color:${compatColor}">${p.compat}%</span><span class="sr-cap">MATCH</span></div></div>`
+        +`<div class="sr-ring" role="button" tabindex="0" onclick="event.stopPropagation();showScoreInfoPopup('compat')" aria-label="${p.compat}% compatible. ${esc(first)} ${esc(leanLabel(them))}, you ${esc(leanLabel(myLean))}">${searchRingsSvg(them,myLean)}<div class="sr-mid"><span class="sr-pct" style="color:${compatColor}">${p.compat}%</span></div></div>`
         +`<div style="flex:1;min-width:0"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}</div>`
-        +`${dt?`<div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${esc(dt.replace(/^\(|\)$/g,''))}</div>`:''}${badge?`<div style="margin-top:5px">${badge}</div>`:''}`
+        +`${dt?`<div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${esc(dt)}</div>`:''}${badge?`<div style="margin-top:5px">${badge}</div>`:''}`
         +`<div class="sr-legend"><span style="color:#e8e4dc"><i style="background:#e8e4dc"></i>${esc(first)} ${leanLabelHtml(them)}</span><span style="color:var(--gold)"><i style="background:var(--gold)"></i>You ${leanLabelHtml(myLean)}</span></div></div>`
         +`<div class="sr-photo">${avatarContent}</div></div>`;}
     if(adEvery&&((i+1)%adEvery===0||(i===list.length-1&&list.length<adEvery&&list.length>=2)))html+=adCardHtml(adCards[adNext++%adCards.length]);
@@ -2872,14 +2886,14 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
       ?`<div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.6);display:flex;align-items:center;justify-content:center" title="You both: ${myLabel}">${heartIcon}</div>`
       :`<div style="position:absolute;top:50%;left:${themP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(255,255,255,0.45);display:flex;align-items:center;justify-content:center" title="Them: ${themLabel}">${themIcon}</div><div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.5);display:flex;align-items:center;justify-content:center" title="You: ${myLabel}">${myIcon}</div>`;
     const html=`<div class="meet-row" role="button" tabindex="0" aria-expanded="false" onclick="this.classList.toggle('open');this.setAttribute('aria-expanded',this.classList.contains('open'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-      <div class="meet-top"><span class="meet-title">${esc(q.text)}${!q.scoring?'<small>Not counted in your score</small>':''}</span><span class="meet-tag" style="border:1px solid ${col};color:${col}">${label}${religionTag}</span></div>
+      <div class="meet-top"><span class="meet-title">${esc(q.text)}${!q.scoring?'<small>Not counted in your score</small>':''}</span><span style="display:flex;align-items:center;gap:6px;flex-shrink:0"><span class="meet-tag" style="border:1px solid ${col};color:${col}">${label}${religionTag}</span><i class="ti ti-chevron-down chev" aria-hidden="true"></i></span></div>
+      <div class="meet-more">${q.info?`<p class="meet-info">${esc(q.info)}</p>`:''}${stmtPairHtml(q)}</div>
       <div class="meet-track">
         <div style="position:absolute;top:50%;left:0;right:0;height:3px;background:rgba(255,255,255,0.08);border-radius:3px;transform:translateY(-50%)"></div>
-        <div style="position:absolute;top:50%;left:50%;width:1px;height:10px;background:rgba(255,255,255,0.25);transform:translate(-50%,-50%)"></div>
+        <div style="position:absolute;top:50%;left:50%;width:1.5px;height:18px;background:rgba(255,255,255,0.45);transform:translate(-50%,-50%)" aria-hidden="true"></div>
         <div style="position:absolute;top:50%;left:${Math.min(myP,themP)}%;width:${Math.abs(myP-themP)}%;height:6px;background:${col};opacity:0.45;border-radius:3px;transform:translateY(-50%)"></div>
         ${dots}
       </div>
-      <div class="meet-more">${stmtPairHtml(q)}<div style="text-align:right"><span class="info-icon-btn" role="button" tabindex="0" onclick="event.stopPropagation();showInfoPopup(${i})" aria-label="What does this mean?">i</span></div></div>
     </div>`;
     return {cat,html,scoring:!!q.scoring};
   });
@@ -2913,17 +2927,17 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   // ── Header (option B): photo, name, age, tick; religion and distance underneath
   const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);
   const canGallery=isMutual&&/^[0-9a-f-]{36}$/.test(String(profileKey));
-  const av=photoUrl?`<img src="${esc(photoUrl)}" alt="" style="${isMutual?'':'filter:blur(5px);transform:scale(1.15)'}">`:esc(inits);
-  const dist=pp?distanceText(pp).replace(/^\(|\)$/g,''):'';
+  const av=photoUrl?`<img src="${esc(photoUrl)}" alt="${esc(name)}" style="${isMutual?'':'filter:blur(9px);transform:scale(1.15)'}">`:esc(inits);
+  const dist=pp?distanceText(pp):''; // e.g. "(within 5 miles)"
   const sub=[theirReligion||'',dist].filter(Boolean).map(esc).join(' · ');
-  document.getElementById('profile-head').innerHTML=`<div class="pf-av"${canGallery&&photoUrl?` role="button" style="cursor:pointer" aria-label="View ${esc(name)}’s photos" onclick="openMatchGallery('${profileKey}',0,'${ja(photoUrl)}')"`:''}>${av}</div><div style="min-width:0"><div class="pf-name">${esc(name)}, ${age}${pp&&pp.verified?VERIFIED_TICK:''}</div>${sub?`<div class="pf-sub">${sub}</div>`:''}</div>`;
+  document.getElementById('profile-head').innerHTML=`<div style="min-width:0"><div class="pf-name">${esc(name)}, ${age}${pp&&pp.verified?VERIFIED_TICK:''}</div>${sub?`<div class="pf-sub">${sub}</div>`:''}</div>`;
   // ── Two rings (option A): outer = them, inner = you, the compatibility in the middle
   const them=leanOf(basedScore),me=leanOf(calcBasedScore(myAnswers)),first=String(name||'').split(' ')[0]||'Them';
-  const endCol=side=>`<div class="pf-end" style="opacity:${(them&&them.side===side&&them.pct)||(me&&me.side===side&&me.pct)?1:0.4}">${endImg(side,24,54)}</div>`;
   const ringsSvg=`<svg viewBox="0 0 160 160" aria-hidden="true"><circle cx="80" cy="80" r="72" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8"/><circle cx="80" cy="80" r="60" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8"/><line x1="80" y1="1" x2="80" y2="13" stroke="rgba(255,255,255,0.28)" stroke-width="1.5"/><line x1="80" y1="147" x2="80" y2="159" stroke="rgba(255,255,255,0.28)" stroke-width="1.5"/>${scoreRingArc(them,72,8,'#e8e4dc')}${scoreRingArc(me,60,8,'#c9a84c')}</svg>`;
   const ringLabel=`${compat}% compatible. ${first} ${leanLabel(them)}, you ${leanLabel(me)}`;
   document.getElementById('profile-detail-body').innerHTML=`<div class="pd-hero">${topBanner}
-    <div class="pf-rings">${endCol('left')}<div class="pf-ring" role="img" aria-label="${esc(ringLabel)}">${ringsSvg}<div class="pf-mid"><span class="pf-cap">COMPATIBLE<button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></span><span class="pf-pct" style="color:${scoreColor}">${compat}%</span><span class="pf-on">on ${NUM_SCORING} questions</span></div></div>${endCol('right')}</div>
+    <div class="pf-rings"><div class="pf-ring" role="img" aria-label="${esc(ringLabel)}">${ringsSvg}<div class="pf-mid"><span class="pf-cap">COMPATIBLE<button class="info-icon-btn" onclick="showScoreInfoPopup('compat')" aria-label="How compatibility is calculated">i</button></span><span class="pf-pct" style="color:${scoreColor}">${compat}%</span><span class="pf-on">on ${NUM_SCORING} questions</span></div></div>
+      <div class="pf-photo"${canGallery&&photoUrl?` role="button" style="cursor:pointer" aria-label="View ${esc(name)}’s photos" onclick="openMatchGallery('${profileKey}',0,'${ja(photoUrl)}')"`:''}>${av}</div></div>
     <div class="pf-legend"><span style="color:#e8e4dc"><i style="background:#e8e4dc"></i>${esc(first)} ${leanLabelHtml(them)}</span><span style="color:var(--gold)"><i style="background:var(--gold)"></i>You ${leanLabelHtml(me)}</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How the score is worked out">i</button></div>
     ${canGallery?'<div id="profile-photo-strip"></div>':''}</div>
     <div class="meet"><div class="meet-head">WHERE YOU MEET</div>
@@ -3864,7 +3878,7 @@ const SCORE_INFO={
   compat:{title:'Compatibility',get text(){
     const n=leadingScored();
     const out=QUESTIONS.filter(q=>!q.scoring).map(q=>esc(q.text.toLowerCase()));
-    return `Calculates your compatibility with the person based on how you each scored the first ${n} statements.`+(out.length?` The ${out.join('/')} scores are excluded from the calculation.`:'');
+    return `How closely your answers match theirs on the first ${n} statements. The closer your two answers on each one, the higher the score: 100% means you answered every one the same.<br><br>Being on opposite sides of a statement (one of you agrees, the other disagrees) counts against you more than the same gap on one side, and the further apart you are across the middle, the more it costs.`+(out.length?`<br><br>The ${out.join('/')} answers aren’t included.`:'');
   }},
   based:{title:'Score',get text(){
     const n=leadingScored();
@@ -5641,7 +5655,7 @@ async function switchTab(tab){if(tab==='browse')setTimeout(()=>quietSearchRefres
 
 // ─── Search filters fold away while you scroll ──────────────────────────────────
 // Open when you land on Search. Scrolling the list folds them into one bar (showing what's set);
-// tapping the bar opens them again, and scrolling back to the very top opens them too.
+// tapping the bar opens them again (scrolling either way folds them again), and scrolling back to the very top opens them too.
 let filtersCollapsed=false,filtersLockUntil=0,filtersOpenedAt=0,searchLastTop=0;
 function filterSummary(){
   const t=id=>(document.getElementById(id)||{}).textContent||'';
@@ -5675,7 +5689,9 @@ function expandSearchFilters(){
       const box=document.getElementById('filter-box');
       // only fold when there's enough list below to scroll through, so it can't flick open and shut
       const room=tab.scrollHeight-tab.clientHeight>(box?box.offsetHeight:0)+80;
-      if(room&&top>filtersOpenedAt+50)setSearchFiltersCollapsed(true);
+      // opened at the top: fold once you scroll down; opened part-way down: fold on a scroll either way
+      const moved=filtersOpenedAt>2?Math.abs(top-filtersOpenedAt)>40&&top>2:top>filtersOpenedAt+50;
+      if(room&&moved)setSearchFiltersCollapsed(true);
     }else if(up&&top<=2){filtersOpenedAt=0;setSearchFiltersCollapsed(false);}
   },{passive:true});
 })();
@@ -6343,7 +6359,7 @@ function updateMatchNotifs(){
 function renderMatchesTab(){
   updateMatchNotifs(); // the Interest badge always matches what the tab shows
   const inList=document.getElementById('incoming-interest-list'),ee=document.getElementById('expressed-list');
-  const lockedCard=(!canUse('see_interested')&&incomingHiddenCount>0)?`<div onclick="showUpgradePrompt('see_interested')" style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.35);border-radius:15px;padding:16px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer"><div class="avatar" style="background:rgba(201,168,76,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--gold)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${incomingHiddenCount} ${incomingHiddenCount===1?'person is':'people are'} interested in you</div><div style="font-size:13px;color:var(--gold);margin-top:3px">Upgrade to BASED+ to see who</div></div><i class="ti ti-chevron-right" style="color:var(--text-muted)"></i></div>`:'';
+  const lockedCard=(!canUse('see_interested')&&incomingHiddenCount>0)?`<div class="list-tile" onclick="showUpgradePrompt('see_interested')" style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.35);border-radius:15px;padding:16px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer"><div class="avatar" style="background:rgba(201,168,76,0.1)"><i class="ti ti-lock" style="font-size:20px;color:var(--gold)"></i></div><div style="flex:1"><div style="font-size:15px;color:var(--text-on-dark);font-weight:600">${incomingHiddenCount} ${incomingHiddenCount===1?'person is':'people are'} interested in you</div><div style="font-size:13px;color:var(--gold);margin-top:3px">Upgrade to BASED+ to see who</div></div><i class="ti ti-chevron-right" style="color:var(--text-muted)"></i></div>`:'';
   const visible=id=>browseProfiles.some(x=>(x.id||x.name)===id);
   const byNewest=at=>(a,b)=>new Date(at[b]||0)-new Date(at[a]||0)||String(a).localeCompare(String(b)); // fixed order, so rows never shuffle under your finger
   const incomingIds=Array.from(incomingInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&!dismissedIncoming.has(id)&&visible(id)).sort((a,b)=>(theirSuper.has(b)-theirSuper.has(a))||byNewest(incomingInterestAt)(a,b)); // super interests first
@@ -6358,7 +6374,7 @@ function renderMatchesTab(){
       const statusLabel=daysSince>=3?'3+ days ago':daysSince>=2?'2-3 days ago':'Less than 2 days ago';
       const dot=`<span title="${statusLabel}" style="width:18px;height:18px;border-radius:9px;background:${statusColor};display:inline-block;flex-shrink:0"></span>`;
       const sup=theirSuper.has(pid);
-      return `<div class="${sup?'super-card':''}" style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--gold${sup?'-light':''});margin-top:3px;${sup?'font-weight:600':''}">${sup?'<i class="ti ti-confetti" style="font-size:14px"></i> Sent you a super interest':'<i class="ti ti-heart" style="font-size:13px"></i> Interested in you'}</div></div><button onclick="event.stopPropagation();doDismissIncoming('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Remove from list"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
+      return `<div class="list-tile${sup?' super-card':''}" style="background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.25);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--gold${sup?'-light':''});margin-top:3px;${sup?'font-weight:600':''}">${sup?'<i class="ti ti-confetti" style="font-size:14px"></i> Sent you a super interest':'<i class="ti ti-heart" style="font-size:13px"></i> Interested in you'}</div></div><button onclick="event.stopPropagation();doDismissIncoming('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Remove from list"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
     }).join('');
   }
   const expIds=Array.from(expressedInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&visible(id)).sort(byNewest(myInterestedAt));
@@ -6372,7 +6388,7 @@ function renderMatchesTab(){
       const statusColor=daysSince>=3?'var(--red)':daysSince>=2?'var(--gold)':'var(--green)';
       const statusLabel=daysSince>=3?'3+ days ago':daysSince>=2?'2-3 days ago':'Less than 2 days ago';
       const dot=`<span title="${statusLabel}" style="width:18px;height:18px;border-radius:9px;background:${statusColor};display:inline-block;flex-shrink:0"></span>`;
-      return `<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">${mySuper.has(pid)?'<i class="ti ti-confetti" style="font-size:13px;color:var(--gold)"></i> Super interest sent · waiting…':'Waiting for them to respond…'}</div></div><button onclick="event.stopPropagation();confirmWithdrawInterest('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Withdraw interest"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
+      return `<div class="list-tile" style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openIncomingProfile('${pid}')"><div class="avatar">${av}</div><div style="flex:1"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${esc(p.name)}, ${p.age}${p.verified?VERIFIED_TICK:''}${distanceSpan(p)}</span></div><div style="font-size:13px;color:var(--text-muted);margin-top:3px">${mySuper.has(pid)?'<i class="ti ti-confetti" style="font-size:13px;color:var(--gold)"></i> Super interest sent · waiting…':'Waiting for them to respond…'}</div></div><button onclick="event.stopPropagation();confirmWithdrawInterest('${pid}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Withdraw interest"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
     }).join('');
   }
 }
@@ -6432,7 +6448,7 @@ async function renderConversationsTab(){
       ?`<span title="${statusLabel} · ${unreadN} unread" style="min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:${statusColor};color:${daysSince>=3?'#fff':'#1a1f2e'};font-size:11px;font-weight:700;line-height:18px;text-align:center;display:inline-block;flex-shrink:0;box-sizing:border-box">${unreadN>9?'9+':unreadN}</span>`
       :`<span title="${statusLabel}" style="width:18px;height:18px;border-radius:9px;background:${statusColor};display:inline-block;flex-shrink:0"></span>`;
     const av=p.photo_url?`<img src="${esc(p.photo_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`:`${esc(p.initials)}`;
-    html+=`<div style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${ja(p.initials)}','${ja(p.name)}','${ja(p.photo_url||'')}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px;min-width:0"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${esc(p.name)}</span>${p.verified?VERIFIED_TICK.replace('margin-left:4px','margin-left:-3px;flex-shrink:0'):''}${distanceSpan(p)}</div><div style="font-size:13px;color:${unreadFrom.get(pid)?'var(--text-on-dark)':'var(--text-muted)'};font-weight:${unreadFrom.get(pid)?'600':'400'};margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(preview)}</div></div><button onclick="event.stopPropagation();openChatBinMenu('${pid}','${ja(p.name)}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Options for this match"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
+    html+=`<div class="list-tile" style="background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.1);border-radius:15px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:11px;cursor:pointer" onclick="openChat('${pid}','${ja(p.initials)}','${ja(p.name)}','${ja(p.photo_url||'')}')"><div class="avatar">${av}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px;min-width:0"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${esc(p.name)}</span>${p.verified?VERIFIED_TICK.replace('margin-left:4px','margin-left:-3px;flex-shrink:0'):''}${distanceSpan(p)}</div><div style="font-size:13px;color:${unreadFrom.get(pid)?'var(--text-on-dark)':'var(--text-muted)'};font-weight:${unreadFrom.get(pid)?'600':'400'};margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(preview)}</div></div><button onclick="event.stopPropagation();openChatBinMenu('${pid}','${ja(p.name)}')" style="background:transparent;border:none;cursor:pointer;padding:6px;flex-shrink:0" aria-label="Options for this match"><i class="ti ti-trash" style="font-size:18px;color:var(--text-muted)"></i></button>${dot}</div>`;
   });
   document.getElementById('conversations-list').innerHTML=html||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No conversations yet.</p>';
   updateConnectedNotif(new Map(entries.map(e=>[e.pid,e.daysSince])));
