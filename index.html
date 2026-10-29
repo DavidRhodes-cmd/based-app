@@ -44,6 +44,11 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
   overflow:hidden;
   position:relative;
 }
+/* On a phone the app fills the whole screen, so the page behind it is the same navy (no darker band at the bottom) */
+@media(max-width:430px){
+  html,body{background:var(--navy);}
+  .app-shell{height:100dvh;max-height:100dvh;}
+}
 @media(min-width:431px){
   .app-shell{height:90vh;max-height:900px;border-radius:40px;border:1px solid rgba(255,255,255,0.08);}
   body{background:#0a0d16;}
@@ -2788,7 +2793,7 @@ const adSeen=new Set();
 const AD_IMG_BASE='https://okubbpsvaogqzdtajiqz.supabase.co/storage/v1/object/public/adverts/';
 async function loadAdverts(force){
   if(!currentUser)return;
-  if(!force&&Date.now()-adsLoadedAt<5*60*1000)return;
+  if(!force&&Date.now()-adsLoadedAt<110*1000)return; // at most about every 2 minutes (the Search check)
   adsLoadedAt=Date.now();
   let list=[];
   try{const {data,error}=await sb.rpc('my_adverts');if(error)throw error;list=Array.isArray(data)?data.filter(a=>a&&/^https:\/\//.test(a.link||'')):[];}
@@ -5119,6 +5124,15 @@ function onMyPlanMaybeChanged(p){
   if(key!==lastPlanKey)refreshPermissions(true);
   lastPlanKey=key;
 }
+// The regular check on Search: one small request for your allowances; only if they've changed
+// (e.g. extra super interests given by BASED) does the app do a full refresh and redraw
+let quietPermsAt=0;
+async function quietAllowanceCheck(){
+  if(!currentUser||!PERMS||Date.now()-quietPermsAt<100*1000)return;
+  quietPermsAt=Date.now();
+  try{const {data,error}=await sb.rpc('my_permissions');if(error||!data||!data.features)return;
+    if(JSON.stringify(data)!==JSON.stringify(PERMS))refreshPermissions(true);}catch(e){}
+}
 async function refreshPermissions(force){
   if(!currentUser)return;
   if(!force&&Date.now()-permRefreshAt<5000)return; // no need to ask more than every few seconds
@@ -5647,10 +5661,12 @@ function toggleLocationMode(){
 async function quietSearchRefresh(force){
   const main=document.getElementById('screen-main'),tab=document.getElementById('tab-browse-content');
   if(!currentUser||!main.classList.contains('active')||!tab||tab.style.display==='none'||document.visibilityState!=='visible'||document.getElementById('modal-bd'))return;
+  // Allowances (e.g. extra super interests given by BASED) and adverts: each only redraws if something changed
+  loadAdverts(false);
+  quietAllowanceCheck();
   if(!force&&Date.now()-browseLoadedAt<60*1000)return;
   const key=()=>browseProfiles.filter(x=>!x.isDemo).map(x=>x.id+(x.locked?'L':'')).sort().join(',');
   const before=key(),top=tab.scrollTop;
-  loadAdverts(false);
   await loadBrowseProfiles();
   if(key()!==before){renderProfiles(parseInt(document.getElementById('filter-min').value)||0);tab.scrollTop=top;}
 }
