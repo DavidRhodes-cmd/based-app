@@ -2875,8 +2875,10 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   const rows=QUESTIONS.map((q,i)=>{
     const sl=q.slot,my=myAnswers[sl]||0,them=answers[sl]||0,diff=Math.abs(my-them);
     const sameSign=(my===0&&them===0)||(my>0&&them>0)||(my<0&&them<0);
-    // Differs: opposite sides, or one of you in the centre and the other not. Matched: same side, 0–3 apart. Aligned: same side, 4+ apart.
-    const cat=!sameSign?'differs':diff>=4?'aligned':'matched';
+    // Matched: same side, 0–3 apart (or both in the centre). Aligned: same side, 4+ apart, or one of you in the
+    // centre and the other 1–2 away. Differs: opposite sides, or one in the centre and the other 3+ away.
+    const oneCentre=(my===0)!==(them===0);
+    const cat=oneCentre?(diff<=2?'aligned':'differs'):!sameSign?'differs':diff>=4?'aligned':'matched';
     const col=cat==='differs'?'var(--red)':cat==='aligned'?'var(--gold)':'var(--green)';
     const label=cat==='differs'?'Differs':cat==='aligned'?'Aligned':'Matched';
     const toP=v=>((v+10)/20)*100,myP=toP(my),themP=toP(them);
