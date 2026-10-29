@@ -134,10 +134,11 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .pf-legend{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 16px;margin:2px 0 18px;font-size:13px}
 .pf-legend>span{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .pf-legend i{width:14px;height:4px;border-radius:2px;flex-shrink:0}
-.meet{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:13px 12px 4px;margin-bottom:8px}
+.meet{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:0 12px 4px;margin-bottom:8px}
+.meet-sticky{position:sticky;top:0;z-index:3;background:var(--navy-mid);margin:0 -12px;padding:13px 12px 1px;border-radius:16px 16px 0 0;box-shadow:0 -14px 0 var(--navy),0 8px 10px -8px rgba(0,0,0,0.5)}
 .meet-head{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:1.4px;color:var(--text-muted);margin-bottom:11px}
 .pd-hero{padding-top:14px}
-.meet-tabs{position:sticky;top:0;z-index:3;box-shadow:0 -13px 0 var(--navy-mid);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:#1f2434;border-radius:11px;padding:3px;margin-bottom:12px}
+.meet-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:#1f2434;border-radius:11px;padding:3px;margin-bottom:12px}
 .meet-tabs button{min-height:40px;border:none;border-radius:9px;background:transparent;color:var(--text-muted);font-family:var(--sans);font-size:12.5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;padding:3px 2px}
 .meet-tabs button b{font-size:11px;font-weight:600;opacity:0.8}
 .meet-tabs button.on{background:var(--navy-light);color:var(--text-on-dark)}
@@ -155,15 +156,16 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .meet-row.open .meet-more{display:block}
 .meet-empty{font-size:13px;color:var(--text-muted);text-align:center;padding:14px 0 16px}
 .meet-div{font-size:11px;color:var(--text-muted);letter-spacing:0.3px;border-top:0.5px solid rgba(255,255,255,0.12);padding:12px 0 4px;margin-top:4px}
-.pf-bar{flex-shrink:0;display:flex;gap:7px;padding-top:10px;padding-left:16px;padding-right:16px;background:var(--navy);border-top:0.5px solid rgba(255,255,255,0.08)}
+.pf-bar{flex-shrink:0;display:flex;padding-top:8px;padding-left:16px;padding-right:16px;background:var(--navy)}
 .pf-bar:empty{display:none}
-.pf-bar .act-btn{padding:9px 4px;font-size:11px;line-height:1.2;text-align:center;min-height:58px}
-.pf-bar .act-btn i,.pf-bar .act-btn svg{font-size:21px}
+.pf-bar-in{flex:1;display:flex;gap:6px;background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.08);border-radius:16px;padding:6px}
+.pf-bar .act-btn{padding:6px 3px;gap:3px;font-size:10.5px;line-height:1.15;text-align:center;min-height:48px;border-radius:11px}
+.pf-bar .act-btn i{font-size:18px}.pf-bar .act-btn svg{width:18px;height:18px}
 .pf-bar .act-btn.super{border-color:rgba(201,168,76,0.55);background:linear-gradient(135deg,rgba(201,168,76,0.2),rgba(201,168,76,0.06));color:var(--gold-light)}
 .pf-bar .act-btn.super.spent{border-color:rgba(201,168,76,0.3);background:rgba(201,168,76,0.04);color:var(--text-muted)}
 .pf-bar .act-btn.sent{pointer-events:none;opacity:0.45}
 .pf-bar .act-btn small{font-size:10px;opacity:0.75}
-.pf-bar .btn-primary{flex:2;padding:12px 10px;font-size:15px}
+.pf-bar .btn-primary{flex:2;padding:10px;font-size:14px;border-radius:11px}
 .filter-bar{display:flex;align-items:center;gap:9px;width:100%;min-height:44px;margin-bottom:12px;padding:0 14px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.14);border-radius:13px;color:var(--text-on-dark);font-family:var(--sans);font-size:13px;cursor:pointer;text-align:left}
 .filter-bar .ti{font-size:17px;color:var(--gold)}.filter-bar .fb-title{font-weight:600}.filter-bar .fb-sum{flex:1;min-width:0;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sr-card{gap:12px;padding:12px}
@@ -2931,7 +2933,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     if(context!=='incoming')bar+=`<button class="act-btn" onclick="doMoveOn('${profileKey}')"><i class="ti ti-arrow-right"></i>Move on</button>`;
     bar+=`<button class="act-btn hide-profile" onclick="doHideForever('${profileKey}')"><i class="ti ti-eye-off"></i>Don’t show again</button>`;
   }
-  document.getElementById('profile-actions').innerHTML=bar;
+  document.getElementById('profile-actions').innerHTML=bar?`<div class="pf-bar-in">${bar}</div>`:'';
   // ── Header (option B): photo, name, age, tick; religion and distance underneath
   const pp=browseProfiles.find(x=>(x.id||x.name)===profileKey);
   const canGallery=isMutual&&/^[0-9a-f-]{36}$/.test(String(profileKey));
@@ -2948,8 +2950,8 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
       <div class="pf-photo"${canGallery&&photoUrl?` role="button" style="cursor:pointer" aria-label="View ${esc(name)}’s photos" onclick="openMatchGallery('${profileKey}',0,'${ja(photoUrl)}')"`:''}>${av}</div></div>
     <div class="pf-legend"><span style="color:#e8e4dc"><i style="background:#e8e4dc"></i>${esc(first)} ${leanLabelHtml(them)}</span><span style="color:var(--gold)"><i style="background:var(--gold)"></i>You ${leanLabelHtml(me)}</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How the score is worked out">i</button></div>
     ${canGallery?'<div id="profile-photo-strip"></div>':''}</div>
-    <div class="meet"><div class="meet-head">WHERE YOU MEET</div>
-      <div class="meet-tabs" role="tablist">${[['matched','Matched'],['aligned','Aligned'],['differs','Differs'],['all','See all']].map(([k,t])=>`<button role="tab" data-tab="${k}" onclick="showMeetTab('${k}')">${t}<b>${k==='all'?rows.length:counts[k]}</b></button>`).join('')}</div>
+    <div class="meet"><div class="meet-sticky"><div class="meet-head">WHERE YOU MEET</div>
+      <div class="meet-tabs" role="tablist">${[['matched','Matched'],['aligned','Aligned'],['differs','Differs'],['all','See all']].map(([k,t])=>`<button role="tab" data-tab="${k}" onclick="showMeetTab('${k}')">${t}<b>${k==='all'?rows.length:counts[k]}</b></button>`).join('')}</div></div>
       <div id="meet-list"></div></div>
     ${/^[0-9a-f-]{36}$/.test(String(profileKey))&&!isMutual?`<div style="text-align:center;margin-top:12px"><button onclick="openReport('${profileKey}','${ja(name)}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${esc(name)}</button></div>`:''}`;
   // Start on the first tab that has something in it
