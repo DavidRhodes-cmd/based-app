@@ -2461,6 +2461,7 @@ function subscribeToInteractions(){
         if(newMatch&&pp(newMatch)){
           const p=pp(newMatch);
           playSound('mutual');
+          launchConfetti(null);
           showLiveBanner({title:`It's mutual with ${p.name}! 🎉`,sub:'You can now message each other',photo:p.photo_url,initials:p.initials,
             onTap:()=>{goTo('screen-main');switchTab('messages');}});
         }else if(newInterest&&pp(newInterest)){
@@ -3187,7 +3188,8 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
     const {data}=await sb.from('interactions').select('id,created_at').eq('from_user',profileKey).eq('to_user',currentUser.id).eq('action','interested');
     if(data&&data.length){mutualMatches.add(profileKey);mutualDays.set(profileKey,0);renderMutualBadge();loadBrowseProfiles();incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();playSound('mutual');isMutual=true;
       // The same big moment the other person gets
-      showLiveBanner({title:`It's mutual with ${name}! 🎉`,sub:'You can now message each other',photo:photoUrl||null,initials:inits,onTap:()=>{goTo('screen-main');switchTab('messages');}});}
+      showLiveBanner({title:`It's mutual with ${name}! 🎉`,sub:'You can now message each other',photo:photoUrl||null,initials:inits,onTap:()=>{goTo('screen-main');switchTab('messages');}});
+      launchConfetti(null);}
   }
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   renderMatchesTab();
@@ -5973,7 +5975,7 @@ async function refreshUnreadCounts(){
     const matchId=getMatchId(currentUser.id,pid);
     const {data:msgs,error:uErr}=await sb.rpc('get_decrypted_messages',{p_match_id:matchId});
     const n=uErr?(prevUnread.get(pid)||0):countUnread(msgs,matchId);if(n)unreadFrom.set(pid,n); // failed load → keep the last known count
-    const last=msgs&&msgs.length?msgs[msgs.length-1].created_at:matchCreatedAt[pid];
+    const last=latestOf(msgs&&msgs.length?msgs[msgs.length-1].created_at:null,matchCreatedAt[pid]);
     days.set(pid,last?(now-new Date(last).getTime())/86400000:0);
   }
   updateConnectedNotif(days);
@@ -6433,7 +6435,7 @@ async function renderConversationsTab(){
     if(!p)continue;
     const preview=mErr?'Couldn’t load messages — tap to try again':last?(last.sender_id===currentUser.id?'You: ':'')+last.content:'Say hello!';
     // Activity status: based on time since last message, or since match formed if no messages yet
-    const lastActivityAt=last?last.created_at:matchCreatedAt[pid];
+    const lastActivityAt=latestOf(last?last.created_at:null,matchCreatedAt[pid]);
     const daysSince=lastActivityAt?(now-new Date(lastActivityAt).getTime())/86400000:0;
     entries.push({pid,p,preview,lastActivityAt,daysSince});
   }
@@ -6459,7 +6461,9 @@ async function renderConversationsTab(){
 // message (green <2 days, amber 2–3, red 3+); NUMBER inside = total unread messages.
 // Only chats with someone you can currently see count — the same rule as the It's mutual list —
 // so a match who's gone back to the waiting list (or left) doesn't leave a dot with nothing behind it.
-let mutualDays=new Map(); // partner → days since the last message (or since you matched)
+let mutualDays=new Map(); // partner → days since the last message (or since you matched, if that's later)
+// The later of two timestamps (either may be missing)
+function latestOf(a,b){const ta=a?new Date(a).getTime():NaN,tb=b?new Date(b).getTime():NaN;if(isNaN(ta))return isNaN(tb)?null:b;if(isNaN(tb))return a;return ta>=tb?a:b;}
 function updateConnectedNotif(days){mutualDays=days instanceof Map?days:new Map();renderMutualBadge();}
 function mutualVisible(pid){return browseProfiles.some(x=>x.id===pid||x.name===pid);}
 function renderMutualBadge(){
