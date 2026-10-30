@@ -2951,11 +2951,10 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     <div class="pf-legend"><span style="color:#e8e4dc"><i style="background:#e8e4dc"></i>${esc(first)} ${leanLabelHtml(them)}</span><span style="color:var(--gold)"><i style="background:var(--gold)"></i>You ${leanLabelHtml(me)}</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How the score is worked out">i</button></div>
     ${canGallery?'<div id="profile-photo-strip"></div>':''}</div>
     <div class="meet"><div class="meet-sticky"><div class="meet-head">WHERE YOU MEET</div>
-      <div class="meet-tabs" role="tablist">${[['matched','Matched'],['aligned','Aligned'],['differs','Differs'],['all','See all']].map(([k,t])=>`<button role="tab" data-tab="${k}" onclick="showMeetTab('${k}')">${t}<b>${k==='all'?rows.length:counts[k]}</b></button>`).join('')}</div></div>
+      <div class="meet-tabs" role="tablist">${[['all','All'],['matched','Matched'],['aligned','Aligned'],['differs','Differs']].map(([k,t])=>`<button role="tab" data-tab="${k}" onclick="showMeetTab('${k}')">${t}<b>${k==='all'?rows.length:counts[k]}</b></button>`).join('')}</div></div>
       <div id="meet-list"></div></div>
     ${/^[0-9a-f-]{36}$/.test(String(profileKey))&&!isMutual?`<div style="text-align:center;margin-top:12px"><button onclick="openReport('${profileKey}','${ja(name)}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${esc(name)}</button></div>`:''}`;
-  // Start on the first tab that has something in it
-  showMeetTab(['matched','aligned','differs'].find(k=>counts[k])||'all');
+  showMeetTab('matched'); // always opens on Matched
   goTo('screen-profile');
   if(canGallery)matchPhotos(profileKey).then(urls=>{
     const strip=document.getElementById('profile-photo-strip');
@@ -2969,6 +2968,14 @@ let profileMeetRows=[];
 function showMeetTab(k){
   document.querySelectorAll('.meet-tabs button').forEach(b=>{const on=b.dataset.tab===k;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);});
   const list=document.getElementById('meet-list');if(!list)return;
+  const body=document.getElementById('profile-detail-body'),meet=list.closest('.meet'),stick=meet&&meet.querySelector('.meet-sticky');
+  if(body&&meet&&stick){
+    const meetTop=meet.getBoundingClientRect().top-body.getBoundingClientRect().top+body.scrollTop;
+    const pinned=body.scrollTop>=meetTop-2;
+    // room for the panel to stay pinned at the top, however few questions this tab has
+    list.style.minHeight=Math.max(0,body.clientHeight-stick.offsetHeight-8)+'px';
+    requestAnimationFrame(()=>{if(pinned)body.scrollTop=meetTop;}); // start the new tab from its first question
+  }
   if(k==='all'){
     const counted=profileMeetRows.filter(r=>r.scoring),other=profileMeetRows.filter(r=>!r.scoring);
     list.innerHTML=counted.map(r=>r.html).join('')+(other.length?`<div class="meet-div">Not counted in your score</div>`+other.map(r=>r.html).join(''):'');
