@@ -2895,7 +2895,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     const dots=my===them
       ?`<div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.6);display:flex;align-items:center;justify-content:center" title="You both: ${myLabel}">${heartIcon}</div>`
       :`<div style="position:absolute;top:50%;left:${themP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(255,255,255,0.45);display:flex;align-items:center;justify-content:center" title="Them: ${themLabel}">${themIcon}</div><div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.5);display:flex;align-items:center;justify-content:center" title="You: ${myLabel}">${myIcon}</div>`;
-    const html=`<div class="meet-row" role="button" tabindex="0" aria-expanded="false" onclick="this.classList.toggle('open');this.setAttribute('aria-expanded',this.classList.contains('open'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+    const html=`<div class="meet-row" role="button" tabindex="0" aria-expanded="false" onclick="toggleMeetRow(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
       <div class="meet-top"><span class="meet-title">${esc(q.text)}${!q.scoring?'<small>Not counted in your score</small>':''}</span><span style="display:flex;align-items:center;gap:6px;flex-shrink:0"><span class="meet-tag" style="border:1px solid ${col};color:${col}">${label}${religionTag}</span><i class="ti ti-chevron-down chev" aria-hidden="true"></i></span></div>
       <div class="meet-more">${q.info?`<p class="meet-info">${esc(q.info)}</p>`:''}${stmtPairHtml(q)}</div>
       <div class="meet-track">
@@ -2965,6 +2965,23 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   document.getElementById('profile-detail-body').scrollTop=0;
 }
 let profileMeetRows=[];
+// Open one question at a time; an opened one is scrolled fully into view (below the pinned Where you meet bar)
+function toggleMeetRow(row){
+  const open=!row.classList.contains('open');
+  document.querySelectorAll('#meet-list .meet-row.open').forEach(r=>{if(r!==row){r.classList.remove('open');r.setAttribute('aria-expanded','false');}});
+  row.classList.toggle('open',open);row.setAttribute('aria-expanded',String(open));
+  if(!open)return;
+  requestAnimationFrame(()=>{
+    const body=document.getElementById('profile-detail-body'),stick=document.querySelector('#profile-detail-body .meet-sticky');
+    if(!body)return;
+    const b=body.getBoundingClientRect(),r=row.getBoundingClientRect();
+    const topLimit=Math.max(b.top,stick?stick.getBoundingClientRect().bottom:b.top)+6,bottomLimit=b.bottom-8;
+    let d=0;
+    if(r.bottom>bottomLimit)d=r.bottom-bottomLimit;          // runs off the bottom: bring it up
+    if(r.top-d<topLimit)d=r.top-topLimit;                    // but never push its top under the pinned bar
+    if(Math.abs(d)>1)body.scrollBy({top:d,behavior:'smooth'});
+  });
+}
 function showMeetTab(k){
   document.querySelectorAll('.meet-tabs button').forEach(b=>{const on=b.dataset.tab===k;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);});
   const list=document.getElementById('meet-list');if(!list)return;
