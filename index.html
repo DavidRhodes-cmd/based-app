@@ -985,7 +985,7 @@ button.ins-tile:active{opacity:0.75;}
   <div class="scrollable" style="padding:28px 16px">
     <p style="font-family:var(--serif);font-size:22px;color:var(--text-on-dark);margin-bottom:5px">Welcome back</p>
     <p style="font-size:14px;color:var(--text-muted);margin-bottom:28px;line-height:1.5">Sign in to your BASED account.</p>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="signin-email" autocomplete="email" list="based-remembered-emails" /></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="signin-email" autocomplete="username" list="based-remembered-emails" oninput="signinEmailChanged()" onchange="signinEmailChanged()" /></div>
     <datalist id="based-remembered-emails"></datalist>
     <div style="margin-bottom:22px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Your password" id="signin-password" autocomplete="current-password" onkeydown="if(event.key==='Enter')trySignIn()" /><button type="button" class="pw-toggle" tabindex="-1" onclick="togglePasswordVisibility('signin-password',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div>
     <p style="font-size:12px;color:var(--text-muted);margin-top:9px;cursor:pointer;text-align:right" onclick="openForgotPassword()">Forgotten password?</p></div>
@@ -2278,6 +2278,17 @@ async function doResetPassword(){
   document.getElementById('signin-email').focus();
 }
 
+// Changing the email clears the password box, so a password saved for another account
+// (filled in by the phone's password manager) is never sent with this email by mistake
+let signinEmailLast='';
+function signinEmailChanged(){
+  const e=document.getElementById('signin-email'),pw=document.getElementById('signin-password');if(!e||!pw)return;
+  const v=e.value.trim().toLowerCase();
+  // never undo the phone filling in both boxes together (it picks the matching password itself)
+  const auto=f=>{try{return f.matches(':autofill')||f.matches(':-webkit-autofill');}catch(_){try{return f.matches(':-webkit-autofill');}catch(__){return false;}}};
+  if(signinEmailLast&&v!==signinEmailLast&&pw.value&&!auto(e)&&!auto(pw))pw.value='';
+  signinEmailLast=v;
+}
 async function trySignIn(){
   const emailEl=document.getElementById('signin-email'),passwordEl=document.getElementById('signin-password');
   emailEl.classList.remove('input-error');passwordEl.classList.remove('input-error');
@@ -3347,6 +3358,7 @@ async function openSignIn(){
   // phone's own password manager can still offer to fill it — on iPhone that asks for
   // Face ID / Touch ID / the passcode first.
   const pw=document.getElementById('signin-password');if(pw)pw.value='';
+  signinEmailLast=(document.getElementById('signin-email').value||'').trim().toLowerCase();
 }
 
 function handlePhotoUpload(input){
