@@ -896,7 +896,7 @@ button.ins-tile:active{opacity:0.75;}
     <button onclick="saveDealbreakerScreen()" style="background:transparent;border:none;font-size:14px;color:var(--gold);cursor:pointer;font-family:var(--sans);font-weight:600">Save</button>
   </div>
   <div class="scrollable" style="padding:20px 16px">
-    <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:6px">Only show profiles aligned on…</p>
+    <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:6px">Only show profiles on the same side as you on…</p>
     <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Tick the questions where someone must be on the same side as you. Anyone who differs from you on a ticked question won’t appear in Search.</p>
     <div id="dealbreaker-list"></div>
     <div class="toggle-row" style="margin-top:10px;border-top:0.5px solid rgba(255,255,255,0.07)">
@@ -2894,12 +2894,12 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   const rows=QUESTIONS.map((q,i)=>{
     const sl=q.slot,my=myAnswers[sl]||0,them=answers[sl]||0,diff=Math.abs(my-them);
     const sameSign=(my===0&&them===0)||(my>0&&them>0)||(my<0&&them<0);
-    // Matched: same side, 0–3 apart (or both in the centre). Aligned: same side, 4+ apart, or one of you in the
+    // Matched: same side, 0–3 apart (or both in the centre). Close (key 'aligned'): same side, 4+ apart, or one of you in the
     // centre and the other 1–2 away. Differs: opposite sides, or one in the centre and the other 3+ away.
     const oneCentre=(my===0)!==(them===0);
     const cat=oneCentre?(diff<=2?'aligned':'differs'):!sameSign?'differs':diff>=4?'aligned':'matched';
     const col=cat==='differs'?'var(--red)':cat==='aligned'?'var(--gold)':'var(--green)';
-    const label=cat==='differs'?'Differs':cat==='aligned'?'Aligned':'Matched';
+    const label=cat==='differs'?'Differs':cat==='aligned'?'Close':'Matched';
     const toP=v=>((v+10)/20)*100,myP=toP(my),themP=toP(them);
     const myLabel=my>0?'+'+my:String(my),themLabel=them>0?'+'+them:String(them);
     const religionTag=(sl===FAITH_Q_INDEX&&them>0&&theirReligion)?` · ${esc(theirReligion)}`:'';
@@ -2962,7 +2962,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     <div class="pf-legend"><span style="color:#e8e4dc"><i style="background:#e8e4dc"></i>${esc(first)} ${leanLabelHtml(them)}</span><span style="color:var(--gold)"><i style="background:var(--gold)"></i>You ${leanLabelHtml(me)}</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How the score is worked out">i</button></div>
     ${canGallery?'<div id="profile-photo-strip"></div>':''}</div>
     <div class="meet"><div class="meet-sticky"><div class="meet-head">WHERE YOU MEET</div>
-      <div class="meet-tabs" role="tablist">${[['all','All'],['matched','Matched'],['aligned','Aligned'],['differs','Differs']].map(([k,t])=>`<button role="tab" data-tab="${k}" onclick="showMeetTab('${k}')">${t}<b>${k==='all'?rows.length:counts[k]}</b></button>`).join('')}</div></div>
+      <div class="meet-tabs" role="tablist">${[['all','All'],['matched','Matched'],['aligned','Close'],['differs','Differs']].map(([k,t])=>`<button role="tab" data-tab="${k}" onclick="showMeetTab('${k}')">${t}<b>${k==='all'?rows.length:counts[k]}</b></button>`).join('')}</div></div>
       <div id="meet-list"></div></div>
     ${/^[0-9a-f-]{36}$/.test(String(profileKey))&&!isMutual?`<div style="text-align:center;margin-top:12px"><button onclick="openReport('${profileKey}','${ja(name)}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${esc(name)}</button></div>`:''}`;
   showMeetTab('matched'); // always opens on Matched
@@ -3010,7 +3010,7 @@ function showMeetTab(k){
     return;
   }
   const rs=profileMeetRows.filter(r=>r.cat===k);
-  list.innerHTML=rs.length?rs.map(r=>r.html).join(''):`<p class="meet-empty">No questions ${k==='differs'?'where you differ':k==='aligned'?'where you’re aligned':'you match on'} yet.</p>`;
+  list.innerHTML=rs.length?rs.map(r=>r.html).join(''):`<p class="meet-empty">No questions ${k==='differs'?'where you differ':k==='aligned'?'where you’re close':'you match on'} yet.</p>`;
 }
 
 async function advanceToNextProfile(profileKey){
@@ -5537,8 +5537,8 @@ function loadCountryFilter(p){
 }
 // ─── Dealbreaker filters (BASED Gold) ─────────────────────────────────────────
 // Questions where someone must be on the same side as you to appear in Search.
-// "Aligned" here means they don't Differ from you (same side of the question,
-// the Matched/Aligned labels on a profile). Saved on the account from its own
+// "Same side" here means they don't Differ from you (same side of the question,
+// the Matched/Close labels on a profile). Saved on the account from its own
 // screen (Settings → Dealbreaker filters).
 let dealbreakers=new Set(),pendingDealbreakers=null;
 let hideWithChildren=false,pendingHideChildren=null; // "Don't show me people who have children" (Search filters it on the server)
@@ -6782,7 +6782,9 @@ async function saveProfile(){
       editLocationEl.classList.add('input-error');
       return;
     }
-    const upd={name:myProfile.name,...(myProfile.surname?{surname:myProfile.surname}:{}),dob:myProfile.dob,location:geo.location,country:editCountry,units:myUnits(),sex:myProfile.sex,is_hidden:profileHidden,...photoUpdate,lat:geo.lat,lng:geo.lng};
+    // Only send the name and date of birth if you changed them, and never sex (it isn't edited here): once you're verified these are
+    // locked on the server, and sending an old copy of them (e.g. after a correction by BASED) would block the whole save
+    const upd={...(myProfile.name!==prevName?{name:myProfile.name}:{}),...(myProfile.surname&&myProfile.surname!==prevSurname?{surname:myProfile.surname}:{}),...(dobChanged?{dob:myProfile.dob}:{}),location:geo.location,country:editCountry,units:myUnits(),is_hidden:profileHidden,...photoUpdate,lat:geo.lat,lng:geo.lng};
     let {error:saveErr}=await sb.from('profiles').update(upd).eq('id',currentUser.id);
     if(saveErr&&/surname/.test(saveErr.message||'')&&!/NOT_ALLOWED|INVALID/.test(saveErr.message||'')){delete upd.surname;({error:saveErr}=await sb.from('profiles').update(upd).eq('id',currentUser.id));} // before the server has surnames
     if(saveErr)myProfile.surname=prevSurname;
