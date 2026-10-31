@@ -4764,7 +4764,7 @@ async function afterCheckoutReturn(kind,trip){
 // The server decides the result (webhook + check); the SDK's own result is only
 // used to know when to ask the server.
 let myVerificationStatus='unverified'; // unverified | pending | in_review | approved | declined
-let myVerificationIssue=null;          // dob_mismatch | name_mismatch | sex_mismatch | underage | no_dob | no_name | no_sex (why an ID check was held back)
+let myVerificationIssue=null;          // dob_mismatch | name_mismatch | name_swapped | sex_mismatch | underage | no_dob | no_name | no_sex (why an ID check was held back)
 let requireVerification=false;         // app_config.require_verification
 let verifyContext='signup';            // signup | gate | settings
 const VERIFIED_TICK='<i class="ti ti-discount-check-filled" title="Verified" style="color:var(--verified);font-size:0.95em;margin-left:4px;vertical-align:-1px"></i>';
@@ -4870,10 +4870,16 @@ function showVerifyIssue(issue){
     setVerifyMsg('Your ID checked out, but its date of birth doesn’t match the one on your profile. If your profile is wrong, correct it in Settings, then tap <b>Check again</b>. You won’t need to scan your ID again.','error');
     return true;
   }
+  if(issue==='name_swapped'){
+    btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
+    skip.style.display='block';skip.textContent='Edit my name';skip.onclick=()=>{openEditProfile();setTimeout(()=>document.getElementById('edit-name').focus(),300);};
+    setVerifyMsg('Your name matches your ID, but your first name and surname are the wrong way round on your profile. Swap them in Settings, then tap <b>Check again</b>. You won’t need to scan your ID again.','error');
+    return true;
+  }
   if(issue==='name_mismatch'){
     btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
     skip.style.display='block';skip.textContent='Edit my name';skip.onclick=()=>{openEditProfile();setTimeout(()=>document.getElementById('edit-name').focus(),300);};
-    setVerifyMsg('The name on this ID doesn’t match the name on your profile, so we couldn’t verify you. The ID has to be your own. If your profile name is wrong, correct it in Settings, then tap <b>Check again</b>. Otherwise, <a href="#" onclick="event.preventDefault();startVerification()" style="color:var(--verified)">try again with your own ID</a>.','error');
+    setVerifyMsg('The name on this ID doesn’t match the name on your profile, so we couldn’t verify you. The ID has to be your own. If your profile name is wrong, correct it in Settings (check your first name and surname are in the right boxes), then tap <b>Check again</b>. Otherwise, <a href="#" onclick="event.preventDefault();startVerification()" style="color:var(--verified)">try again with your own ID</a>.','error');
     return true;
   }
   if(issue==='sex_mismatch'){
@@ -5211,7 +5217,7 @@ function onMyVerificationChanged(p){
       else if(id==='declined'||id==='in_review'||issue)pollVerification(1); // reuse the existing messages for each state
     }else if(prevId==='in_review'){
       if(id==='approved'){congratulate('id');loadPermissions().then(()=>renderProfiles(parseInt(document.getElementById('filter-min').value)||0));}
-      else if(id==='declined')showToast(issue==='dob_mismatch'||issue==='name_mismatch'||issue==='sex_mismatch'?'Your ID check needs a quick fix: see Settings':'Your ID check wasn’t approved: you can try again in Settings');
+      else if(id==='declined')showToast(issue==='dob_mismatch'||issue==='name_mismatch'||issue==='name_swapped'||issue==='sex_mismatch'?'Your ID check needs a quick fix: see Settings':'Your ID check wasn’t approved: you can try again in Settings');
     }
     updateGetVerifiedBtn();renderVerifyRow();renderPlanRow(); // a paid plan waiting for the ID check
   }
@@ -5301,9 +5307,9 @@ function renderVerifyRow(){
   if(!row)return;
   const st=myVerificationStatus;
   const iss=st==='approved'?null:myVerificationIssue;
-  const label=iss==='dob_mismatch'?'Date of birth doesn’t match your ID':iss==='name_mismatch'?'Name doesn’t match your ID':iss==='sex_mismatch'?'Sex doesn’t match your ID':iss==='underage'?'Not eligible (under 18)':({approved:'Verified',in_review:'Under review',declined:'Not approved',pending:'Not finished',unverified:'Not verified'}[st]||'Not verified');
+  const label=iss==='dob_mismatch'?'Date of birth doesn’t match your ID':iss==='name_mismatch'?'Name doesn’t match your ID':iss==='name_swapped'?'First name and surname swapped':iss==='sex_mismatch'?'Sex doesn’t match your ID':iss==='underage'?'Not eligible (under 18)':({approved:'Verified',in_review:'Under review',declined:'Not approved',pending:'Not finished',unverified:'Not verified'}[st]||'Not verified');
   const col=st==='approved'?'var(--verified)':st==='declined'?'var(--red)':'var(--text-muted)';
-  const btn=(st==='approved'||iss==='underage')?'':`<button onclick="openVerifyScreen('settings')" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);border-radius:11px;padding:9px 15px;color:var(--verified);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">${(st==='in_review'||iss==='dob_mismatch'||iss==='name_mismatch')?'Check':st==='declined'?'Try again':'Verify ID'}</button>`;
+  const btn=(st==='approved'||iss==='underage')?'':`<button onclick="openVerifyScreen('settings')" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);border-radius:11px;padding:9px 15px;color:var(--verified);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">${(st==='in_review'||iss==='dob_mismatch'||iss==='name_mismatch'||iss==='name_swapped')?'Check':st==='declined'?'Try again':'Verify ID'}</button>`;
   row.innerHTML=`<i class="ti ${st==='approved'?'ti-discount-check-filled':'ti-discount-check'}" style="font-size:24px;color:${col}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">ID verification</p><p style="font-size:13px;color:${col}">${label}</p></div>${btn}`;
 }
 
@@ -5873,6 +5879,7 @@ function expandSearchFilters(){
   container.addEventListener('touchstart',e=>{
     if(e.touches.length!==1)return;
     if(e.target.closest('input,select,textarea'))return; // dragging a slider isn't a swipe
+    if(nearSlider(container,e.touches[0].clientX,e.touches[0].clientY)){tracking=false;return;}
     startX=e.touches[0].clientX;startY=e.touches[0].clientY;tracking=true;
   },{passive:true});
   container.addEventListener('touchend',e=>{
@@ -5885,6 +5892,17 @@ function expandSearchFilters(){
   },{passive:true});
 })();
 
+// A touch that starts on a slider, or close to one (fingers often land just above or below the thin
+// track), is moving the slider, never a swipe between screens
+function nearSlider(container,x,y){
+  for(const r of container.querySelectorAll('input[type="range"]')){
+    const b=r.getBoundingClientRect();if(!b.width)continue;
+    if(x>=b.left-24&&x<=b.right+24&&y>=b.top-40&&y<=b.bottom+40)return true;
+  }
+  return false;
+}
+function sliderValues(container){return [...container.querySelectorAll('input[type="range"]')].map(r=>r.value).join(',');}
+
 // ─── Sign-up: swipe right to go back, like each screen's back arrow ─────────
 // Questions → the previous question (from the first: your score, or the welcome screen);
 // Your Score → the last question; About you → Your Score, like its back arrow (what you've typed is kept). Dragging a slider isn't a swipe.
@@ -5892,16 +5910,19 @@ function expandSearchFilters(){
  ['screen-results',()=>{if(currentUser||!SIGNUP_QUESTIONS.length)return;signupIdx=SIGNUP_QUESTIONS.length-1;renderSignupQuestions();goTo('screen-questions');}],
  ['screen-details',()=>goTo(signupAnswered?'screen-results':'screen-welcome')]].forEach(([id,back])=>{
   const container=document.getElementById(id);if(!container)return;
-  let startX=0,startY=0,tracking=false;
+  let startX=0,startY=0,tracking=false,vals='';
   container.addEventListener('touchstart',e=>{
+    tracking=false;
     if(e.touches.length!==1)return;
     if(e.target.closest('input,select,textarea,.loc-suggest'))return;
-    startX=e.touches[0].clientX;startY=e.touches[0].clientY;tracking=true;
+    const t=e.touches[0];if(nearSlider(container,t.clientX,t.clientY))return;
+    startX=t.clientX;startY=t.clientY;tracking=true;vals=sliderValues(container);
   },{passive:true});
   container.addEventListener('touchend',e=>{
     if(!tracking)return;
     tracking=false;
     if(document.getElementById('modal-bd'))return;
+    if(sliderValues(container)!==vals)return; // a slider moved during this touch: it wasn't a swipe
     const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
     if(dx<60||Math.abs(dx)<Math.abs(dy)*1.5)return; // a clear swipe to the right only
     back();
@@ -6687,7 +6708,12 @@ function confirmDobChange(iso){
   showModal(`<i class="ti ti-calendar-event" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px">Correct your date of birth?</p>
     <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:12px">You're changing it to <b style="color:var(--text-on-dark)">${esc(isoToDobDisplay(iso))}</b>.</p>
     <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:20px">You can only correct your date of birth <b style="color:var(--text-on-dark)">once</b>, so please check it's right. When you verify with ID, your date of birth will be taken from your document.</p>
-    <div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1" onclick="removeModal();dobChangeConfirmed=true;saveProfile()">Change it</button></div>`);
+    <div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal();keepDob()">Keep ${esc(isoToDobDisplay(String(myProfile.dob||'').slice(0,10)))}</button><button class="btn-primary" style="flex:1" onclick="removeModal();dobChangeConfirmed=true;saveProfile()">Change it</button></div>`);
+}
+// Not changing the date of birth after all: put the box back to the saved date and save everything else
+function keepDob(){
+  const el=document.getElementById('edit-dob');if(el)el.value=isoToDobDisplay(myProfile.dob);
+  dobChangeConfirmed=false;saveProfile();
 }
 function updateShownAs(){
   const el=document.getElementById('edit-shown-as');if(!el)return;
@@ -6704,7 +6730,7 @@ async function saveProfile(){
    if(sv&&!nameOk(sv)){showToast(NAME_RULE,true,4000);se.classList.add('input-error');se.focus();return;}
    if(!sv&&myProfile.surname){showToast('Please enter your surname.',true,3500);se.classList.add('input-error');se.focus();return;}
    if(sv&&sv!==(myProfile.surname||'')&&!(await isNameAllowed(sv))){showToast(NAME_BLOCKED_MSG,true,4500);se.classList.add('input-error');se.focus();return;}}
-  const prevSurname=myProfile.surname;myProfile.surname=document.getElementById('edit-surname').value.trim()||myProfile.surname||null;
+  const prevSurname=myProfile.surname,prevName=myProfile.name;myProfile.surname=document.getElementById('edit-surname').value.trim()||myProfile.surname||null;
   myProfile.name=document.getElementById('edit-name').value.trim()||myProfile.name;
   const editDobEl=document.getElementById('edit-dob'),editLocationEl=document.getElementById('edit-location');
   editDobEl.classList.remove('input-error');editLocationEl.classList.remove('input-error');
@@ -6714,7 +6740,7 @@ async function saveProfile(){
   if(editDobParsed&&calcAge(editDobParsed)<18){showToast('You must be at least 18 to use BASED.',true);editDobEl.classList.add('input-error');return;}
   const previousDob=myProfile.dob;
   const dobChanged=!!editDobParsed&&editDobParsed!==String(myProfile.dob||'').slice(0,10);
-  if(dobChanged&&!dobChangeConfirmed){confirmDobChange(editDobParsed);return;}
+  if(dobChanged&&!dobChangeConfirmed){myProfile.name=prevName;myProfile.surname=prevSurname;confirmDobChange(editDobParsed);return;} // nothing is saved until you choose
   dobChangeConfirmed=false;
   myProfile.dob=editDobParsed||myProfile.dob;
   const previousLocation=myProfile.location;
