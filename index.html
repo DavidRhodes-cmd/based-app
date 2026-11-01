@@ -1384,7 +1384,14 @@ function calcAge(dob){if(!dob)return'?';const d=new Date(dob),n=new Date();let a
 // Per counted question, gap = how far apart the answers are (0–20). Same side, or one at 0 and the other 1–2 away: costs gap/20.
 // Opposite sides, or one at 0 and the other 3+ away (what the profile calls Differs): gap/20 × (1 + gap/20), at most the whole question.
 // Score = 100% − the average cost.
-function calcCompat(pa){if(!NUM_SCORING)return 0;let c=0;for(const i of SCORING_IDX){const x=myAnswers[i]||0,y=pa[i]||0,d=Math.abs(x-y),g=d/20;const differs=x*y<0||((x===0)!==(y===0)&&d>=3);c+=Math.min(1,differs?g*(1+g):g);}return Math.round((1-c/NUM_SCORING)*100);}
+// One statement: which tab it goes under and its points out of 5 (same rules as private.compat, SQL 71).
+// Key 'aligned' is shown as "Close".
+function answerCat(x,y){const d=Math.abs(x-y);
+  if(x===0&&y===0)return{cat:'matched',pts:3};
+  if(x*y>0)return d<=3?{cat:'matched',pts:5}:d<=7?{cat:'aligned',pts:4}:{cat:'differs',pts:1};
+  if(x===0||y===0)return d<=4?{cat:'aligned',pts:4}:{cat:'differs',pts:1};
+  return d<=4?{cat:'aligned',pts:3}:{cat:'differs',pts:d<=8?1:0};}
+function calcCompat(pa){if(!NUM_SCORING)return 0;let s=0;for(const i of SCORING_IDX)s+=answerCat(myAnswers[i]||0,pa[i]||0).pts;return Math.round(s*20/NUM_SCORING);}
 function calcBasedScore(answers){const raw=SCORING_IDX.reduce((s,i)=>s+(answers[i]||0),0);return Math.round(((raw+NUM_SCORING*10)/(NUM_SCORING*20))*100);}
 function initials(name){return(name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 
@@ -2894,11 +2901,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   const heartIcon=`<svg width="13" height="13" viewBox="0 0 24 24"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="var(--gold)"/></svg>`;
   const rows=QUESTIONS.map((q,i)=>{
     const sl=q.slot,my=myAnswers[sl]||0,them=answers[sl]||0,diff=Math.abs(my-them);
-    const sameSign=(my===0&&them===0)||(my>0&&them>0)||(my<0&&them<0);
-    // Matched: same side, 0–3 apart (or both in the centre). Close (key 'aligned'): same side, 4+ apart, or one of you in the
-    // centre and the other 1–2 away. Differs: opposite sides, or one in the centre and the other 3+ away.
-    const oneCentre=(my===0)!==(them===0);
-    const cat=oneCentre?(diff<=2?'aligned':'differs'):!sameSign?'differs':diff>=4?'aligned':'matched';
+    const cat=answerCat(my,them).cat; // Matched / Close (key 'aligned') / Differs — see answerCat
     const col=cat==='differs'?'var(--red)':cat==='aligned'?'var(--gold)':'var(--green)';
     const label=cat==='differs'?'Differs':cat==='aligned'?'Close':'Matched';
     const toP=v=>((v+10)/20)*100,myP=toP(my),themP=toP(them);
@@ -3926,7 +3929,7 @@ const SCORE_INFO={
   compat:{title:'Compatibility',get text(){
     const n=leadingScored();
     const out=QUESTIONS.filter(q=>!q.scoring).map(q=>esc(q.text.toLowerCase()));
-    return `How closely your answers match theirs on the first ${n} statements. The closer your two answers on each one, the higher the score: 100% means you answered every one the same.<br><br>Being on opposite sides of a statement (one of you agrees, the other disagrees) counts against you more than the same gap on one side, and the further apart you are across the middle, the more it costs.`+(out.length?`<br><br>The ${out.join('/')} answers aren’t included.`:'');
+    return `How closely your answers match theirs on the first ${n} statements. Each statement scores up to 5 points: <b>Matched</b> scores the most, <b>Close</b> a little less and <b>Differs</b> little or nothing. The score is the points you share as a percentage of the most possible.<br><br>Being on the same side and near each other counts as Matched. Being on opposite sides of a statement (one of you agrees, the other disagrees) costs more than the same gap on one side, and the further apart you are across the middle, the more it costs.`+(out.length?`<br><br>The ${out.join('/')} answers aren’t included.`:'');
   }},
   based:{title:'Score',get text(){
     const n=leadingScored();
