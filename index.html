@@ -5272,7 +5272,14 @@ function renderRewardRow(){
   for(const r of rs){
     const what=r.kind==='founding'?'':'For bringing 3 friends: ';
     const m=`${r.months} month${r.months===1?'':'s'} of BASED+ free`;
-    if(!r.claimed&&PRE&&PRE.paying)lines.push(`${what}${m}, waiting. It starts if you stop paying for ${TIER_LABEL[myTierNow()]||'your plan'}.`);
+    // Free time is never used up under a paid plan: paused or waiting while on Gold, and used before
+    // anything is charged for BASED+ (at a booked move to BASED+, or the next BASED+ payment date)
+    const onGold=myTierNow()==='gold',toPlus=PRE&&PRE.free_after_next&&mySubNext&&mySubNext.tier==='plus';
+    const later=toPlus?`It starts on ${day(new Date(new Date(mySubNext.at).getTime()+1000))}, when you move to BASED+, so BASED+ is free until ${day(PRE.free_after_next)}.`
+      :onGold?'It starts when you stop paying for Gold, or as free BASED+ if you move to BASED+.'
+      :'It’s used at your next payment date, so you won’t be charged for BASED+ while it lasts.';
+    if(r.paused){lines.push(`${what}${r.paused_days} day${r.paused_days===1?'':'s'} of BASED+ free, saved while you’re on Gold. ${later}`);continue;}
+    if(!r.claimed&&PRE&&PRE.paying)lines.push(`${what}${m}, waiting. ${later}`);
     else if(!r.claimed){lines.push(`${what}${m}, waiting for you. It starts when your ID is verified.`);if(!verified)showVerify=true;}
     else if(r.trial&&r.until&&new Date(r.until)>new Date())lines.push(`${what}used for your BASED+ free trial, until ${day(r.until)}`);
     else if(r.until&&new Date(r.until)>new Date())lines.push(`${what}BASED+ free until ${day(r.until)}`);
@@ -5293,7 +5300,10 @@ function renderPlanRow(){
   const ending=paid&&myCancelAt?new Date(myCancelAt):null;
   // Moving down at the end of the paid month: "BASED Gold until 28 Nov, then BASED+ at £9.99 a month"
   const next=paid&&!ending&&mySubNext&&mySubNext.tier!==t?mySubNext:null;
-  const nextLine=next?`${TIER_LABEL[t]} until ${shortDate(next.at)}, then ${TIER_LABEL[next.tier]}${next.amount!=null?` at ${money(next.currency,next.amount)} a month`:''}`:'';
+  // …and when free BASED+ time is saved up, it's used first: "BASED Gold until 2 Dec, then BASED+ free until 1 Feb, then £4.99 a month"
+  const freeAfter=next&&next.tier==='plus'&&PRE&&PRE.free_after_next?new Date(new Date(PRE.free_after_next).getTime()-1000):null;
+  const nextLine=next?(freeAfter?`${TIER_LABEL[t]} until ${shortDate(next.at)}, then BASED+ free until ${shortDate(freeAfter)}${next.amount!=null?`, then ${money(next.currency,next.amount)} a month`:''}`
+    :`${TIER_LABEL[t]} until ${shortDate(next.at)}, then ${TIER_LABEL[next.tier]}${next.amount!=null?` at ${money(next.currency,next.amount)} a month`:''}`):'';
   // A free plan given by BASED: say until when (the end time is midnight, so show the day before)
   const gift=PERMS&&PERMS.gift&&PERMS.gift.tier===t?new Date(new Date(PERMS.gift.until).getTime()-1000):null;
   const bs='border-radius:11px;padding:9px 13px;font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap';
