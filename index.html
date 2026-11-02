@@ -20,6 +20,10 @@ function send(){t=null;var key;try{key=SUPABASE_ANON_KEY;}catch(_){t=setTimeout(
   q.splice(0,20).forEach(function(r){try{fetch('https://okubbpsvaogqzdtajiqz.supabase.co/rest/v1/rpc/report_csp',{method:'POST',keepalive:true,
     headers:{'Content-Type':'application/json',apikey:key,Authorization:'Bearer '+key},body:JSON.stringify({p:r})}).catch(function(){});}catch(_){}});
   if(q.length)t=setTimeout(send,3000);}
+// Test probe: one deliberately disallowed picture per app session (the address doesn't exist, so
+// nothing is fetched). If its report arrives, reporting works on that phone or browser.
+setTimeout(function(){try{if(sessionStorage.getItem('basedCspProbe'))return;sessionStorage.setItem('basedCspProbe','1');}catch(_){}
+  var i=new Image();i.src='https://csp-probe.invalid/probe.png';},4000);
 })();
 </script>
 <link rel="canonical" href="https://baseddatingonline.com/" />
