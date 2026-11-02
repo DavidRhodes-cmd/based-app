@@ -7,6 +7,21 @@
 // straight away, keeping the rest of the address (so links in older emails still work).
 if(location.hostname==='based-app.pages.dev')location.replace('https://baseddatingonline.com'+location.pathname+location.search+location.hash);
 </script>
+<script>
+// While the security policy (Content-Security-Policy) is tested in report-only mode, tell BASED what it
+// WOULD have blocked, so it can be switched on without breaking anything. Each different notice is
+// sent once per page load, a few seconds later; nothing about the member is included.
+(function(){var q=[],seen={},t=null;
+document.addEventListener('securitypolicyviolation',function(e){
+  var d=e.effectiveDirective||e.violatedDirective||'',b=String(e.blockedURI||'').split('?')[0],k=d+'|'+b;if(seen[k])return;seen[k]=1;
+  q.push({directive:d,blocked:b,source:(e.sourceFile||'')+(e.lineNumber?':'+e.lineNumber:''),page:location.pathname,browser:navigator.userAgent});
+  if(!t)t=setTimeout(send,3000);});
+function send(){t=null;var key;try{key=SUPABASE_ANON_KEY;}catch(_){t=setTimeout(send,3000);return;}
+  q.splice(0,20).forEach(function(r){try{fetch('https://okubbpsvaogqzdtajiqz.supabase.co/rest/v1/rpc/report_csp',{method:'POST',keepalive:true,
+    headers:{'Content-Type':'application/json',apikey:key,Authorization:'Bearer '+key},body:JSON.stringify({p:r})}).catch(function(){});}catch(_){}});
+  if(q.length)t=setTimeout(send,3000);}
+})();
+</script>
 <link rel="canonical" href="https://baseddatingonline.com/" />
 <!-- Not yet launched: ask search engines not to list BASED (remove at launch, with robots.txt and the X-Robots-Tag in _headers) -->
 <meta name="robots" content="noindex, nofollow" />
@@ -1066,7 +1081,8 @@ button.ins-tile:active{opacity:0.75;}
 
 </div><!-- /app-shell -->
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- supabase-js 2.118.0, served from BASED's own site (no outside script host); upgrade by replacing the file -->
+<script src="supabase-js-2.118.0.js"></script>
 <script>
 // ─── Supabase ────────────────────────────────────────────────────────────────
 const { createClient } = supabase;
@@ -4945,7 +4961,7 @@ function loadDiditSdk(){
   if(diditSdkPromise)return diditSdkPromise;
   diditSdkPromise=new Promise(resolve=>{
     const s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/npm/@didit-protocol/sdk-web@0.4.0/dist/didit-sdk.umd.min.js';
+    s.src='didit-sdk-0.4.0.js'; // Didit's web SDK 0.4.0, served from BASED's own site
     s.onload=()=>resolve(window.DiditSDK&&window.DiditSDK.DiditSdk||null);
     s.onerror=()=>{diditSdkPromise=null;resolve(null);};
     document.head.appendChild(s);
