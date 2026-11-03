@@ -2994,7 +2994,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     <div class="meet"><div class="meet-sticky"><div class="meet-head">WHERE YOU MEET</div>
       <div class="meet-tabs" role="tablist">${[['all','All'],['matched','Matched'],['aligned','Close'],['differs','Differs']].map(([k,t])=>`<button role="tab" data-tab="${k}" onclick="showMeetTab('${k}')">${t}<b>${k==='all'?rows.length:counts[k]}</b></button>`).join('')}</div></div>
       <div id="meet-list"></div></div>
-    ${/^[0-9a-f-]{36}$/.test(String(profileKey))&&!isMutual?`<div style="text-align:center;margin-top:12px"><button onclick="openReport('${profileKey}','${ja(name)}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${esc(name)}</button></div>`:''}`;
+    ${(/^[0-9a-f-]{36}$/.test(String(profileKey))||String(profileKey).startsWith('demo-'))&&!isMutual?`<div style="text-align:center;margin-top:12px"><button onclick="openReport('${profileKey}','${ja(name)}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${esc(name)}</button></div>`:''}`;
   showMeetTab('matched'); // always opens on Matched
   goTo('screen-profile');
   if(canGallery)matchPhotos(profileKey).then(urls=>{
@@ -6185,7 +6185,11 @@ async function submitReport(){
   const errEl=document.getElementById('report-error');
   if(!sel){errEl.textContent='Please choose a reason.';errEl.style.display='block';return;}
   const btn=document.getElementById('report-submit');btn.disabled=true;btn.textContent='Sending…';
-  const {error}=await sb.rpc('report_user',{p_reported:reportTarget.id,p_reason:sel.value,p_details:document.getElementById('report-details').value||null});
+  // Dummy profiles aren't real members, so there's no one to review: they're just hidden, like "Don't show again"
+  const isDemo=String(reportTarget.id).startsWith('demo-');
+  const {error}=isDemo
+    ?((await recordInteraction(reportTarget.id,'hide_forever'))?{error:null}:{error:{message:''}})
+    :await sb.rpc('report_user',{p_reported:reportTarget.id,p_reason:sel.value,p_details:document.getElementById('report-details').value||null});
   if(error){btn.disabled=false;btn.textContent='Send report';errEl.textContent=/Too many|only for people|choose a reason/.test(error.message)?error.message.replace(/^.*?: /,''):'Something went wrong — please try again.';errEl.style.display='block';return;}
   removeModal();
   const id=reportTarget.id;
