@@ -2923,21 +2923,26 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
   const rows=QUESTIONS.map((q,i)=>{
     const sl=q.slot,my=myAnswers[sl]||0,them=answers[sl]||0,diff=Math.abs(my-them);
     let cat=answerCat(my,them).cat; // Matched / Close (key 'aligned') / Differs — see answerCat
-    // Faith: both have a faith → Matched only when it's the same religion, otherwise Close
+    // Faith: both have a faith → Differs if the religions are different, Close if one isn't given
     if(sl===FAITH_Q_INDEX&&my>0&&them>0){
       const r1=String(myProfile.religion||'').trim().toLowerCase(),r2=String(theirReligion||'').trim().toLowerCase();
-      if(!(r1&&r2&&r1===r2))cat='aligned';
+      if(r1&&r2&&r1!==r2)cat='differs';        // different religions
+      else if(!(r1&&r2))cat='aligned';          // one hasn't said which: Close
+      // same religion: the usual rule above
     }
     const col=cat==='differs'?'var(--red)':cat==='aligned'?'var(--gold)':'var(--green)';
     const label=cat==='differs'?'Differs':cat==='aligned'?'Close':'Matched';
     const toP=v=>((v+10)/20)*100,myP=toP(my),themP=toP(them);
     const myLabel=my>0?'+'+my:String(my),themLabel=them>0?'+'+them:String(them);
-    const religionTag=(sl===FAITH_Q_INDEX&&them>0&&theirReligion)?` · ${esc(theirReligion)}`:'';
+    // Faith: your religion in gold, theirs in white (the same colours as the answer dots)
+    const relChip=(r,c,who)=>`<span class="meet-tag" style="border:1px solid ${c};color:${c}" title="${who}">${esc(r)}</span>`;
+    const religionTag=(sl===FAITH_Q_INDEX&&((my>0&&myProfile.religion)||(them>0&&theirReligion)))
+      ?`<span style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${(()=>{const a=my>0&&myProfile.religion?relChip(myProfile.religion,'var(--gold)','You'):'',b=them>0&&theirReligion?relChip(theirReligion,'#fff','Them'):'';return them<my?b+a:a+b;})()}</span>`:''; // same left-to-right order as the dots on the slider
     const dots=my===them
       ?`<div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.6);display:flex;align-items:center;justify-content:center" title="You both: ${myLabel}">${heartIcon}</div>`
       :`<div style="position:absolute;top:50%;left:${themP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(255,255,255,0.45);display:flex;align-items:center;justify-content:center" title="Them: ${themLabel}">${themIcon}</div><div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.5);display:flex;align-items:center;justify-content:center" title="You: ${myLabel}">${myIcon}</div>`;
     const html=`<div class="meet-row" role="button" tabindex="0" aria-expanded="false" onclick="toggleMeetRow(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-      <div class="meet-top"><span class="meet-title">${esc(q.text)}${!q.scoring?'<small>Not counted in your score</small>':''}</span><span style="display:flex;align-items:center;gap:6px;flex-shrink:0"><span class="meet-tag" style="border:1px solid ${col};color:${col}">${label}${religionTag}</span><i class="ti ti-chevron-down chev" aria-hidden="true"></i></span></div>
+      <div class="meet-top"><span class="meet-title">${esc(q.text)}${!q.scoring?'<small>Not counted in your score</small>':''}${religionTag}</span><span style="display:flex;align-items:center;gap:6px;flex-shrink:0"><span class="meet-tag" style="border:1px solid ${col};color:${col}">${label}</span><i class="ti ti-chevron-down chev" aria-hidden="true"></i></span></div>
       <div class="meet-more">${q.info?`<p class="meet-info">${esc(q.info)}</p>`:''}${stmtPairHtml(q)}</div>
       <div class="meet-track">
         <div style="position:absolute;top:50%;left:0;right:0;height:3px;background:rgba(255,255,255,0.08);border-radius:3px;transform:translateY(-50%)"></div>
