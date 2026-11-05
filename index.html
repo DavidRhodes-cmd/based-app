@@ -38,6 +38,7 @@ setTimeout(function(){try{if(sessionStorage.getItem('basedCspProbe'))return;sess
 <meta name="referrer" content="no-referrer" />
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
 <link rel="icon" type="image/png" href="icon-192.png" />
 <title>BASED</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
@@ -83,10 +84,16 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .logo-mark{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:6px 12px;}
 .logo-text{font-family:var(--serif);font-size:16px;color:var(--text-on-dark);letter-spacing:0.5px;}
 .logo-icon,.logo-mic{color:var(--text-muted);font-size:13px;}
+.bl-word{display:inline-flex;align-items:center;font-family:var(--serif);color:var(--text-on-dark);line-height:1}
+.bl-ring{position:relative;display:inline-flex;align-items:center;justify-content:center;width:1.75em;height:1.75em;margin-right:.03em;flex-shrink:0}
+.bl-ring svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.bl-b{position:relative;letter-spacing:0;padding-top:.08em}
+.bl-ased{letter-spacing:.11em;margin-right:-.11em}
+.brand-words{display:flex;flex-direction:column;align-items:flex-end}
 .brand-lockup{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:5px 11px;}
-.brand-words{display:flex;flex-direction:column;align-items:flex-start;gap:1px;}
+.brand-words{gap:0}
 .brand-name{font-family:var(--serif);font-size:16px;line-height:1;color:var(--text-on-dark);letter-spacing:2px;}
-.brand-tag{font-family:var(--serif);font-size:10.5px;line-height:1.1;color:var(--gold);font-style:italic;letter-spacing:.4px;padding-left:1px;}
+.brand-tag{font-family:var(--serif);font-size:10.5px;line-height:1.1;color:var(--gold);font-style:italic;letter-spacing:.4px;margin-top:-3px;}
 .btn-back{background:transparent;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;line-height:1;}
 .btn-primary{background:var(--gold);color:var(--navy);border:none;border-radius:13px;padding:14px 20px;font-size:16px;font-weight:600;cursor:pointer;width:100%;font-family:var(--sans);}
 .btn-primary:active{opacity:0.85;}
@@ -394,17 +401,18 @@ button.ins-tile:active{opacity:0.75;}
 </style>
 </head>
 <body>
+<!-- The BASED rings: white (outer) and gold (inner) arcs round the B, used by every logo -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="based-rings" viewBox="0 0 160 160"><circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="11"/><circle cx="80" cy="80" r="54" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="11"/><line x1="80" y1="1" x2="80" y2="16" stroke="rgba(255,255,255,0.28)" stroke-width="2"/><line x1="80" y1="144" x2="80" y2="159" stroke="rgba(255,255,255,0.28)" stroke-width="2"/><circle cx="80" cy="80" r="70" fill="none" stroke="#e8e4dc" stroke-width="11" stroke-dasharray="155.41 439.82" transform="translate(160 0) scale(-1 1) rotate(90 80 80)"/><path fill="#e8e4dc" d="M 19.63 34.67 L 30.50 30.50 L 28.42 41.27 Z" transform="translate(160 0) scale(-1 1)"/><circle cx="80" cy="80" r="54" fill="none" stroke="#c9a84c" stroke-width="11" stroke-dasharray="75.30 339.29" transform="translate(160 0) scale(-1 1) rotate(90 80 80)"/><path fill="#c9a84c" d="M 21.48 90.75 L 26.00 80.00 L 32.30 88.76 Z" transform="translate(160 0) scale(-1 1)"/></symbol></svg>
 <div class="app-shell" id="app-shell">
 
 <!-- WELCOME -->
 <div id="screen-welcome" class="screen active">
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 16px;text-align:center">
-    <!-- Logo: the same as the header's (outline hearts, BASED / on values, in a bordered box), larger -->
-    <div id="welcome-logo" role="img" aria-label="BASED on values" style="display:flex;align-items:center;gap:16px;padding:16px 26px;border-radius:18px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);margin-bottom:28px">
-      <svg width="60" height="58" viewBox="190 205 640 620" aria-hidden="true" style="flex-shrink:0"><defs><linearGradient id="wh-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient><linearGradient id="wh-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5e3ad"/><stop offset=".5" stop-color="#d9bb66"/><stop offset="1" stop-color="#b08d3c"/></linearGradient></defs><g transform="translate(232 275) rotate(-14 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="none" stroke="url(#wh-g1)" stroke-width="11" stroke-linejoin="round"/></g><g transform="translate(352 335) rotate(12 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="#252a38" stroke="url(#wh-g2)" stroke-width="11" stroke-linejoin="round"/></g></svg>
-      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left">
-        <span style="font-family:var(--serif);font-size:36px;line-height:1;color:var(--text-on-dark);letter-spacing:4px">BASED</span>
-        <span style="font-family:var(--serif);font-size:19px;line-height:1.1;color:var(--gold);font-style:italic;letter-spacing:1px;padding-left:2px">on values</span>
+    <!-- Logo: the same as the header's (rings round the B, "on values" lined up under the end of BASED), larger -->
+    <div id="welcome-logo" role="img" aria-label="BASED on values" style="display:flex;align-items:center;padding:14px 26px 16px;border-radius:18px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);margin-bottom:28px">
+      <div style="display:flex;flex-direction:column;align-items:flex-end">
+        <span style="font-size:36px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span>
+        <span style="font-family:var(--serif);font-size:19px;line-height:1.1;color:var(--gold);font-style:italic;letter-spacing:1px;margin-top:-6px">on values</span>
       </div>
     </div>
     <p style="color:var(--text-muted);font-size:15px;line-height:1.5;margin-bottom:24px">Find someone<br>who shares what matters</p>
@@ -420,7 +428,7 @@ button.ins-tile:active{opacity:0.75;}
 <div id="screen-details" class="screen">
   <div class="app-header">
     <button class="btn-back" onclick="goTo(signupAnswered?'screen-results':'screen-welcome')"><i class="ti ti-arrow-left"></i></button>
-    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div class="logo-mark" role="img" aria-label="BASED" style="padding:3px 11px"><span class="logo-text" style="font-size:14px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span></div>
     <div style="width:28px"></div>
   </div>
   <div class="scrollable" style="padding:22px 16px">
@@ -497,7 +505,7 @@ button.ins-tile:active{opacity:0.75;}
 <div id="screen-reaccept" class="screen">
   <div class="app-header">
     <div style="width:28px"></div>
-    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div class="logo-mark" role="img" aria-label="BASED" style="padding:3px 11px"><span class="logo-text" style="font-size:14px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span></div>
     <div style="width:28px"></div>
   </div>
   <div class="scrollable" style="padding:30px 20px">
@@ -578,7 +586,7 @@ button.ins-tile:active{opacity:0.75;}
 <!-- RESULTS -->
 <div id="screen-results" class="screen">
   <div class="app-header">
-    <div class="brand-lockup" role="img" aria-label="BASED on values"><svg width="23" height="22" viewBox="190 205 640 620" aria-hidden="true" style="flex-shrink:0"><defs><linearGradient id="rs-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient><linearGradient id="rs-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5e3ad"/><stop offset=".5" stop-color="#d9bb66"/><stop offset="1" stop-color="#b08d3c"/></linearGradient></defs><g transform="translate(232 275) rotate(-14 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="none" stroke="url(#rs-g1)" stroke-width="11" stroke-linejoin="round"/></g><g transform="translate(352 335) rotate(12 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="#252a38" stroke="url(#rs-g2)" stroke-width="11" stroke-linejoin="round"/></g></svg><span class="brand-words"><span class="brand-name">BASED</span><span class="brand-tag">on values</span></span></div>
+    <div class="brand-lockup" role="img" aria-label="BASED on values"><span class="brand-words"><span class="brand-name"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span><span class="brand-tag">on values</span></span></div>
   </div>
   <div style="padding:28px 16px;flex:1;display:flex;flex-direction:column;align-items:center">
     <p style="font-family:var(--serif);font-size:24px;color:var(--text-on-dark);text-align:center;margin-bottom:6px">Your Score</p>
@@ -614,7 +622,7 @@ button.ins-tile:active{opacity:0.75;}
 <div id="screen-agecheck" class="screen">
   <div class="app-header">
     <div style="width:28px"></div>
-    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div class="logo-mark" role="img" aria-label="BASED" style="padding:3px 11px"><span class="logo-text" style="font-size:14px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span></div>
     <div style="width:28px"></div>
   </div>
   <div class="scrollable" style="padding:28px 16px;flex:1;display:flex;flex-direction:column;align-items:center">
@@ -638,7 +646,7 @@ button.ins-tile:active{opacity:0.75;}
 <div id="screen-verify" class="screen">
   <div class="app-header">
     <button class="btn-back" id="verify-back-btn" style="visibility:hidden" onclick="clearTimeout(verifyPollTimer);openEditProfile()"><i class="ti ti-arrow-left"></i></button>
-    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div class="logo-mark" role="img" aria-label="BASED" style="padding:3px 11px"><span class="logo-text" style="font-size:14px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span></div>
     <div style="width:28px"></div>
   </div>
   <div class="scrollable" style="padding:28px 16px;flex:1;display:flex;flex-direction:column;align-items:center">
@@ -662,7 +670,7 @@ button.ins-tile:active{opacity:0.75;}
 <!-- WAITING FOR THE AREA TO OPEN (pre-registration) -->
 <div id="screen-waiting" class="screen">
   <div class="app-header">
-    <div class="brand-lockup" role="img" aria-label="BASED on values"><svg width="23" height="22" viewBox="190 205 640 620" aria-hidden="true" style="flex-shrink:0"><defs><linearGradient id="wt-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient><linearGradient id="wt-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5e3ad"/><stop offset=".5" stop-color="#d9bb66"/><stop offset="1" stop-color="#b08d3c"/></linearGradient></defs><g transform="translate(232 275) rotate(-14 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="none" stroke="url(#wt-g1)" stroke-width="11" stroke-linejoin="round"/></g><g transform="translate(352 335) rotate(12 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="#252a38" stroke="url(#wt-g2)" stroke-width="11" stroke-linejoin="round"/></g></svg><span class="brand-words"><span class="brand-name">BASED</span><span class="brand-tag">on values</span></span></div>
+    <div class="brand-lockup" role="img" aria-label="BASED on values"><span class="brand-words"><span class="brand-name"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span><span class="brand-tag">on values</span></span></div>
     <div style="position:relative"><button aria-label="Menu" aria-haspopup="true" onclick="event.stopPropagation();document.getElementById('waiting-menu').classList.toggle('open')" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:24px;padding:4px;line-height:1"><i class="ti ti-dots"></i></button>
       <div id="waiting-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" onclick="document.getElementById('waiting-menu').classList.remove('open');menuReturn='screen-waiting';openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="document.getElementById('waiting-menu').classList.remove('open');menuReturn='screen-waiting';openSupport()"><i class="ti ti-lifebuoy"></i>Support</button><button role="menuitem" onclick="document.getElementById('waiting-menu').classList.remove('open');confirmLogout()"><i class="ti ti-logout"></i>Log out</button></div></div>
   </div>
@@ -672,7 +680,7 @@ button.ins-tile:active{opacity:0.75;}
 <!-- MAIN (tabbed) -->
 <div id="screen-main" class="screen">
   <div class="app-header">
-    <div style="display:flex;align-items:center;gap:9px"><div class="brand-lockup" role="img" aria-label="BASED on values"><svg width="23" height="22" viewBox="190 205 640 620" aria-hidden="true" style="flex-shrink:0"><defs><linearGradient id="hd-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient><linearGradient id="hd-g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5e3ad"/><stop offset=".5" stop-color="#d9bb66"/><stop offset="1" stop-color="#b08d3c"/></linearGradient></defs><g transform="translate(232 275) rotate(-14 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="none" stroke="url(#hd-g1)" stroke-width="11" stroke-linejoin="round"/></g><g transform="translate(352 335) rotate(12 50 50) scale(4.4)"><path d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="#252a38" stroke="url(#hd-g2)" stroke-width="11" stroke-linejoin="round"/></g></svg><span class="brand-words"><span class="brand-name">BASED</span><span class="brand-tag">on values</span></span></div><i id="header-verified-tick" class="ti ti-discount-check-filled" title="You’re verified" style="display:none;font-size:22px;line-height:22px;color:var(--verified)"></i><span id="hdr-tier-icon" style="display:none;flex-shrink:0;line-height:0"></span></div>
+    <div style="display:flex;align-items:center;gap:9px"><div class="brand-lockup" role="img" aria-label="BASED on values"><span class="brand-words"><span class="brand-name"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span><span class="brand-tag">on values</span></span></div><i id="header-verified-tick" class="ti ti-discount-check-filled" title="You’re verified" style="display:none;font-size:22px;line-height:22px;color:var(--verified)"></i><span id="hdr-tier-icon" style="display:none;flex-shrink:0;line-height:0"></span></div>
     <button id="get-verified-btn" onclick="openVerifyScreen('header')" style="display:none;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:10px;padding:6px 10px;color:var(--verified);font-size:14px;font-weight:600;font-family:var(--sans);line-height:20px;cursor:pointer;white-space:nowrap;margin-left:auto;margin-right:10px"><i class="ti ti-discount-check" style="font-size:16px"></i>Verify ID</button>
     <div style="position:relative"><button id="settings-btn" aria-label="Menu" aria-haspopup="true" onclick="toggleMainMenu(event)" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:24px;padding:4px;line-height:1"><i class="ti ti-dots"></i></button>
       <div id="main-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" data-menu="verify" onclick="closeMainMenu();openVerifyScreen('header')"><i class="ti ti-discount-check"></i>Verify ID</button><button role="menuitem" data-menu="upgrade" onclick="closeMainMenu();upgradeState=null;openPlans()"><i class="ti ti-sparkles"></i>Upgrade</button><button role="menuitem" data-menu="topup" onclick="closeMainMenu();openTopUp()"><i class="ti ti-circle-plus"></i>Top up</button><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openSupport()"><i class="ti ti-lifebuoy"></i>Support</button><button role="menuitem" onclick="closeMainMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button></div></div>
@@ -976,7 +984,7 @@ button.ins-tile:active{opacity:0.75;}
 <div id="screen-upgrade" class="screen">
   <div class="app-header">
     <button class="btn-back" onclick="closeUpgrade()" aria-label="Close"><i class="ti ti-x"></i></button>
-    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div class="logo-mark" role="img" aria-label="BASED" style="padding:3px 11px"><span class="logo-text" style="font-size:14px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span></div>
     <div style="width:28px"></div>
   </div>
   <div class="scrollable" id="upgrade-body" style="padding:10px 20px 18px"></div>
@@ -998,7 +1006,7 @@ button.ins-tile:active{opacity:0.75;}
 <div id="screen-signin" class="screen">
   <div class="app-header">
     <button class="btn-back" onclick="goTo('screen-welcome')"><i class="ti ti-arrow-left"></i></button>
-    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div class="logo-mark" role="img" aria-label="BASED" style="padding:3px 11px"><span class="logo-text" style="font-size:14px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span></div>
     <div style="width:28px"></div>
   </div>
   <div class="scrollable" style="padding:28px 16px">
@@ -1018,7 +1026,7 @@ button.ins-tile:active{opacity:0.75;}
 <div id="screen-not-for-you" class="screen">
   <div class="app-header">
     <div style="width:28px"></div>
-    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div class="logo-mark" role="img" aria-label="BASED" style="padding:3px 11px"><span class="logo-text" style="font-size:14px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span></div>
     <div style="width:28px"></div>
   </div>
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 16px;text-align:center">
@@ -1030,7 +1038,7 @@ button.ins-tile:active{opacity:0.75;}
 <div id="screen-check-email" class="screen">
   <div class="app-header">
     <button class="btn-back" onclick="goTo('screen-welcome')"><i class="ti ti-arrow-left"></i></button>
-    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div class="logo-mark" role="img" aria-label="BASED" style="padding:3px 11px"><span class="logo-text" style="font-size:14px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span></div>
     <div style="width:28px"></div>
   </div>
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 16px;text-align:center">
@@ -1048,7 +1056,7 @@ button.ins-tile:active{opacity:0.75;}
 <div id="screen-forgot-password" class="screen">
   <div class="app-header">
     <button class="btn-back" onclick="goTo('screen-signin')"><i class="ti ti-arrow-left"></i></button>
-    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div class="logo-mark" role="img" aria-label="BASED" style="padding:3px 11px"><span class="logo-text" style="font-size:14px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span></div>
     <div style="width:28px"></div>
   </div>
   <div class="scrollable" style="padding:28px 16px">
@@ -1071,7 +1079,7 @@ button.ins-tile:active{opacity:0.75;}
 <!-- RESET PASSWORD (landed here from the email link) -->
 <div id="screen-reset-password" class="screen">
   <div class="app-header">
-    <div class="logo-mark" style="padding:5px 11px"><span class="logo-text" style="font-size:14px">BASED</span></div>
+    <div class="logo-mark" role="img" aria-label="BASED" style="padding:3px 11px"><span class="logo-text" style="font-size:14px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span></div>
   </div>
   <div class="scrollable" style="padding:28px 16px">
     <p style="font-family:var(--serif);font-size:22px;color:var(--text-on-dark);margin-bottom:5px">Choose a new password</p>
@@ -2919,7 +2927,8 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:${color}"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>`
     :`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="color:${color}"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>`;
   const themIcon=genderIcon(theirSex,'#fff'),myIcon=genderIcon(mySex,'var(--gold)');
-  const heartIcon=`<svg width="13" height="13" viewBox="0 0 24 24"><path d="M12 20.13c-.15 0 -.29 -.05 -.4 -.14a44 44 0 0 1 -4.2 -3.61c-3.15 -3.11 -4.9 -5.79 -4.9 -8.38a5 5 0 0 1 8.5 -3.58l1 .98l1 -.98a5 5 0 0 1 8.5 3.58c0 2.59 -1.75 5.27 -4.9 8.38a44 44 0 0 1 -4.2 3.61c-.11 .09 -.25 .14 -.4 .14z" fill="var(--gold)"/></svg>`;
+  // You both gave the same answer: one dot, half white (them) and half gold (you)
+  const bothIcon=`<svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 1.5 A8.5 8.5 0 0 0 10 18.5" fill="none" stroke="#e8e4dc" stroke-width="2.4"/><path d="M10 1.5 A8.5 8.5 0 0 1 10 18.5" fill="none" stroke="#c9a84c" stroke-width="2.4"/><circle cx="10" cy="10" r="3.2" fill="#c9a84c"/></svg>`;
   const rows=QUESTIONS.map((q,i)=>{
     const sl=q.slot,my=myAnswers[sl]||0,them=answers[sl]||0,diff=Math.abs(my-them);
     let cat=answerCat(my,them).cat; // Matched / Close (key 'aligned') / Differs — see answerCat
@@ -2942,7 +2951,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     const religionTag=(sl===FAITH_Q_INDEX&&(my>0||them>0))
       ?`<span style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${(()=>{const a=my>0?relChip(myProfile.religion||'Blank','var(--gold)','You'):'',b=them>0?relChip(theirReligion||'Blank','#fff','Them'):'';return them<my?b+a:a+b;})()}</span>`:''; // same left-to-right order as the dots on the slider
     const dots=my===them
-      ?`<div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.6);display:flex;align-items:center;justify-content:center" title="You both: ${myLabel}">${heartIcon}</div>`
+      ?`<div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;display:flex;align-items:center;justify-content:center" title="You both: ${myLabel}">${bothIcon}</div>`
       :`<div style="position:absolute;top:50%;left:${themP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(255,255,255,0.45);display:flex;align-items:center;justify-content:center" title="Them: ${themLabel}">${themIcon}</div><div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.5);display:flex;align-items:center;justify-content:center" title="You: ${myLabel}">${myIcon}</div>`;
     const html=`<div class="meet-row" role="button" tabindex="0" aria-expanded="false" onclick="toggleMeetRow(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
       <div class="meet-top"><span class="meet-title">${esc(q.text)}${!q.scoring?'<small>Not counted in your score</small>':''}${religionTag}</span><span style="display:flex;align-items:center;gap:6px;flex-shrink:0"><span class="meet-tag" style="border:1px solid ${col};color:${col}">${label}</span><i class="ti ti-chevron-down chev" aria-hidden="true"></i></span></div>
@@ -7149,12 +7158,12 @@ async function handleUnsubscribe(token){
 }
 
 // ─── Spinner CSS (for loading states) ────────────────────────────────────────
+const SPIN_RINGS_SVG='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="15"/><circle cx="80" cy="80" r="54" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="15"/><g><circle cx="80" cy="80" r="70" fill="none" stroke="#e8e4dc" stroke-width="15" stroke-dasharray="151.94 439.82" transform="rotate(90 80 80)"/><path fill="#e8e4dc" d="M 15.80 36.59 L 30.50 30.50 L 28.23 44.99 Z"/><animateTransform attributeName="transform" type="rotate" from="0 80 80" to="360 80 80" dur="1.6s" repeatCount="indefinite"/></g><g><circle cx="80" cy="80" r="54" fill="none" stroke="#c9a84c" stroke-width="15" stroke-dasharray="71.83 339.29" transform="translate(160 0) scale(-1 1) rotate(90 80 80)"/><path fill="#c9a84c" d="M 20.35 94.96 L 26.00 80.00 L 34.90 91.31 Z" transform="translate(160 0) scale(-1 1)"/><animateTransform attributeName="transform" type="rotate" from="0 80 80" to="-360 80 80" dur="1.6s" repeatCount="indefinite"/></g></svg>';
 const spinStyle=document.createElement('style');
 spinStyle.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.ti[style*="spin"]{display:inline-block;transform-origin:50% 50%;line-height:1}'
-  // Loading: one heart from the logo, spinning (replaces the loader icon everywhere it's used)
-  +'@keyframes heartSpin{from{transform:perspective(400px) rotateY(0deg)}to{transform:perspective(400px) rotateY(360deg)}}'
-  +'.ti.ti-loader{animation:heartSpin 1.4s linear infinite!important;display:inline-block;line-height:1;width:1em;height:1em;vertical-align:-0.125em}'
-  +'.ti.ti-loader::before{content:""!important;display:block;width:1em;height:1em;background:url(\'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -2 112 100"%3E%3Cdefs%3E%3ClinearGradient id="g" x1="0" y1="0" x2="1" y2="1"%3E%3Cstop offset="0" stop-color="%23f5e3ad"/%3E%3Cstop offset=".5" stop-color="%23d9bb66"/%3E%3Cstop offset="1" stop-color="%23b08d3c"/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d="M50 88 C 22 68, 5 50, 5 31 C 5 16, 16 6, 29 6 C 39 6, 46 12, 50 20 C 54 12, 61 6, 71 6 C 84 6, 95 16, 95 31 C 95 50, 78 68, 50 88 Z" fill="none" stroke="url%28%23g%29" stroke-width="9" stroke-linejoin="round"/%3E%3C/svg%3E\') center/contain no-repeat}'; // icons are inline by default, and inline elements can't rotate
+  // Loading: the logo's rings, white turning clockwise and gold anticlockwise (replaces the loader icon everywhere it's used)
+  +'.ti.ti-loader{animation:none!important;display:inline-block;line-height:1;width:1em;height:1em;vertical-align:-0.125em}'
+  +'.ti.ti-loader::before{content:""!important;display:block;width:1em;height:1em;background:url("data:image/svg+xml,'+encodeURIComponent(SPIN_RINGS_SVG).replace(/'/g,'%27')+'") center/contain no-repeat}';
 document.head.appendChild(spinStyle);
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
