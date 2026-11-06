@@ -4982,7 +4982,8 @@ function showVerifyIssue(issue){
   }
   if(issue==='no_dob'||issue==='no_name'||issue==='no_sex'){
     btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
-    setVerifyMsg('Thanks, we couldn’t read all the details on your ID automatically, so it’s being checked by hand. Your badge will appear once approved.');
+    const what=issue==='no_sex'?'your ID doesn’t show your sex':issue==='no_name'?'we couldn’t read the name on your ID':'we couldn’t read the date of birth on your ID';
+    setVerifyMsg(`Your ID check passed, but ${what}, so one of our team will confirm it by hand. You don’t need to do anything: we’ll email you when it’s done, and your <span style="color:var(--verified)"><i class="ti ti-discount-check-filled"></i> Verified</span> badge will appear.`);
     return true;
   }
   return false;
@@ -5220,9 +5221,19 @@ async function showSelfiePassed(){
   showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(111,207,151,0.1);border:0.5px solid rgba(111,207,151,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-face-id" style="font-size:26px;color:var(--green)"></i></div><p style="font-family:var(--serif);font-size:21px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Selfie check passed ✓</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:8px;text-align:center">You’re in, and you can start browsing now.</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">For a <span style="color:var(--verified);white-space:nowrap"><i class="ti ti-discount-check-filled"></i> Verified</span> badge${esc(extras)}, verify your photo ID. It’s free and takes about two minutes.</p><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();openVerifyScreen('header')">Verify my ID</button><button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Later</button></div>`);
 }
 
+// After an ID approval the member's level goes up, so the profiles the server held back (locked
+// or hidden at the old level) have to be fetched again, not just redrawn
+async function reloadAfterLevelChange(){
+  await loadPermissions();
+  try{await loadBrowseProfiles();}catch(e){console.warn('reload profiles',e);}
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  if(typeof renderMatchesTab==='function')renderMatchesTab();
+  if(typeof updateFilterCounts==='function')updateFilterCounts();
+  renderPlanRow();
+}
 function onVerified(){
   myVerificationStatus='approved';myVerificationIssue=null;myAgeStatus='passed';
-  loadPermissions().then(()=>renderProfiles(parseInt(document.getElementById('filter-min').value)||0));
+  reloadAfterLevelChange();
   congratulate('id');
   if(verifyContext==='settings'){openEditProfile();return;}
   goMain();
@@ -5309,7 +5320,7 @@ function onMyVerificationChanged(p){
       if(id==='approved')onVerified();
       else if(id==='declined'||id==='in_review'||issue)pollVerification(1); // reuse the existing messages for each state
     }else if(prevId==='in_review'){
-      if(id==='approved'){congratulate('id');loadPermissions().then(()=>renderProfiles(parseInt(document.getElementById('filter-min').value)||0));}
+      if(id==='approved'){myAgeStatus='passed';congratulate('id');reloadAfterLevelChange();}
       else if(id==='declined')showToast(issue==='dob_mismatch'||issue==='name_mismatch'||issue==='name_swapped'||issue==='sex_mismatch'?'Your ID check needs a quick fix: see Settings':'Your ID check wasn’t approved: you can try again in Settings');
     }
     updateGetVerifiedBtn();renderVerifyRow();renderPlanRow(); // a paid plan waiting for the ID check
