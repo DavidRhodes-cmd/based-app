@@ -4539,7 +4539,17 @@ function notOpenYet(){
     <button class="btn-primary" style="font-size:15px" onclick="removeModal()">OK</button>`);
 }
 // reason: 'locked' (default) or 'limit' (allowance used up)
+// Opens the upgrade screen. A tap always gets a response: a spinner if it takes a moment,
+// and a message if it fails (it used to fail silently, so the button seemed to do nothing)
+let upgradeOpening=false;
 async function showUpgradePrompt(f,reason){
+  if(upgradeOpening)return;upgradeOpening=true;
+  const slow=setTimeout(()=>showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold)"></i><p style="color:var(--text-on-dark);margin-top:12px">Loading options…</p></div>'),150);
+  try{await openUpgradeScreen(f,reason);}
+  catch(e){console.error('Upgrade screen failed:',e);removeModal();showToast('Sorry, that didn’t open — please try again.',true,3000);}
+  finally{clearTimeout(slow);upgradeOpening=false;const m=document.getElementById('modal-bd');if(m&&/Loading options/.test(m.textContent))removeModal();}
+}
+async function openUpgradeScreen(f,reason){
   removeModal();
   if(permsFailed){showToast('We couldn’t load your plan just now — please try again in a moment.',true,3000);refreshPermissions(true);return;}
   if(needsWaiting()){notOpenYet();return;}
