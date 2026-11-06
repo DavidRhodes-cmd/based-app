@@ -3683,12 +3683,34 @@ function renderSupportConsent(){
 const RIGHT_ICON=(ic,c)=>`<i class="ti ${ic}" style="font-size:30px;color:${c||'var(--gold)'};display:block;margin-bottom:10px"></i>`;
 const RIGHT_H=t=>`<p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px">${t}</p>`;
 const RIGHT_P=(t,mb=12)=>`<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:${mb}px;text-align:left">${t}</p>`;
+// The request is sent from inside the app, so it's tied to the account the member is signed in to:
+// nobody can ask for changes to someone else's data (an email can be sent from, or name, any address)
 function openRightRectify(){
-  const mail=`mailto:support@baseddatingonline.com?subject=${encodeURIComponent('Correction request')}&body=${encodeURIComponent('Please correct the following information on my BASED account:\n\n')}`;
   showModal(RIGHT_ICON('ti-edit')+RIGHT_H('Correct your data')+
     RIGHT_P('You can change most of your details yourself in <b style="color:var(--text-on-dark)">Settings</b>: your name, photos, location, religion and questionnaire answers. You can also correct your date of birth there once, unless it’s been confirmed by your ID.')+
-    RIGHT_P('If something else is wrong that you can’t change there, email us and we’ll put it right within one month.',18)+
-    `<div style="display:flex;flex-direction:column;gap:10px"><button class="btn-primary" onclick="removeModal();openEditProfile()">Open Settings</button><a class="btn-ghost" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="${esc(mail)}" onclick="setTimeout(removeModal,300)">Email a correction</a><button style="background:transparent;border:none;color:var(--text-muted);font-size:14px;font-family:var(--sans);cursor:pointer;padding:8px" onclick="removeModal()">Cancel</button></div>`);
+    RIGHT_P('If something else is wrong that you can’t change there, tell us below and we’ll put it right within one month. We’ll let you know here in the app when it’s done.',12)+
+    `<textarea id="rectify-text" maxlength="2000" rows="4" placeholder="What’s wrong, and what should it say?" style="width:100%;box-sizing:border-box;font-family:var(--sans);font-size:15px;line-height:1.45;padding:12px 13px;border-radius:11px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-on-dark);resize:vertical;margin-bottom:6px"></textarea>
+    <p id="rectify-msg" style="font-size:13px;line-height:1.5;min-height:1em;margin-bottom:8px;text-align:left"></p>
+    <div style="display:flex;flex-direction:column;gap:10px"><button class="btn-primary" id="rectify-send" onclick="sendCorrectionRequest()">Send request</button><button class="btn-ghost" onclick="removeModal();openEditProfile()">Open Settings</button><button style="background:transparent;border:none;color:var(--text-muted);font-size:14px;font-family:var(--sans);cursor:pointer;padding:8px" onclick="removeModal()">Close</button></div>
+    <div id="rectify-past"></div>`);
+  // Earlier requests and their answers
+  sb.rpc('my_correction_requests').then(({data})=>{
+    const el=document.getElementById('rectify-past');if(!el||!Array.isArray(data)||!data.length)return;
+    const st={open:['Waiting','var(--gold)'],done:['Corrected','var(--green)'],declined:['Not changed','var(--text-muted)']};
+    el.innerHTML='<p style="font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);text-align:left;margin:16px 0 8px">Your requests</p>'+data.slice(0,5).map(r=>{const [l,c]=st[r.status]||[r.status,'var(--text-muted)'];
+      return `<div style="text-align:left;border:0.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--text-muted);margin-bottom:4px"><span>${esc(shortDate(r.at))}</span><span style="color:${c}">${l}</span></div><div style="font-size:13.5px;color:var(--text-on-dark);line-height:1.45;white-space:pre-wrap">${esc(r.body)}</div>${r.reply?`<div style="font-size:13px;color:var(--text-muted);line-height:1.45;margin-top:6px;white-space:pre-wrap"><b style="color:var(--text-on-dark)">BASED:</b> ${esc(r.reply)}</div>`:''}</div>`;}).join('');
+  }).catch(()=>{});
+}
+async function sendCorrectionRequest(){
+  const t=document.getElementById('rectify-text'),msg=document.getElementById('rectify-msg'),btn=document.getElementById('rectify-send');
+  const v=(t.value||'').trim();
+  if(v.length<5){msg.style.color='var(--red)';msg.textContent='Please tell us what needs correcting.';t.focus();return;}
+  btn.disabled=true;btn.textContent='Sending…';
+  const {data,error}=await sb.rpc('request_correction',{p_text:v});
+  btn.disabled=false;btn.textContent='Send request';
+  if(error){msg.style.color='var(--red)';msg.textContent=/Please|Too many/.test(error.message)?error.message:'Sorry, that didn’t send. Please try again.';return;}
+  removeModal();
+  showToast(`Thanks — we’ll put it right by ${longDate(data.due)} and let you know here.`,false,4000);
 }
 function openRightRestrict(){
   const on=profileHidden;
@@ -3707,13 +3729,13 @@ function openRightObject(){
     RIGHT_P(`<b style="color:var(--text-on-dark)">Updates and offers:</b> ${supportConsent.marketing?'you can stop these at any time by unticking “Send me updates and offers” above.':'you’re not receiving these.'}`)+
     RIGHT_P('<b style="color:var(--text-on-dark)">Everything else:</b> BASED needs to use your data to run the service (to show your profile, match you and let you message people). If you object to this, we will delete your account and all your data, and cancel any future subscription charges.')+
     RIGHT_P('A few safety records are kept for a limited time even then, as explained in “How we use your data”.',18)+
-    `<div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1;background:var(--red);color:#fff" onclick="executeDelete()">Delete my account</button></div>`);
+    `<div style="display:flex;gap:10px"><button class="btn-primary" style="flex:1" onclick="removeModal()">Cancel</button><button style="flex:1;background:transparent;color:var(--red);border:0.5px solid rgba(235,87,87,0.45);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;font-family:var(--sans)" onclick="askDeleteSure()">Delete my account</button></div>`);
 }
 function openRightErase(){
   showModal(RIGHT_ICON('ti-trash','var(--red)')+RIGHT_H('Delete your account and data')+
     RIGHT_P('We will permanently delete your account, profile, photos, answers, matches and messages straight away, and cancel any future subscription charges. This can’t be undone.')+
     RIGHT_P('A few safety records are kept for a limited time, as explained in “How we use your data”.',18)+
-    `<div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1;background:var(--red);color:#fff" onclick="executeDelete()">Delete my account</button></div>`);
+    `<div style="display:flex;gap:10px"><button class="btn-primary" style="flex:1" onclick="removeModal()">Cancel</button><button style="flex:1;background:transparent;color:var(--red);border:0.5px solid rgba(235,87,87,0.45);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;font-family:var(--sans)" onclick="askDeleteSure()">Delete my account</button></div>`);
 }
 
 // Subject Access Request from the app: one tap. The server works out who they are from their
@@ -3768,7 +3790,7 @@ function onSupportConsent(kind,box){
     showModal(`<i class="ti ti-mail-off" style="font-size:28px;color:var(--gold);display:block;margin-bottom:10px"></i><p style="font-size:15px;color:var(--text-on-dark);line-height:1.55;margin-bottom:20px">We will not send you any more updates and offers.</p><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1" onclick="removeModal();saveSupportConsent('marketing',false)">OK</button></div>`);
     return;
   }
-  showModal(`<i class="ti ti-alert-triangle" style="font-size:28px;color:var(--red);display:block;margin-bottom:10px"></i><p style="font-size:14px;color:var(--text-on-dark);line-height:1.6;margin-bottom:20px">${WITHDRAW_TEXT[kind]}</p><div style="display:flex;gap:10px"><button class="btn-ghost" style="flex:1" onclick="removeModal()">Cancel</button><button class="btn-primary" style="flex:1;background:var(--red);color:#fff" onclick="executeDelete()">Delete my account</button></div>`);
+  showModal(`<i class="ti ti-alert-triangle" style="font-size:28px;color:var(--red);display:block;margin-bottom:10px"></i><p style="font-size:14px;color:var(--text-on-dark);line-height:1.6;margin-bottom:20px">${WITHDRAW_TEXT[kind]}</p><div style="display:flex;gap:10px"><button class="btn-primary" style="flex:1" onclick="removeModal()">Cancel</button><button style="flex:1;background:transparent;color:var(--red);border:0.5px solid rgba(235,87,87,0.45);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;font-family:var(--sans)" onclick="askDeleteSure()">Delete my account</button></div>`);
 }
 
 // target: 'main' (the main photo) or 'extra' (an additional photo); src: the image to crop
@@ -7119,7 +7141,7 @@ const LEAVING_REASONS=[
 ];
 function confirmDelete(){
   const opts=LEAVING_REASONS.map(([v,l])=>`<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:0.5px solid rgba(255,255,255,0.12);border-radius:10px;margin-bottom:8px;cursor:pointer;text-align:left"><input type="checkbox" name="leave-reason" value="${v}" style="accent-color:var(--gold);width:17px;height:17px;flex-shrink:0" /><span style="font-size:14px;color:var(--text-on-dark)">${l}</span></label>`).join('');
-  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(235,87,87,0.1);border:0.5px solid rgba(235,87,87,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-trash" style="font-size:24px;color:var(--red)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;line-height:1.3">Delete your profile?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:16px">Do you want to delete your profile and all your data held on the BASED app?${isPremium?` Your ${TIER_LABEL[(PERMS&&PERMS.tier)||'plus']} subscription will be cancelled immediately.`:''}</p><p style="font-size:14px;color:var(--text-on-dark);margin-bottom:4px;text-align:left">Before you go, why are you leaving?</p><p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;text-align:left">Optional. Tick any that apply. It helps us make BASED better, and it isn’t linked to your name or email.</p><div style="max-height:34vh;overflow-y:auto;margin-bottom:14px">${opts}<textarea id="leave-comment" maxlength="2000" placeholder="Anything else you’d like to tell us? (optional)" class="form-input" style="min-height:76px;resize:vertical;font-size:14px;margin-top:4px"></textarea><p style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:left">Please don’t include anyone’s name or contact details.</p></div><div style="display:flex;flex-direction:column;gap:11px"><button onclick="executeDelete()" style="background:var(--red);color:white;border:none;border-radius:13px;padding:14px 20px;font-size:15px;font-weight:600;cursor:pointer;width:100%;font-family:var(--sans)">Yes, delete everything</button><button onclick="removeModal()" style="background:transparent;color:var(--text-muted);border:0.5px solid rgba(255,255,255,0.15);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;width:100%;font-family:var(--sans)">Cancel</button></div>`);
+  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(235,87,87,0.1);border:0.5px solid rgba(235,87,87,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-trash" style="font-size:24px;color:var(--red)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;line-height:1.3">Delete your profile?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:16px">Do you want to delete your profile and all your data held on the BASED app?${isPremium?` Your ${TIER_LABEL[(PERMS&&PERMS.tier)||'plus']} subscription will be cancelled immediately.`:''}</p><p style="font-size:14px;color:var(--text-on-dark);margin-bottom:4px;text-align:left">Before you go, why are you leaving?</p><p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;text-align:left">Optional. Tick any that apply. It helps us make BASED better, and it isn’t linked to your name or email.</p><div style="max-height:34vh;overflow-y:auto;margin-bottom:14px">${opts}<textarea id="leave-comment" maxlength="2000" placeholder="Anything else you’d like to tell us? (optional)" class="form-input" style="min-height:76px;resize:vertical;font-size:14px;margin-top:4px"></textarea><p style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:left">Please don’t include anyone’s name or contact details.</p></div><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" onclick="removeModal()" style="width:100%">Cancel</button><button onclick="askDeleteSure()" style="background:transparent;color:var(--red);border:0.5px solid rgba(235,87,87,0.45);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;width:100%;font-family:var(--sans)">Delete everything</button></div>`);
 }
 
 function confirmLogout(){
@@ -7155,11 +7177,21 @@ async function executeLogout(){
   window.location.replace(window.location.pathname);
 }
 
+// One last check before anything is deleted. The reasons ticked on the first box are kept for the delete.
+let leavingAnswers=null;
+function askDeleteSure(){
+  leavingAnswers={reasons:[...document.querySelectorAll('input[name="leave-reason"]:checked')].map(x=>x.value),comment:((document.getElementById('leave-comment')||{}).value||'').trim()||null};
+  showModal(`<div style="text-align:center"><i class="ti ti-alert-triangle" style="font-size:30px;color:var(--red);display:block;margin-bottom:12px"></i>
+    <p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.3">Are you sure you want to delete your account?</p>
+    <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:20px">Your profile, photos, matches and messages will be gone for good. This can’t be undone.</p>
+    <div style="display:flex;flex-direction:column;gap:10px"><button class="btn-primary" style="width:100%" onclick="leavingAnswers=null;removeModal()">No, keep my account</button>
+    <button onclick="executeDelete()" style="${'background:transparent;color:var(--red);border:0.5px solid rgba(235,87,87,0.45);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;width:100%;font-family:var(--sans)'}">Yes, delete my account</button></div></div>`);
+}
 async function executeDelete(){
   if(window.__deleting)return; // a second tap while the first is still going
   window.__deleting=true;
   // Read the reasons before the box is replaced by the progress message
-  const leaving={reasons:[...document.querySelectorAll('input[name="leave-reason"]:checked')].map(x=>x.value),comment:((document.getElementById('leave-comment')||{}).value||'').trim()||null};
+  const leaving=leavingAnswers||{reasons:[],comment:null};leavingAnswers=null;
   showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold)"></i><p style="color:var(--text-on-dark);margin-top:12px">Deleting your account…</p></div>');
   if(currentUser){
     try{
