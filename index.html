@@ -2165,7 +2165,7 @@ async function retryStaging(){
   const email=stagingRetry.email;stagingRetry=null;
   removeModal();
   goTo('screen-check-email');
-  document.getElementById('check-email-address').textContent=email;
+  document.getElementById('check-email-address').textContent=email;try{localStorage.setItem('basedSignupEmail',email);}catch(e){}
   resetSignupForm();
 }
 // Answers are stored encrypted: the server decrypts an unfinished sign-up for its owner only
@@ -2206,7 +2206,7 @@ async function signUpAndSave(){
     // screen to find out whether an email address has a BASED account.
     removeModal();
     goTo('screen-check-email');
-    document.getElementById('check-email-address').textContent=email;
+    document.getElementById('check-email-address').textContent=email;try{localStorage.setItem('basedSignupEmail',email);}catch(e){}
     resetSignupForm(); // this sign-up is done: "Create one" starts afresh
     return;
   }
@@ -2222,7 +2222,7 @@ async function signUpAndSave(){
     }
     removeModal();
     goTo('screen-check-email');
-    document.getElementById('check-email-address').textContent=email;
+    document.getElementById('check-email-address').textContent=email;try{localStorage.setItem('basedSignupEmail',email);}catch(e){}
     resetSignupForm(); // this sign-up is done: "Create one" starts afresh
     return;
   }
@@ -2368,6 +2368,34 @@ async function trySignIn(){
   updateMatchNotifs();
 }
 
+// A link from one of our emails didn't work (usually expired): offer a fresh one straight away
+function showLinkExpired(){
+  let last='';try{last=localStorage.getItem('basedSignupEmail')||'';}catch(e){}
+  showModal(`<div style="padding:6px 4px;text-align:center">
+    <p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:8px">That link has expired</p>
+    <p style="font-size:14px;color:var(--text-muted);line-height:1.55;margin-bottom:16px">Links in our emails only work for a while. Enter your email and we’ll send you a new one.</p>
+    <input id="relink-email" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" enterkeyhint="send" value="${esc(last)}" placeholder="you@example.com"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();sendNewConfirmLink();}"
+      style="width:100%;box-sizing:border-box;font-size:16px;padding:13px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-on-dark)">
+    <button class="btn-primary" id="relink-go" style="width:100%;margin-top:12px" onclick="sendNewConfirmLink()">Send a new confirmation link</button>
+    <p id="relink-msg" style="font-size:13px;line-height:1.5;margin-top:10px;min-height:1em"></p>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-top:6px">Was it a password reset link? <span style="color:var(--gold);text-decoration:underline;cursor:pointer" onclick="const v=document.getElementById('relink-email').value.trim();removeModal();document.getElementById('signin-email').value=v;openForgotPassword();">Reset your password</span></p>
+    <p style="margin-top:12px"><span style="font-size:13px;color:var(--text-muted);text-decoration:underline;cursor:pointer" onclick="removeModal()">Not now</span></p>
+  </div>`);
+}
+async function sendNewConfirmLink(){
+  const inp=document.getElementById('relink-email'),msg=document.getElementById('relink-msg'),btn=document.getElementById('relink-go');
+  const email=(inp.value||'').trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){msg.style.color='var(--red,#e57373)';msg.textContent='Please check your email address.';inp.focus();return;}
+  btn.disabled=true;btn.textContent='Sending…';
+  const {error}=await sb.auth.resend({type:'signup',email,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
+  btn.disabled=false;btn.textContent='Send a new confirmation link';
+  if(error&&error.status===429){msg.style.color='var(--red,#e57373)';msg.textContent='Please wait a minute before asking for another email.';return;}
+  try{localStorage.setItem('basedSignupEmail',email);}catch(e){}
+  // the same wording whether or not the address has an account waiting to be confirmed
+  removeModal();goTo('screen-check-email');document.getElementById('check-email-address').textContent=email;
+  showToast('If that address needs confirming, a new link is on its way.');
+}
 async function resendConfirmationEmail(email){
   const err=document.getElementById('signin-error');
   showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Sending…</p></div>');
@@ -7158,12 +7186,17 @@ async function handleUnsubscribe(token){
 }
 
 // ─── Spinner CSS (for loading states) ────────────────────────────────────────
-const SPIN_RINGS_SVG='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="15"/><circle cx="80" cy="80" r="54" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="15"/><g><circle cx="80" cy="80" r="70" fill="none" stroke="#e8e4dc" stroke-width="15" stroke-dasharray="151.94 439.82" transform="rotate(90 80 80)"/><path fill="#e8e4dc" d="M 15.80 36.59 L 30.50 30.50 L 28.23 44.99 Z"/><animateTransform attributeName="transform" type="rotate" from="0 80 80" to="360 80 80" dur="1.6s" repeatCount="indefinite"/></g><g><circle cx="80" cy="80" r="54" fill="none" stroke="#c9a84c" stroke-width="15" stroke-dasharray="71.83 339.29" transform="translate(160 0) scale(-1 1) rotate(90 80 80)"/><path fill="#c9a84c" d="M 20.35 94.96 L 26.00 80.00 L 34.90 91.31 Z" transform="translate(160 0) scale(-1 1)"/><animateTransform attributeName="transform" type="rotate" from="0 80 80" to="-360 80 80" dur="1.6s" repeatCount="indefinite"/></g></svg>';
+// The loader's two rings as separate pictures, each turned by CSS (keeps moving even while the app is busy)
+const SPIN_WHITE_SVG='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="15"/><circle cx="80" cy="80" r="54" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="15"/><circle cx="80" cy="80" r="70" fill="none" stroke="#e8e4dc" stroke-width="15" stroke-dasharray="151.94 439.82" transform="rotate(90 80 80)"/><path fill="#e8e4dc" d="M 15.80 36.59 L 30.50 30.50 L 28.23 44.99 Z"/></svg>';
+const SPIN_GOLD_SVG='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><circle cx="80" cy="80" r="54" fill="none" stroke="#c9a84c" stroke-width="15" stroke-dasharray="71.83 339.29" transform="translate(160 0) scale(-1 1) rotate(90 80 80)"/><path fill="#c9a84c" d="M 20.35 94.96 L 26.00 80.00 L 34.90 91.31 Z" transform="translate(160 0) scale(-1 1)"/></svg>';
 const spinStyle=document.createElement('style');
 spinStyle.textContent='@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.ti[style*="spin"]{display:inline-block;transform-origin:50% 50%;line-height:1}'
   // Loading: the logo's rings, white turning clockwise and gold anticlockwise (replaces the loader icon everywhere it's used)
-  +'.ti.ti-loader{animation:none!important;display:inline-block;line-height:1;width:1em;height:1em;vertical-align:-0.125em}'
-  +'.ti.ti-loader::before{content:""!important;display:block;width:1em;height:1em;background:url("data:image/svg+xml,'+encodeURIComponent(SPIN_RINGS_SVG).replace(/'/g,'%27')+'") center/contain no-repeat}';
+  +'.ti.ti-loader{animation:none!important;position:relative;display:inline-block;line-height:1;width:1em;height:1em;vertical-align:-0.125em}'
+  +'.ti.ti-loader::before,.ti.ti-loader::after{content:""!important;position:absolute;inset:0;background:center/contain no-repeat;will-change:transform}'
+  +'.ti.ti-loader::before{background-image:url("data:image/svg+xml,'+encodeURIComponent(SPIN_WHITE_SVG).replace(/'/g,'%27')+'");animation:basedCw 1.6s linear infinite}'
+  +'.ti.ti-loader::after{background-image:url("data:image/svg+xml,'+encodeURIComponent(SPIN_GOLD_SVG).replace(/'/g,'%27')+'");animation:basedCcw 1.6s linear infinite}'
+  +'@keyframes basedCw{to{transform:rotate(360deg)}}@keyframes basedCcw{to{transform:rotate(-360deg)}}';
 document.head.appendChild(spinStyle);
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
@@ -7221,7 +7254,7 @@ document.head.appendChild(spinStyle);
   if(authLinkError){
     try{await sb.auth.signOut();}catch(e){}
     currentUser=null;
-    showToast(authLinkError,true,5000);
+    showLinkExpired();
   }
 })();
 
