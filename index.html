@@ -7268,6 +7268,14 @@ function askDeleteSure(){
     <div style="display:flex;flex-direction:column;gap:10px"><button class="btn-primary" style="width:100%" onclick="leavingAnswers=null;removeModal()">No, keep my account</button>
     <button onclick="executeDelete()" style="${'background:transparent;color:var(--red);border:0.5px solid rgba(235,87,87,0.45);border-radius:13px;padding:13px 20px;font-size:15px;cursor:pointer;width:100%;font-family:var(--sans)'}">Yes, delete my account</button></div></div>`);
 }
+// Deleting needs a current sign-in for this account; nothing is deleted without one
+function signInAgainToDelete(){
+  const name=(myProfile&&myProfile.name)||'this account';
+  showModal(`<div style="text-align:center"><i class="ti ti-lock" style="font-size:28px;color:var(--gold);display:block;margin-bottom:10px"></i>
+    <p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px">Please sign in again</p>
+    <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">You’re no longer signed in as ${esc(name)} on this device (this can happen if another account was used in this browser). Nothing has been deleted. Sign in again, then delete your account from Settings.</p>
+    <button class="btn-primary" style="width:100%" onclick="removeModal();hardSignOut().then(()=>goTo('screen-signin'))">Sign in again</button></div>`);
+}
 async function executeDelete(){
   if(window.__deleting)return; // a second tap while the first is still going
   window.__deleting=true;
@@ -7276,12 +7284,17 @@ async function executeDelete(){
   showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold)"></i><p style="color:var(--text-on-dark);margin-top:12px">Deleting your account…</p></div>');
   if(currentUser){
     try{
-      const {data:{session}}=await sb.auth.getSession();
+      // This browser may no longer hold this member's sign-in (for example another account was
+      // signed in, or signed out, in another tab), so check before sending
+      let {data:{session}}=await sb.auth.getSession();
+      if(session&&session.expires_at&&session.expires_at*1000<Date.now()+60000){const r=await sb.auth.refreshSession();session=r.data&&r.data.session;}
+      if(!session||!session.user||session.user.id!==currentUser.id){removeModal();window.__deleting=false;signInAgainToDelete();return;}
       const resp=await fetch('https://okubbpsvaogqzdtajiqz.supabase.co/functions/v1/delete-account',{
         method:'POST',
         headers:{'Authorization':'Bearer '+(session?session.access_token:''),'Content-Type':'application/json'},
         body:JSON.stringify(leaving)
       });
+      if(resp.status===401){removeModal();window.__deleting=false;signInAgainToDelete();return;}
       if(!resp.ok){
         const body=await resp.json().catch(()=>({}));
         console.error('Account deletion failed:',body.error||resp.statusText);
