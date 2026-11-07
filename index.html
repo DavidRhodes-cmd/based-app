@@ -4040,18 +4040,25 @@ function sizeSignupLayout(retried){
     const c=m.children[0],hh=m.children[1];
     c.style.width=w+'px';c.style.height='auto';c.style.minHeight='0';hh.style.width=hw+'px';hh.style.minHeight='0';
     c.querySelector('.sq-tag').textContent='Slightly closer to this';
-    let card=0,head=0;
+    let card=0,head=0;const cards=[],heads=[];
     for(const q of SIGNUP_QUESTIONS){
-      for(const t of [q.left,q.right]){c.querySelector('.sq-text').innerHTML=sqText(t);card=Math.max(card,c.getBoundingClientRect().height);}
-      hh.textContent=q.text;head=Math.max(head,hh.getBoundingClientRect().height);
+      let qc=0;
+      for(const t of [q.left,q.right]){c.querySelector('.sq-text').innerHTML=sqText(t);qc=Math.max(qc,c.getBoundingClientRect().height);}
+      hh.textContent=q.text;const qh=hh.getBoundingClientRect().height;
+      cards.push(Math.ceil(qc));heads.push(Math.ceil(qh));card=Math.max(card,qc);head=Math.max(head,qh);
     }
     m.remove();
-    sqSizeCache={key,card:Math.ceil(card),head:Math.ceil(head)};
+    sqSizeCache={key,card:Math.ceil(card),head:Math.ceil(head),cards,heads};
   }
-  l.style.height=sqSizeCache.card+'px';document.getElementById('sq-right').style.height=sqSizeCache.card+'px';
-  h.style.minHeight=sqSizeCache.head+'px';
+  // On a tall screen every question uses the same box height, so nothing moves between questions.
+  // On a short one (a small iPhone, or any iPhone in Safari with its toolbars) each question's boxes
+  // fit their own statements, leaving room for the picture underneath.
+  const short=window.innerHeight<760,i=Math.min(signupIdx,sqSizeCache.cards.length-1);
+  const cardH=short?sqSizeCache.cards[i]:sqSizeCache.card,headH=short?sqSizeCache.heads[i]:sqSizeCache.head;
+  l.style.height=cardH+'px';document.getElementById('sq-right').style.height=cardH+'px';
+  h.style.minHeight=headH+'px';
 }
-window.addEventListener('resize',()=>{if(document.getElementById('screen-questions')?.classList.contains('active'))sizeSignupLayout();});
+window.addEventListener('resize',()=>{if(document.getElementById('screen-questions')?.classList.contains('active')){sizeSignupLayout();fitQuestionArt();}});
 // Statement text, allowed to wrap after a slash ("provider/protector")
 function sqText(t){return esc(t).replace(/\//g,'/<wbr>');}
 // Opening the explanation scrolls it fully into view; hiding it goes back to the top of the question
