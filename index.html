@@ -2547,6 +2547,9 @@ function subscribeToInteractions(){
           launchConfetti(null);
           showLiveBanner({title:`It's mutual with ${p.name}! 🎉`,sub:'You can now message each other',photo:p.photo_url,initials:p.initials,
             onTap:()=>{goTo('screen-main');switchTab('messages');}});
+          // Looking at their profile right now: redraw it as a match (real photo, Send a message)
+          const open=document.querySelector('.screen.active');
+          if(open&&open.id==='screen-profile'&&lastProfileArgs&&lastProfileArgs[8]===newMatch)openProfile(...lastProfileArgs);
         }else if(newInterest&&pp(newInterest)){
           const p=pp(newInterest);
           if(theirSuper.has(newInterest)){
@@ -2944,8 +2947,15 @@ async function handleProfileTap(aStr,compat,basedScore,inits,name,age,location,p
 }
 
 let profileOpenContext='search';
+let lastProfileArgs=null; // what the open profile was drawn with, so it can be redrawn when it becomes a match
 function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,context='search',theirReligion=null){
+  lastProfileArgs=[answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,context,theirReligion];
   profileOpenContext=context;
+  // Matched with them but still holding the blurred copy from before the match: use the real photo
+  if(mutualMatches.has(profileKey)&&(!photoUrl||String(photoUrl).startsWith(BLUR_BASE))){
+    const bp=browseProfiles.find(x=>x.id===profileKey);
+    if(bp&&bp.photo_url&&!String(bp.photo_url).startsWith(BLUR_BASE))photoUrl=bp.photo_url;
+  }
   document.getElementById('profile-back-btn').onclick=context==='chat'?()=>goTo('screen-chat'):()=>goTo('screen-main');
   const hasInterest=expressedInterest.has(profileKey);
   const isMutual=mutualMatches.has(profileKey);
@@ -3304,10 +3314,10 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
    const ei=perm('express_interest');const left=limitLeft('express_interest');
    showToast(left!==Infinity?`Interest sent · ${left} left`:'Interest sent',false,left!==Infinity?1800:1000);}
   // Check if they liked us back (re-query)
-  let isMutual=false;
+  let isMutual=false,reload=null;
   if(currentUser){
     const {data}=await sb.from('interactions').select('id,created_at').eq('from_user',profileKey).eq('to_user',currentUser.id).eq('action','interested');
-    if(data&&data.length){mutualMatches.add(profileKey);mutualDays.set(profileKey,0);renderMutualBadge();loadBrowseProfiles();incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();playSound('mutual');isMutual=true;
+    if(data&&data.length){mutualMatches.add(profileKey);mutualDays.set(profileKey,0);renderMutualBadge();reload=loadBrowseProfiles();incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();playSound('mutual');isMutual=true;
       // The same big moment the other person gets
       showLiveBanner({title:`It's mutual with ${name}! 🎉`,sub:'You can now message each other',photo:photoUrl||null,initials:inits,onTap:()=>{goTo('screen-main');switchTab('messages');}});
       launchConfetti(null);}
@@ -3317,6 +3327,7 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
   renderMatchesTab();
   if(isMutual){
     let answers;try{answers=JSON.parse(aEncoded.replace(/&quot;/g,'"'));}catch(e){answers=new Array(NUM_Q).fill(0);}
+    try{await reload;}catch(e){} // brings their real photo now that it's a match
     openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,profileKey,'search',religion||null);
   }else{
     advanceToNextProfile(profileKey);
