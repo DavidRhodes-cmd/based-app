@@ -49,7 +49,9 @@ setTimeout(function(){try{if(sessionStorage.getItem('basedCspProbe'))return;sess
   --gold:#c9a84c;--gold-light:#e8c97a;
   --text-on-dark:#e8e4dc;--text-muted:#8a8fa8;
   --green:#6fcf97;--red:#eb5757;--verified:#e8c97a;
-  --serif:Georgia,'Times New Roman',serif;
+  /* One typeface throughout; the serif is kept only for the BASED logo and "on values" */
+  --brand-serif:Georgia,'Times New Roman',serif;
+  --serif:var(--sans);
   --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
@@ -82,9 +84,9 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
   flex-shrink:0;background:var(--navy);
 }
 .logo-mark{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:6px 12px;}
-.logo-text{font-family:var(--serif);font-size:16px;color:var(--text-on-dark);letter-spacing:0.5px;}
+.logo-text{font-family:var(--brand-serif);font-size:16px;color:var(--text-on-dark);letter-spacing:0.5px;}
 .logo-icon,.logo-mic{color:var(--text-muted);font-size:13px;}
-.bl-word{display:inline-flex;align-items:center;font-family:var(--serif);color:var(--text-on-dark);line-height:1}
+.bl-word{display:inline-flex;align-items:center;font-family:var(--brand-serif);color:var(--text-on-dark);line-height:1}
 .bl-ring{position:relative;display:inline-flex;align-items:center;justify-content:center;width:1.75em;height:1.75em;margin-right:.03em;flex-shrink:0}
 .bl-ring svg{position:absolute;inset:0;width:100%;height:100%;display:block}
 .bl-b{position:relative;letter-spacing:0;padding-top:.08em}
@@ -92,8 +94,8 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .brand-words{display:flex;flex-direction:column;align-items:flex-end}
 .brand-lockup{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:5px 11px;}
 .brand-words{gap:0}
-.brand-name{font-family:var(--serif);font-size:16px;line-height:1;color:var(--text-on-dark);letter-spacing:2px;}
-.brand-tag{font-family:var(--serif);font-size:10.5px;line-height:1.1;color:var(--gold);font-style:italic;letter-spacing:.4px;margin-top:-3px;}
+.brand-name{font-family:var(--brand-serif);font-size:16px;line-height:1;color:var(--text-on-dark);letter-spacing:2px;}
+.brand-tag{font-family:var(--brand-serif);font-size:10.5px;line-height:1.1;color:var(--gold);font-style:italic;letter-spacing:.4px;margin-top:-3px;}
 .btn-back{background:transparent;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;line-height:1;}
 .btn-primary{background:var(--gold);color:var(--navy);border:none;border-radius:13px;padding:14px 20px;font-size:16px;font-weight:600;cursor:pointer;width:100%;font-family:var(--sans);}
 .btn-primary:active{opacity:0.85;}
@@ -119,7 +121,7 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .religion-box.planet-box.filter-off{opacity:0.6}
 .planet-box.filter-off svg{filter:saturate(0.55)}
 .religion-box.selected{background:rgba(201,168,76,0.15);border-color:var(--gold);color:var(--gold);font-weight:600;}
-.info-icon-btn{flex-shrink:0;width:19px;height:19px;min-width:19px;border-radius:50%;background:transparent;border:1px solid rgba(255,255,255,0.28);color:var(--text-muted);font-size:11px;font-family:Georgia,serif;font-style:italic;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;line-height:1;margin-top:1px;}
+.info-icon-btn{flex-shrink:0;width:19px;height:19px;min-width:19px;border-radius:50%;background:transparent;border:1px solid rgba(255,255,255,0.28);color:var(--text-muted);font-size:11px;font-family:var(--sans);font-style:italic;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;line-height:1;margin-top:1px;}
 .info-icon-btn:hover{border-color:var(--gold);color:var(--gold);}
 .q-slider{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:5px;background:rgba(255,255,255,0.12);outline:none;cursor:pointer;}
 .field-err{display:none;font-size:12.5px;line-height:1.4;color:var(--red);margin:7px 2px 0;}
@@ -414,7 +416,7 @@ button.ins-tile:active{opacity:0.75;}
     <div id="welcome-logo" role="img" aria-label="BASED on values" style="display:flex;align-items:center;padding:14px 26px 16px;border-radius:18px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);margin-bottom:28px">
       <div style="display:flex;flex-direction:column;align-items:flex-end">
         <span style="font-size:36px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span>
-        <span style="font-family:var(--serif);font-size:19px;line-height:1.1;color:var(--gold);font-style:italic;letter-spacing:1px;margin-top:-6px">on values</span>
+        <span style="font-family:var(--brand-serif);font-size:19px;line-height:1.1;color:var(--gold);font-style:italic;letter-spacing:1px;margin-top:-6px">on values</span>
       </div>
     </div>
     <p style="color:var(--text-muted);font-size:15px;line-height:1.5;margin-bottom:24px">Find someone<br>who shares what matters</p>
@@ -3384,8 +3386,8 @@ function selectMarried(v){
 }
 function confirmMarried(){resetSignupForm();signupAnswered=false;goTo('screen-not-for-you');}
 const CHILDREN_QID=10; // the Children question carries the "I already have children" tick
-// Lettering matches the question's own statements (serif, cream; a little smaller in My answers)
-function kidsTickHtml(id,on,onchange,small){return `<label style="display:flex;align-items:center;gap:10px;margin-top:${small?'4px':'16px'};min-height:44px;cursor:pointer;font-family:var(--serif);font-size:${small?14:16}px;line-height:1.4;color:var(--text-on-dark)"><input type="checkbox" id="${id}" ${on?'checked':''} onchange="${onchange}" style="width:${small?18:20}px;height:${small?18:20}px;margin:0;accent-color:var(--gold);flex-shrink:0">I already have children</label>`;}
+// Lettering matches the question's own statements (grey; a little smaller in My answers)
+function kidsTickHtml(id,on,onchange,small){return `<label style="display:flex;align-items:center;gap:10px;margin-top:${small?'4px':'16px'};min-height:44px;cursor:pointer;font-family:var(--serif);font-size:${small?14:16}px;line-height:1.4;color:var(--text-muted)"><input type="checkbox" id="${id}" ${on?'checked':''} onchange="${onchange}" style="width:${small?18:20}px;height:${small?18:20}px;margin:0;accent-color:var(--gold);flex-shrink:0">I already have children</label>`;}
 function selectChildren(v){myProfile.has_children=!!v;}
 // Edit profile: saved straight away
 async function setMyChildren(v){
@@ -3973,7 +3975,9 @@ let qaRun=0;
 function fitQuestionArt(){
   const el=document.getElementById('sq-art'),wrap=document.getElementById('signup-questions-list-wrap');if(!el||!wrap)return;
   el.style.width=el.style.height='150px';el.style.display=QUESTION_ART[(SIGNUP_QUESTIONS[signupIdx]||{}).id]?'':'none';if(el.style.display==='none')return;
-  const room=Math.floor(wrap.getBoundingClientRect().bottom-el.getBoundingClientRect().top+wrap.scrollTop-10);
+  // the children tick sits under the picture and must stay in view ("What does this mean?" can scroll)
+  const kid=document.getElementById('sq-has-children'),kl=kid&&kid.closest('label'),below=kl?kl.getBoundingClientRect().height+16:0;
+  const room=Math.floor(wrap.getBoundingClientRect().bottom-el.getBoundingClientRect().top+wrap.scrollTop-10-below);
   if(room<80){el.style.display='none';return;}
   const size=Math.min(150,room);el.style.width=el.style.height=size+'px';
 }
@@ -4021,7 +4025,7 @@ function renderSignupQuestions(){
   if(signupIdx>=qs.length)signupIdx=qs.length-1;
   const i=signupIdx,q=qs[i],n=qs.length,v=myAnswers[q.slot]||0;
   const isFaithQ=q.slot===FAITH_Q_INDEX;
-  const card=(id,text,right)=>`<div id="${id}" style="box-sizing:border-box;min-height:150px;border-radius:16px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);transition:background .15s,border-color .15s"><p class="sq-text" style="margin:0;flex:1;font-family:var(--serif);font-size:16px;line-height:1.4;color:var(--text-on-dark);overflow-wrap:break-word">${sqText(text)}</p><div class="sq-tag" style="font-size:11.5px;font-weight:600;color:var(--gold-light);min-height:15px;${right?'text-align:right':''}"></div></div>`;
+  const card=(id,text,right)=>`<div id="${id}" style="box-sizing:border-box;min-height:150px;border-radius:16px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);transition:background .15s,border-color .15s"><p class="sq-text" style="margin:0;flex:1;font-family:var(--serif);font-size:16px;line-height:1.4;color:var(--text-muted);overflow-wrap:break-word">${sqText(text)}</p><div class="sq-tag" style="font-size:11.5px;font-weight:600;color:var(--gold-light);min-height:15px;${right?'text-align:right':''}"></div></div>`;
   const tick=(h,o)=>`<div style="width:1px;height:${h}px;background:rgba(255,255,255,${o})"></div>`;
   document.getElementById('signup-questions-list').innerHTML=`
     <div style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:${q.scoring?'var(--gold)':'var(--text-muted)'};margin-bottom:10px">${q.scoring?'Your values':'On your profile · not part of matching'}</div>
@@ -4106,7 +4110,7 @@ function signupPaint(){
     const on=v!==0&&Math.sign(v)===side;
     el.style.borderColor=on?`rgba(201,168,76,${(0.35+0.65*t).toFixed(2)})`:'rgba(255,255,255,0.12)';
     el.style.background=on?`rgba(201,168,76,${(0.05+0.13*t).toFixed(2)})`:'rgba(255,255,255,0.04)';
-    el.querySelector('.sq-text').style.color=on||v===0?'var(--text-on-dark)':'#a9acbd';
+    el.querySelector('.sq-text').style.color=on?'var(--text-on-dark)':'var(--text-muted)';
     el.querySelector('.sq-tag').textContent=on?tag:'';
   });
   const mid=document.getElementById('sq-middle');if(mid)mid.textContent=v===0?'In the middle':'';
@@ -4128,8 +4132,8 @@ function sqBubble(show){
   if(!show||!sqDragging)sqBubbleTimer=setTimeout(()=>{if(!sqDragging)b.classList.remove('on');},show?900:600);
 }
 // The statement at each end of a question's slider
-// Same lettering as the statements on the sign-up questions (serif, cream), a little smaller
-function stmtPairHtml(q){return `<div style="display:flex;gap:10px;font-family:var(--serif);font-size:14px;line-height:1.4;color:var(--text-on-dark);margin:8px 0 8px"><span style="flex:1;text-align:left">${esc(q.left)}</span><span style="align-self:flex-end;font-size:11px;line-height:1;color:rgba(255,255,255,0.2)" aria-hidden="true">|</span><span style="flex:1;text-align:right">${esc(q.right)}</span></div>`;}
+// Same lettering as the statements on the sign-up questions, grey, a little smaller
+function stmtPairHtml(q){return `<div style="display:flex;gap:10px;font-family:var(--serif);font-size:14px;line-height:1.4;color:var(--text-muted);margin:8px 0 8px"><span style="flex:1;text-align:left">${esc(q.left)}</span><span style="align-self:flex-end;font-size:11px;line-height:1;color:rgba(255,255,255,0.2)" aria-hidden="true">|</span><span style="flex:1;text-align:right">${esc(q.right)}</span></div>`;}
 function showInfoPopup(idx,qSet=QUESTIONS){const q=qSet[idx];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${esc(q.text)}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${esc(q.info)}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
 // How many questions come before the first one that doesn't count
 function leadingScored(){const i=QUESTIONS.findIndex(q=>!q.scoring);return i<0?QUESTIONS.length:i;}
