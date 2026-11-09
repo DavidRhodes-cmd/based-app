@@ -478,7 +478,6 @@ button.ins-tile:active{opacity:0.75;}
     <label style="display:flex;align-items:center;gap:9px;margin-bottom:20px;cursor:pointer"><input type="checkbox" id="inp-remember-password" checked style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0" /><span style="font-size:13px;color:var(--text-muted)">Remember my password on this device</span></label>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Biological sex</label><div style="display:flex;gap:10px"><button class="sex-btn" id="sex-male" tabindex="7" onclick="selectSex('male')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>Male</button><button class="sex-btn" id="sex-female" tabindex="8" onclick="selectSex('female')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>Female</button></div></div>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Are you married?</label><div style="display:flex;gap:10px" role="group" aria-label="Are you married?"><button class="sex-btn" id="married-yes" tabindex="8" onclick="selectMarried(true)" aria-pressed="false">Yes</button><button class="sex-btn" id="married-no" tabindex="8" onclick="selectMarried(false)" aria-pressed="false">No</button></div></div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Do you have children?</label><div style="display:flex;gap:10px" role="group" aria-label="Do you have children?"><button class="sex-btn" id="children-yes" tabindex="8" onclick="selectChildren(true)" aria-pressed="false">Yes</button><button class="sex-btn" id="children-no" tabindex="8" onclick="selectChildren(false)" aria-pressed="false">No</button></div></div>
     <div class="banner-note" style="margin-bottom:22px">We don't want to rob you of conversation, so you can figure out the rest.</div>
     <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-terms" tabindex="9" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to the BASED <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('terms');">Terms and Conditions</span></span></label>
     <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-special" tabindex="10" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to BASED processing my <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('special');">special category data</span> to operate the Service</span></label>
@@ -819,7 +818,6 @@ button.ins-tile:active{opacity:0.75;}
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="edit-dob" oninput="formatDobInput(this)" /><p id="edit-dob-note" style="display:none;font-size:11px;color:var(--text-muted);margin-top:7px;line-height:1.5"><i class="ti ti-lock" style="margin-right:4px"></i><span id="edit-dob-note-text">Confirmed by your ID, so it can’t be changed.</span></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Country</label><select class="form-input" id="edit-country" onchange="onCountryChange('edit')"></select><p id="edit-country-note" style="font-size:12px;color:var(--red);margin-top:7px;display:none"></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block" id="edit-location-label">Postcode</label><div class="loc-wrap"><input class="form-input" type="text" id="edit-location" oninput="onLocationInput('edit')" onblur="setTimeout(()=>hideSuggest('edit'),200)" /><div class="loc-suggest" id="edit-loc-suggest"></div></div><p style="font-size:11px;color:var(--text-muted);margin-top:7px">Used to calculate distances — not shown to other users.</p></div>
-    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Do you have children?</label><div style="display:flex;gap:10px" role="group" aria-label="Do you have children?"><button class="sex-btn" id="edit-children-yes" onclick="setMyChildren(true)" aria-pressed="false">Yes</button><button class="sex-btn" id="edit-children-no" onclick="setMyChildren(false)" aria-pressed="false">No</button></div></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Show distances in</label><div class="unit-toggle"><button type="button" id="units-mi" onclick="setUnits('mi')">Miles</button><button type="button" id="units-km" onclick="setUnits('km')">Kilometres</button></div></div>
     <div style="margin-bottom:22px">
       <label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label>
@@ -928,13 +926,6 @@ button.ins-tile:active{opacity:0.75;}
     <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:6px">Only show profiles on the same side as you on…</p>
     <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Tick the questions where someone must be on the same side as you. Anyone who differs from you on a ticked question won’t appear in Search.</p>
     <div id="dealbreaker-list"></div>
-    <div class="toggle-row" style="margin-top:10px;border-top:0.5px solid rgba(255,255,255,0.07)">
-      <div style="flex:1;padding-right:16px">
-        <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:4px">Don’t show me people who have children</p>
-        <p style="font-size:13px;color:var(--text-muted);line-height:1.4">Anyone who has said they have children won’t appear in Search.</p>
-      </div>
-      <div class="toggle-track" id="children-toggle" role="switch" aria-checked="false" aria-label="Don’t show me people who have children" tabindex="0" onclick="toggleHideChildren()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleHideChildren();}"><div class="toggle-thumb"></div></div>
-    </div>
     <button class="btn-ghost bottom-safe" onclick="clearDealbreakers()" style="font-size:14px;margin-top:8px"><i class="ti ti-filter-off" style="margin-right:7px"></i>Clear filters</button>
   </div>
 </div>
@@ -1960,7 +1951,7 @@ function validateAllDetails(){
   if(breachChecked.pass===document.getElementById('inp-password').value&&breachChecked.bad){fieldErr('inp-password',BREACHED_MSG);if(!bad.includes('inp-password'))bad.push('inp-password');}
   if(!myProfile.sex){fieldErr('sex-male','Please choose your biological sex.');bad.push('sex-male');}
   if(myProfile.married!==false){fieldErr('married-no','Please say whether you’re married.');bad.push('married-no');}
-  if(typeof myProfile.has_children!=='boolean'){fieldErr('children-no','Please say whether you have children.');bad.push('children-no');}
+  if(typeof myProfile.has_children!=='boolean')myProfile.has_children=false; // ticked on the Children question, otherwise no
   if(!document.getElementById('inp-agree-terms').checked){fieldErr('inp-agree-terms','Please agree to the Terms and Conditions.');bad.push('inp-agree-terms');}
   if(!document.getElementById('inp-agree-special').checked){fieldErr('inp-agree-special','Please agree to BASED processing your special category data.');bad.push('inp-agree-special');}
   if(bad.length){const b=detailsBox(bad[0]);if(b)b.scrollIntoView({behavior:'smooth',block:'center'});}
@@ -1998,7 +1989,7 @@ async function tryDetails(){
   if(!passConfirm){err.style.display='block';err.textContent='Please confirm your password.';confirmEl.classList.add('input-error');return;}
   if(!myProfile.sex){err.style.display='block';err.textContent='Please select your biological sex.';return;}
   if(myProfile.married!==false){err.style.display='block';err.textContent='Please say whether you’re married.';return;}
-  if(typeof myProfile.has_children!=='boolean'){err.style.display='block';err.textContent='Please say whether you have children.';return;}
+  if(typeof myProfile.has_children!=='boolean')myProfile.has_children=false;
   const dob=parseDobToISO(dobRaw);
   if(!dob){err.style.display='block';err.textContent='Please enter a valid date of birth (DD/MM/YYYY).';dobEl.classList.add('input-error');return;}
   if(calcAge(dob)<18){err.style.display='block';err.textContent='You must be at least 18 to use BASED.';dobEl.classList.add('input-error');return;}
@@ -2705,6 +2696,7 @@ async function mapBrowseRows(profiles){
     distCurrentKm:p.dist_current_km,
     religion:p.religion||null,
     verified:!!p.is_verified,
+    hasChildren:p.has_children===true,
     isMutual:!!p.is_mutual,
     related:!!p.related // here for the other tabs, not part of the Search results
   }));
@@ -2991,7 +2983,10 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     const relChip=(r,c,who)=>`<span class="meet-tag" style="border:1px solid ${c};color:${c}" title="${who}">${esc(r)}</span>`;
     // anyone with a faith gets a tag: their religion, or "Blank" if they left it blank
     const religionTag=(sl===FAITH_Q_INDEX&&(my>0||them>0))
-      ?`<span style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${(()=>{const a=my>0?relChip(myProfile.religion||'Blank','var(--gold)','You'):'',b=them>0?relChip(theirReligion||'Blank','#fff','Them'):'';return them<my?b+a:a+b;})()}</span>`:''; // same left-to-right order as the dots on the slider
+      ?`<span style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${(()=>{const a=my>0?relChip(myProfile.religion||'Blank','var(--gold)','You'):'',b=them>0?relChip(theirReligion||'Blank','#fff','Them'):'';return them<my?b+a:a+b;})()}</span>`
+      // Children: a white "Has children" tag when they've said they already have children
+      :(q.id===CHILDREN_QID&&(browseProfiles.find(x=>(x.id||x.name)===profileKey)||{}).hasChildren)
+      ?`<span style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${relChip('Has children','#fff','Them')}</span>`:''; // same left-to-right order as the dots on the slider
     const dots=my===them
       ?`<div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;display:flex;align-items:center;justify-content:center" title="You both: ${myLabel}">${bothIcon}</div>`
       :`<div style="position:absolute;top:50%;left:${themP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(255,255,255,0.45);display:flex;align-items:center;justify-content:center" title="Them: ${themLabel}">${themIcon}</div><div style="position:absolute;top:50%;left:${myP}%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#1a1f2e;border:1.5px solid rgba(201,168,76,0.5);display:flex;align-items:center;justify-content:center" title="You: ${myLabel}">${myIcon}</div>`;
@@ -3388,7 +3383,9 @@ function selectMarried(v){
   myProfile.married=false;pickYesNo('married',false);fieldErr('married-no','');
 }
 function confirmMarried(){resetSignupForm();signupAnswered=false;goTo('screen-not-for-you');}
-function selectChildren(v){myProfile.has_children=v;pickYesNo('children',v);fieldErr('children-no','');}
+const CHILDREN_QID=10; // the Children question carries the "I already have children" tick
+function kidsTickHtml(id,on,onchange){return `<label style="display:flex;align-items:center;gap:10px;margin-top:16px;min-height:44px;cursor:pointer;font-size:15px;color:var(--text-on-dark)"><input type="checkbox" id="${id}" ${on?'checked':''} onchange="${onchange}" style="width:20px;height:20px;accent-color:var(--gold);flex-shrink:0">I already have children</label>`;}
+function selectChildren(v){myProfile.has_children=!!v;}
 // Edit profile: saved straight away
 async function setMyChildren(v){
   if(!currentUser)return;
@@ -4037,6 +4034,7 @@ function renderSignupQuestions(){
       <div id="sq-art" class="qa-art"></div>
     </div>
     ${isFaithQ?religionPickerHtml('signup-religion-picker',v>0?myProfile.religion:null,v>0):''}
+    ${q.id===CHILDREN_QID?kidsTickHtml('sq-has-children',myProfile.has_children===true,'selectChildren(this.checked)'):''}
     ${q.info?`<div style="margin-top:18px">
       <button type="button" onclick="toggleSignupInfo(this)" aria-expanded="false" style="min-height:44px;background:transparent;border:none;padding:0;color:var(--gold);font-size:14px;font-family:var(--sans);cursor:pointer;display:flex;align-items:center;gap:8px"><span class="info-icon-btn" style="pointer-events:none;border-color:var(--gold);color:var(--gold)">i</span><span>What does this mean?</span></button>
       <p id="sq-info" hidden style="margin:4px 0 0;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.12);font-size:14px;line-height:1.55;color:#c9c6c0">${esc(q.info)}</p>
@@ -4159,6 +4157,7 @@ let modifyTempAnswers=[],modifyTempReligion=null;
 function openModifyAnswers(){
   modifyTempAnswers=fullAnswers(myAnswers);
   modifyTempReligion=myProfile.religion;
+  modifyTempChildren=myProfile.has_children===true;
   renderModifyAnswers();
   goTo('screen-modify-answers');
 }
@@ -4179,6 +4178,7 @@ function renderModifyAnswers(){
       <div style="position:relative"><div aria-hidden="true" style="position:absolute;left:50%;top:50%;width:1px;height:16px;background:rgba(255,255,255,0.35);transform:translate(-50%,-50%);pointer-events:none"></div>
       <input type="range" class="q-slider" style="width:100%;position:relative;display:block;background:transparent;background-image:linear-gradient(rgba(255,255,255,0.12),rgba(255,255,255,0.12));background-size:100% 5px;background-repeat:no-repeat;background-position:center;height:26px" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${s}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=ansLabel(this.value);${extraOninput}" /></div>
       ${picker}
+      ${q.id===CHILDREN_QID?kidsTickHtml('modify-has-children',modifyTempChildren,'modifyTempChildren=this.checked'):''}
     </div>`;
   }).join('')+`<div class="bottom-safe" style="padding:8px 0 12px"><button class="btn-primary" style="font-size:15px" onclick="saveModifyAnswers()">Save</button></div>`;
 }
@@ -4186,6 +4186,7 @@ function cancelModifyAnswers(){goTo('screen-edit-profile');}
 function modifyAnswersChanged(){
   if(modifyTempAnswers.some((v,i)=>v!==(myAnswers[i]||0)))return true;
   const newRel=modifyTempAnswers[FAITH_Q_INDEX]>0?(modifyTempReligion||null):null;
+  if(modifyTempChildren!==(myProfile.has_children===true))return true;
   return newRel!==(myProfile.religion||null);
 }
 // Swiping out of Modify my answers works like Settings: straight back if nothing changed, otherwise ask
@@ -4193,7 +4194,9 @@ function leaveModifyAnswers(){
   if(!modifyAnswersChanged()){cancelModifyAnswers();return;}
   showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Save your changes?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">You’ve changed some answers that haven’t been saved.</p><div style="display:flex;flex-direction:column;gap:11px"><button class="btn-primary" style="font-size:15px" onclick="removeModal();saveModifyAnswers()">Save changes</button><button class="btn-ghost" style="font-size:15px" onclick="removeModal();cancelModifyAnswers()">Discard changes</button><button onclick="removeModal()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Keep editing</button></div>`);
 }
+let modifyTempChildren=false;
 async function saveModifyAnswers(){
+  if(modifyTempChildren!==(myProfile.has_children===true))setMyChildren(modifyTempChildren); // saved on its own, straight away
   myAnswers=[...modifyTempAnswers];renderMiniScore();
   myProfile.religion=myAnswers[FAITH_Q_INDEX]>0?modifyTempReligion:null;
   const based_score=calcBasedScore(myAnswers);
@@ -5786,7 +5789,7 @@ function loadCountryFilter(p){
 // screen (Settings → Dealbreaker filters).
 let dealbreakers=new Set(),pendingDealbreakers=null;
 let hideWithChildren=false,pendingHideChildren=null; // "Don't show me people who have children" (Search filters it on the server)
-function renderChildrenToggle(){const t=document.getElementById('children-toggle');if(!t)return;const on=pendingHideChildren!=null?pendingHideChildren:hideWithChildren;t.classList.toggle('on',on);t.setAttribute('aria-checked',on);}
+function renderChildrenToggle(){renderDealbreakers();} // the option is drawn with the Children question
 function toggleHideChildren(){pendingHideChildren=!(pendingHideChildren!=null?pendingHideChildren:hideWithChildren);renderChildrenToggle();}
 function commitHideChildren(){
   if(pendingHideChildren==null||pendingHideChildren===hideWithChildren){pendingHideChildren=null;return false;}
@@ -5808,7 +5811,10 @@ function renderDealbreakers(){
   const set=pendingDealbreakers||dealbreakers;
   el.innerHTML=QUESTIONS.map(q=>{
     const i=q.slot,neutral=(myAnswers[i]||0)===0,on=set.has(i)&&!neutral;
-    return `<button type="button" class="db-row${on?' on':''}" ${neutral?'disabled':''} onclick="toggleDealbreaker(${i})" aria-pressed="${on}"><span class="db-box">${on?'<i class="ti ti-check"></i>':''}</span><span>${esc(q.text)}${neutral?'<span class="db-sub">You answered 0 here, so it can’t be a dealbreaker</span>':''}</span></button>`;
+    const row=`<button type="button" class="db-row${on?' on':''}" ${neutral?'disabled':''} onclick="toggleDealbreaker(${i})" aria-pressed="${on}"><span class="db-box">${on?'<i class="ti ti-check"></i>':''}</span><span>${esc(q.text)}${neutral?'<span class="db-sub">You answered 0 here, so it can’t be a dealbreaker</span>':''}</span></button>`;
+    if(q.id!==CHILDREN_QID)return row;
+    const kids=pendingHideChildren!=null?pendingHideChildren:hideWithChildren;
+    return row+`<button type="button" id="children-toggle" class="db-row${kids?' on':''}" style="margin-left:30px;width:calc(100% - 30px);box-sizing:border-box" onclick="toggleHideChildren()" aria-pressed="${kids}"><span class="db-box">${kids?'<i class="ti ti-check"></i>':''}</span><span>Don’t show me people who already have children</span></button>`;
   }).join('');
 }
 function toggleDealbreaker(i){
