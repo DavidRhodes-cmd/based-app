@@ -3384,7 +3384,8 @@ function selectMarried(v){
 }
 function confirmMarried(){resetSignupForm();signupAnswered=false;goTo('screen-not-for-you');}
 const CHILDREN_QID=10; // the Children question carries the "I already have children" tick
-function kidsTickHtml(id,on,onchange){return `<label style="display:flex;align-items:center;gap:10px;margin-top:16px;min-height:44px;cursor:pointer;font-size:15px;color:var(--text-on-dark)"><input type="checkbox" id="${id}" ${on?'checked':''} onchange="${onchange}" style="width:20px;height:20px;accent-color:var(--gold);flex-shrink:0">I already have children</label>`;}
+// Lettering matches the question's own statements (serif, cream; a little smaller in My answers)
+function kidsTickHtml(id,on,onchange,small){return `<label style="display:flex;align-items:center;gap:10px;margin-top:${small?'4px':'16px'};min-height:44px;cursor:pointer;font-family:var(--serif);font-size:${small?14:16}px;line-height:1.4;color:var(--text-on-dark)"><input type="checkbox" id="${id}" ${on?'checked':''} onchange="${onchange}" style="width:${small?18:20}px;height:${small?18:20}px;margin:0;accent-color:var(--gold);flex-shrink:0">I already have children</label>`;}
 function selectChildren(v){myProfile.has_children=!!v;}
 // Edit profile: saved straight away
 async function setMyChildren(v){
@@ -4127,7 +4128,8 @@ function sqBubble(show){
   if(!show||!sqDragging)sqBubbleTimer=setTimeout(()=>{if(!sqDragging)b.classList.remove('on');},show?900:600);
 }
 // The statement at each end of a question's slider
-function stmtPairHtml(q){return `<div style="display:flex;gap:10px;font-size:12.5px;line-height:1.4;color:var(--text-muted);margin:8px 0 8px"><span style="flex:1;text-align:left">${esc(q.left)}</span><span style="align-self:flex-end;font-size:11px;line-height:1;color:rgba(255,255,255,0.2)" aria-hidden="true">|</span><span style="flex:1;text-align:right">${esc(q.right)}</span></div>`;}
+// Same lettering as the statements on the sign-up questions (serif, cream), a little smaller
+function stmtPairHtml(q){return `<div style="display:flex;gap:10px;font-family:var(--serif);font-size:14px;line-height:1.4;color:var(--text-on-dark);margin:8px 0 8px"><span style="flex:1;text-align:left">${esc(q.left)}</span><span style="align-self:flex-end;font-size:11px;line-height:1;color:rgba(255,255,255,0.2)" aria-hidden="true">|</span><span style="flex:1;text-align:right">${esc(q.right)}</span></div>`;}
 function showInfoPopup(idx,qSet=QUESTIONS){const q=qSet[idx];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${esc(q.text)}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${esc(q.info)}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
 // How many questions come before the first one that doesn't count
 function leadingScored(){const i=QUESTIONS.findIndex(q=>!q.scoring);return i<0?QUESTIONS.length:i;}
@@ -4170,7 +4172,7 @@ function renderModifyAnswers(){
     const picker=isFaithQ?religionPickerHtml('modify-religion-picker',v>0?modifyTempReligion:null,v>0):'';
     return `${sectionDivider}<div class="q-card" style="margin-bottom:12px;padding:14px 14px 10px;background:rgba(255,255,255,0.035);border:0.5px solid rgba(255,255,255,0.08);border-radius:14px">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
-        <p class="stmt-text" style="font-family:var(--serif);font-size:15px;color:var(--text-on-dark);line-height:1.4;flex:1">${esc(q.text)}</p>
+        <p class="stmt-text" style="font-family:var(--serif);font-size:18px;color:var(--text-on-dark);line-height:1.3;flex:1">${esc(q.text)}</p>
         <span id="modify-val-${i}" style="font-size:13px;color:var(--gold);font-weight:600;flex-shrink:0;margin-top:1px">${ansLabel(v)}</span>
         <button class="info-icon-btn" onclick="showInfoPopup(${i})" aria-label="What does this mean?">i</button>
       </div>
@@ -4178,7 +4180,7 @@ function renderModifyAnswers(){
       <div style="position:relative"><div aria-hidden="true" style="position:absolute;left:50%;top:50%;width:1px;height:16px;background:rgba(255,255,255,0.35);transform:translate(-50%,-50%);pointer-events:none"></div>
       <input type="range" class="q-slider" style="width:100%;position:relative;display:block;background:transparent;background-image:linear-gradient(rgba(255,255,255,0.12),rgba(255,255,255,0.12));background-size:100% 5px;background-repeat:no-repeat;background-position:center;height:26px" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${s}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=ansLabel(this.value);${extraOninput}" /></div>
       ${picker}
-      ${q.id===CHILDREN_QID?kidsTickHtml('modify-has-children',modifyTempChildren,'modifyTempChildren=this.checked'):''}
+      ${q.id===CHILDREN_QID?kidsTickHtml('modify-has-children',modifyTempChildren,'modifyTempChildren=this.checked',true):''}
     </div>`;
   }).join('')+`<div class="bottom-safe" style="padding:8px 0 12px"><button class="btn-primary" style="font-size:15px" onclick="saveModifyAnswers()">Save</button></div>`;
 }
