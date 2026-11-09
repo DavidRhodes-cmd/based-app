@@ -4146,7 +4146,7 @@ const SCORE_INFO={
   }},
   based:{title:'Score',get text(){
     const n=leadingScored();
-    return `Where this person sits overall across the first ${n} questions. Which end of the sliders do they lean towards, and how far. 0% is in the middle. 100% at either end. The questions after the first ${n} are shown on the profile but not included in the score.`;
+    return `Where a person sits overall across the first ${n} questions. Which end of the sliders they lean towards, and how far. 0% is in the middle. 100% at either end. The questions after the first ${n} are shown on the profile but not included in the score.`;
   }}
 };
 function showScoreInfoPopup(type){const info=SCORE_INFO[type];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${info.title}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${info.text}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
