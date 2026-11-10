@@ -408,7 +408,7 @@ button.ins-tile:active{opacity:0.75;}
 .filter-btn.feature-locked::after{top:4px;right:6px;font-size:14px;}
 /* Settings buttons: a locked one keeps its words as bright as the rest (the padlock says it's locked); ones you can use get a brighter outline */
 .filter-btn.feature-locked>*{opacity:1;}
-.filter-btn:not(.feature-locked){border-color:rgba(255,255,255,0.42);}
+.filter-btn:not(.feature-locked),#screen-edit-profile .btn-ghost:not(.feature-locked){border-color:rgba(255,255,255,0.42);}
 
 .cp-masked{-webkit-text-security:disc;}
 </style>
@@ -813,8 +813,8 @@ button.ins-tile:active{opacity:0.75;}
     <div style="display:flex;align-items:center;gap:17px;margin-bottom:24px">
       <div class="avatar-lg" id="edit-avatar-wrap"><span id="edit-avatar-initials">?</span><img id="edit-avatar-img" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%" alt="" /></div>
       <div style="display:flex;gap:8px;justify-content:center">
-        <button onclick="document.getElementById('edit-photo-input').click()" style="background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.2);border-radius:11px;padding:11px 17px;color:var(--text-on-dark);font-size:14px;cursor:pointer;font-family:var(--sans)"><i class="ti ti-camera" style="margin-right:7px"></i>Change photo</button>
-        <button id="edit-reposition-btn" style="display:none;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.2);border-radius:11px;padding:11px 17px;color:var(--text-on-dark);font-size:14px;cursor:pointer;font-family:var(--sans)" onclick="editRepositionMain()"><i class="ti ti-arrows-move" style="margin-right:7px"></i>Reposition</button>
+        <button onclick="document.getElementById('edit-photo-input').click()" style="background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.42);border-radius:11px;padding:11px 17px;color:var(--text-on-dark);font-size:14px;cursor:pointer;font-family:var(--sans)"><i class="ti ti-camera" style="margin-right:7px"></i>Change photo</button>
+        <button id="edit-reposition-btn" style="display:none;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.42);border-radius:11px;padding:11px 17px;color:var(--text-on-dark);font-size:14px;cursor:pointer;font-family:var(--sans)" onclick="editRepositionMain()"><i class="ti ti-arrows-move" style="margin-right:7px"></i>Reposition</button>
       </div>
       <input type="file" id="edit-photo-input" accept="image/*" style="display:none" onchange="handleEditPhoto(this)" />
     </div>
@@ -834,13 +834,13 @@ button.ins-tile:active{opacity:0.75;}
       <label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label>
       <div style="display:flex;gap:8px">
         <input class="form-input" type="email" id="edit-email" style="flex:1" />
-        <button onclick="changeEmail()" style="background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.2);border-radius:11px;padding:0 16px;color:var(--text-on-dark);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">Update</button>
+        <button onclick="changeEmail()" style="background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.42);border-radius:11px;padding:0 16px;color:var(--text-on-dark);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap">Update</button>
       </div>
       <p style="font-size:12px;color:var(--text-muted);margin-top:7px" id="edit-email-note"></p>
     </div>
     <div style="margin-bottom:22px">
       <label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label>
-      <button onclick="openChangePassword()" style="width:100%;text-align:left;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.2);border-radius:11px;padding:13px 16px;color:var(--text-on-dark);font-size:14px;cursor:pointer;font-family:var(--sans)"><i class="ti ti-lock" style="margin-right:8px;color:var(--gold)"></i>Change password</button>
+      <button onclick="openChangePassword()" style="width:100%;text-align:left;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.42);border-radius:11px;padding:13px 16px;color:var(--text-on-dark);font-size:14px;cursor:pointer;font-family:var(--sans)"><i class="ti ti-lock" style="margin-right:8px;color:var(--gold)"></i>Change password</button>
     </div>
 
     <div style="border-top:0.5px solid rgba(255,255,255,0.08);padding-top:20px;display:flex;flex-direction:column;gap:2px">
@@ -5622,11 +5622,11 @@ function renderPlanRow(){
   const gift=PERMS&&PERMS.gift&&PERMS.gift.tier===t?new Date(new Date(PERMS.gift.until).getTime()-1000):null;
   const bs='border-radius:11px;padding:9px 13px;font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap';
   const up=waitingFor?`<button onclick="showUnlockPaidPrompt('${waitingFor}')" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Unlock</button>`
-    :t==='gold'||ending||needsWaiting()?'':`<button onclick="openPlanUpgrade()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Upgrade</button>`;
+    :t==='gold'||ending||needsWaiting()?'':`<button onclick="openPlanUpgrade()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.75);color:var(--verified);${bs}">Upgrade</button>`;
   // Manage = Stripe's page to change card, see receipts or cancel (only once you've paid through Stripe)
   // With no paid plan running, Stripe's page only has receipts and saved cards, so it's labelled that way
   const planRunning=['plus','gold'].includes(mySubTier)&&['active','trialing','past_due'].includes(mySubStatus||'');
-  const manage=myStripeCustomer?`<button onclick="openBilling()" style="background:transparent;border:0.5px solid rgba(255,255,255,0.18);color:var(--text-muted);${bs}">${planRunning?'Manage':'Receipts'}</button>`:'';
+  const manage=myStripeCustomer?`<button onclick="openBilling()" style="background:transparent;border:0.5px solid rgba(255,255,255,0.42);color:var(--text-muted);${bs}">${planRunning?'Manage':'Receipts'}</button>`:'';
   // Cancelled but still paid up: offer to carry on instead of upgrading
   const resume=ending&&myStripeCustomer?`<button onclick="resumePlan()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Resume</button>`:'';
   const btn=`<div style="display:flex;gap:8px">${manage}${resume}${up}</div>`;
