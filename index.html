@@ -89,6 +89,12 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .bl-word{display:inline-flex;align-items:center;font-family:var(--brand-serif);color:var(--text-on-dark);line-height:1}
 .bl-ring{position:relative;display:inline-flex;align-items:center;justify-content:center;width:1.75em;height:1.75em;margin-right:.03em;flex-shrink:0}
 .bl-ring svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* Welcome logo: the rings spin (white clockwise, gold anticlockwise), slow down and settle in place */
+#welcome-logo .wl-cw,#welcome-logo .wl-ccw{transform-box:view-box;transform-origin:80px 80px;animation:2.8s cubic-bezier(.33,1,.68,1) .15s both}
+#welcome-logo .wl-cw{animation-name:wl-cw}#welcome-logo .wl-ccw{animation-name:wl-ccw}
+@keyframes wl-cw{from{transform:rotate(-720deg)}to{transform:rotate(0)}}
+@keyframes wl-ccw{from{transform:rotate(720deg)}to{transform:rotate(0)}}
+@media (prefers-reduced-motion:reduce){#welcome-logo .wl-cw,#welcome-logo .wl-ccw{animation:none}}
 .bl-b{position:relative;letter-spacing:0;padding-top:.08em}
 .bl-ased{letter-spacing:.11em;margin-right:-.11em}
 .brand-words{display:flex;flex-direction:column;align-items:flex-end}
@@ -415,7 +421,7 @@ button.ins-tile:active{opacity:0.75;}
     <!-- Logo: the same as the header's (rings round the B, "on values" lined up under the end of BASED), larger -->
     <div id="welcome-logo" role="img" aria-label="BASED on values" style="display:flex;align-items:center;padding:14px 26px 16px;border-radius:18px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);margin-bottom:28px">
       <div style="display:flex;flex-direction:column;align-items:flex-end">
-        <span style="font-size:36px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span>
+        <span style="font-size:36px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="11"/><circle cx="80" cy="80" r="54" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="11"/><line x1="80" y1="1" x2="80" y2="16" stroke="rgba(255,255,255,0.28)" stroke-width="2"/><line x1="80" y1="144" x2="80" y2="159" stroke="rgba(255,255,255,0.28)" stroke-width="2"/><g class="wl-cw"><circle cx="80" cy="80" r="70" fill="none" stroke="#e8e4dc" stroke-width="11" stroke-dasharray="155.41 439.82" transform="translate(160 0) scale(-1 1) rotate(90 80 80)"/><path fill="#e8e4dc" d="M 19.63 34.67 L 30.50 30.50 L 28.42 41.27 Z" transform="translate(160 0) scale(-1 1)"/></g><g class="wl-ccw"><circle cx="80" cy="80" r="54" fill="none" stroke="#c9a84c" stroke-width="11" stroke-dasharray="75.30 339.29" transform="translate(160 0) scale(-1 1) rotate(90 80 80)"/><path fill="#c9a84c" d="M 21.48 90.75 L 26.00 80.00 L 32.30 88.76 Z" transform="translate(160 0) scale(-1 1)"/></g></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span>
         <span style="font-family:var(--brand-serif);font-size:19px;line-height:1.1;color:var(--gold);font-style:italic;letter-spacing:1px;margin-top:-6px">on values</span>
       </div>
     </div>
