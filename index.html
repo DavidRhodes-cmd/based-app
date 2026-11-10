@@ -3719,32 +3719,120 @@ const RIGHT_H=t=>`<p style="font-family:var(--serif);font-size:19px;color:var(--
 const RIGHT_P=(t,mb=12)=>`<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:${mb}px;text-align:left">${t}</p>`;
 // The request is sent from inside the app, so it's tied to the account the member is signed in to:
 // nobody can ask for changes to someone else's data (an email can be sent from, or name, any address)
+// First name, surname, sex and date of birth: each can be corrected once. A member who isn't verified
+// gets the change straight away; a verified member gets it once an ID check shows the new details.
+let rectifyInfo=null;
+const RF_LABEL={name:'First name',surname:'Surname',sex:'Sex',dob:'Date of birth'};
+const RF_INPUT='width:100%;box-sizing:border-box;font-family:var(--sans);font-size:15px;padding:11px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-on-dark)';
+function rfNow(k){const v=k==='dob'?isoToDobDisplay(myProfile.dob):k==='sex'?(myProfile.sex==='male'?'Male':myProfile.sex==='female'?'Female':''):(myProfile[k]||'');return v||'—';}
+function rfFieldHtml(k,used){
+  const head=`<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:6px"><span style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted)">${RF_LABEL[k]}</span><span style="font-size:13px;color:var(--text-muted)">Now: <b style="color:var(--text-on-dark);font-weight:600">${esc(rfNow(k))}</b></span></div>`;
+  if(used)return `<div style="margin-bottom:14px;text-align:left">${head}<p style="font-size:12.5px;color:var(--text-muted);line-height:1.45;margin:0"><i class="ti ti-lock" style="margin-right:4px"></i>Already corrected once. To change it again, email support@baseddatingonline.com.</p></div>`;
+  const inp=k==='sex'?`<select id="rf-sex" onchange="rfSexChanged()" style="${RF_INPUT}"><option value="">No change</option>${myProfile.sex!=='female'?'<option value="female">Female</option>':''}${myProfile.sex!=='male'?'<option value="male">Male</option>':''}</select>`
+    :k==='dob'?`<input id="rf-dob" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" oninput="formatDobInput(this)" style="${RF_INPUT}">`
+    :`<input id="rf-${k}" type="text" maxlength="40" autocomplete="off" placeholder="Leave blank if it’s right" style="${RF_INPUT}">`;
+  return `<div style="margin-bottom:14px;text-align:left">${head}${inp}</div>`;
+}
 function openRightRectify(){
+  const verified=myVerificationStatus==='approved';
   showModal(RIGHT_ICON('ti-edit')+RIGHT_H('Correct your data')+
-    RIGHT_P('You can change most of your details yourself in <b style="color:var(--text-on-dark)">Settings</b>: your name, photos, location, religion and questionnaire answers. You can also correct your date of birth there once, unless it’s been confirmed by your ID.')+
-    RIGHT_P('If something else is wrong that you can’t change there, tell us below and we’ll put it right within one month. We’ll let you know here in the app when it’s done.',12)+
-    `<textarea id="rectify-text" maxlength="2000" rows="4" placeholder="What’s wrong, and what should it say?" style="width:100%;box-sizing:border-box;font-family:var(--sans);font-size:15px;line-height:1.45;padding:12px 13px;border-radius:11px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-on-dark);resize:vertical;margin-bottom:6px"></textarea>
+    RIGHT_P('Your photos, location, religion and answers can be changed in <b style="color:var(--text-on-dark)">Settings</b>. To correct your name, sex or date of birth, use the boxes below.')+
+    `<div id="rf-waiting"></div><div id="rf-form"><p id="rf-only" style="font-size:13.5px;color:var(--gold);text-align:left;margin:4px 0 12px"><i class="ti ti-info-circle" style="margin-right:5px"></i>Only fill in the details you want corrected.</p>
+    <div id="rf-fields"><p style="color:var(--text-muted);font-size:13px">Loading…</p></div>
+    <div id="rf-sexwarn" style="display:none;text-align:left;border:0.5px solid rgba(235,87,87,0.5);background:rgba(235,87,87,0.08);border-radius:11px;padding:11px 12px;margin-bottom:12px">
+      <p style="font-size:13.5px;color:var(--text-on-dark);line-height:1.5;margin:0 0 8px"><b>Changing your sex will remove all your current connections:</b> interests sent and received, matches and conversations. They were made on the basis of the sex on your profile, so they can’t carry over. This can’t be undone.</p>
+      <label style="display:flex;gap:9px;align-items:flex-start;font-size:13.5px;color:var(--text-on-dark);cursor:pointer"><input type="checkbox" id="rf-sex-ok" style="width:18px;height:18px;margin:1px 0 0;accent-color:var(--gold);flex-shrink:0">I understand my connections will be removed</label></div>
+    <div id="rf-idwarn" style="text-align:left;border:0.5px solid rgba(201,168,76,0.35);background:rgba(201,168,76,0.07);border-radius:11px;padding:11px 12px;margin-bottom:14px">
+      <p style="font-size:13px;color:var(--text-on-dark);line-height:1.5;margin:0">${verified
+        ?'<b>These changes need an ID check.</b> After you send this, we’ll ask you to verify your ID again, using an ID that shows the new details. Your profile won’t change until the check passes. If it doesn’t pass, your details stay as they are.'
+        :'<b>These changes are made straight away.</b> Your name, sex and date of birth must match your ID when you verify.'}<br><span style="color:var(--text-muted)">Each of these can be corrected only once.</span></p></div>
+    <p style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);text-align:left;margin:0 0 6px">Anything else that’s wrong? (optional)</p>
+    <textarea id="rectify-text" maxlength="2000" rows="3" placeholder="What’s wrong, and what should it say? We’ll put it right within one month." style="width:100%;box-sizing:border-box;font-family:var(--sans);font-size:15px;line-height:1.45;padding:12px 13px;border-radius:11px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-on-dark);resize:vertical;margin-bottom:6px"></textarea>
     <p id="rectify-msg" style="font-size:13px;line-height:1.5;min-height:1em;margin-bottom:8px;text-align:left"></p>
-    <div style="display:flex;flex-direction:column;gap:10px"><button class="btn-primary" id="rectify-send" onclick="sendCorrectionRequest()">Send request</button><button class="btn-ghost" onclick="removeModal();openEditProfile()">Open Settings</button><button style="background:transparent;border:none;color:var(--text-muted);font-size:14px;font-family:var(--sans);cursor:pointer;padding:8px" onclick="removeModal()">Close</button></div>
+    <div style="display:flex;flex-direction:column;gap:10px"><button class="btn-primary" id="rectify-send" onclick="sendCorrectionRequest()">${verified?'Send and check my ID':'Send'}</button><button style="background:transparent;border:none;color:var(--text-muted);font-size:14px;font-family:var(--sans);cursor:pointer;padding:8px" onclick="removeModal()">Cancel</button></div></div>
     <div id="rectify-past"></div>`);
+  sb.rpc('my_identity_changes').then(({data,error})=>{
+    rectifyInfo=error?{used:[],waiting:null}:(data||{used:[],waiting:null});
+    const used=new Set(rectifyInfo.used||[]),f=document.getElementById('rf-fields');if(!f)return;
+    f.innerHTML=['name','surname','sex','dob'].map(k=>rfFieldHtml(k,used.has(k))).join('');
+    const w=rectifyInfo.waiting,wb=document.getElementById('rf-waiting');
+    if(w&&wb){
+      const list=Object.entries(w.changes||{}).map(([k,v])=>`${RF_LABEL[k]}: <b style="color:var(--text-on-dark)">${esc(k==='dob'?isoToDobDisplay(v):k==='sex'?(v==='male'?'Male':'Female'):v)}</b>`).join('<br>');
+      wb.innerHTML=`<div style="text-align:left;border:0.5px solid rgba(201,168,76,0.45);border-radius:11px;padding:12px;margin-bottom:14px"><p style="font-size:13.5px;color:var(--gold);margin:0 0 6px"><i class="ti ti-hourglass" style="margin-right:5px"></i>Waiting for your ID check</p><p style="font-size:13.5px;color:var(--text-muted);line-height:1.55;margin:0 0 10px">${list}</p><div style="display:flex;gap:8px"><button class="btn-primary" style="flex:1" onclick="startChangeCheck()">Check my ID now</button><button class="btn-ghost" style="flex:1" onclick="withdrawIdentityChange()">Withdraw</button></div></div>`;
+      document.getElementById('rf-fields').innerHTML='<p style="font-size:13px;color:var(--text-muted);text-align:left;margin:0 0 12px">You can correct your name, sex or date of birth again once this one is finished or withdrawn.</p>';
+      ['rf-only','rf-idwarn'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});const sb2=document.getElementById('rectify-send');if(sb2)sb2.textContent='Send';
+    }
+  });
   // Earlier requests and their answers
   sb.rpc('my_correction_requests').then(({data})=>{
     const el=document.getElementById('rectify-past');if(!el||!Array.isArray(data)||!data.length)return;
     const st={open:['Waiting','var(--gold)'],done:['Corrected','var(--green)'],declined:['Not changed','var(--text-muted)']};
     el.innerHTML='<p style="font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);text-align:left;margin:16px 0 8px">Your requests</p>'+data.slice(0,5).map(r=>{const [l,c]=st[r.status]||[r.status,'var(--text-muted)'];
-      return `<div style="text-align:left;border:0.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--text-muted);margin-bottom:4px"><span>${esc(shortDate(r.at))}</span><span style="color:${c}">${l}</span></div><div style="font-size:13.5px;color:var(--text-on-dark);line-height:1.45;white-space:pre-wrap">${esc(r.body)}</div>${r.reply?`<div style="font-size:13px;color:var(--text-muted);line-height:1.45;margin-top:6px;white-space:pre-wrap"><b style="color:var(--text-on-dark)">BASED:</b> ${esc(r.reply)}</div>`:''}</div>`;}).join('');
+      return `<div style="text-align:left;border:0.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--text-muted);margin-bottom:4px"><span>${esc(shortDate(r.at))}</span><span style="color:${c}">${l}</span></div><div style="font-size:13.5px;color:var(--text-on-dark);line-height:1.45;white-space:pre-wrap">${esc(r.body)}</div>${r.reply?`<div style="font-size:13px;color:var(--text-muted);line-height:1.45;margin-top:6px;border-top:0.5px solid rgba(255,255,255,0.1);padding-top:6px">${esc(r.reply)}</div>`:''}</div>`;}).join('');
   }).catch(()=>{});
 }
+function rfSexChanged(){const v=(document.getElementById('rf-sex')||{}).value;document.getElementById('rf-sexwarn').style.display=v?'block':'none';}
+const RF_ERRORS={NAME_INVALID:NAME_RULE,SURNAME_INVALID:NAME_RULE,DOB_UNDERAGE:'You must be at least 18 to use BASED.',BAD_DOB:'Please check your date of birth.',
+  CHANGE_WAITING:'You already have a correction waiting for an ID check.',TOO_MANY_REQUESTS:'You’ve asked for several corrections today. Please try again tomorrow.',NOT_ALLOWED:'This account can’t be changed. Please contact support.'};
 async function sendCorrectionRequest(){
-  const t=document.getElementById('rectify-text'),msg=document.getElementById('rectify-msg'),btn=document.getElementById('rectify-send');
-  const v=(t.value||'').trim();
-  if(v.length<5){msg.style.color='var(--red)';msg.textContent='Please tell us what needs correcting.';t.focus();return;}
+  const msg=document.getElementById('rectify-msg'),btn=document.getElementById('rectify-send');
+  const say=(t)=>{msg.style.color='var(--red)';msg.textContent=t;};
+  const val=id=>((document.getElementById(id)||{}).value||'').trim();
+  const nm=val('rf-name'),sn=val('rf-surname'),sx=val('rf-sex'),dobRaw=val('rf-dob'),other=val('rectify-text');
+  let dob=null;
+  if(dobRaw){dob=parseDobToISO(dobRaw);if(!dob){say('Please enter your date of birth as DD/MM/YYYY.');return;}if(calcAge(dob)<18){say('You must be at least 18 to use BASED.');return;}}
+  for(const v of [nm,sn])if(v&&!nameOk(v)){say(NAME_RULE);return;}
+  const identity=!!(nm&&nm!==myProfile.name||sn&&sn!==myProfile.surname||sx||dob&&dob!==String(myProfile.dob||'').slice(0,10));
+  if(!identity&&other.length<5){say(nm||sn||dob?'That’s already what your profile says.':'Please fill in what needs correcting.');return;}
+  if(sx&&!document.getElementById('rf-sex-ok').checked){say('Please tick the box to confirm you understand your connections will be removed.');return;}
   btn.disabled=true;btn.textContent='Sending…';
-  const {data,error}=await sb.rpc('request_correction',{p_text:v});
-  btn.disabled=false;btn.textContent='Send request';
-  if(error){msg.style.color='var(--red)';msg.textContent=/Please|Too many/.test(error.message)?error.message:'Sorry, that didn’t send. Please try again.';return;}
+  let result=null;
+  if(identity){
+    const {data,error}=await sb.rpc('request_identity_change',{p_name:nm||null,p_surname:sn||null,p_sex:sx||null,p_dob:dob});
+    if(error){btn.disabled=false;btn.textContent=myVerificationStatus==='approved'?'Send and check my ID':'Send';
+      const m=error.message||'',k=(m.match(/ALREADY_CHANGED:(\w+)/)||[])[1];
+      say(k?`Your ${RF_LABEL[k].toLowerCase()} has already been corrected once. To change it again, email support@baseddatingonline.com.`:Object.keys(RF_ERRORS).find(c=>m.includes(c))?RF_ERRORS[Object.keys(RF_ERRORS).find(c=>m.includes(c))]:/NOTHING_TO_CHANGE/.test(m)?'That’s already what your profile says.':'Sorry, that didn’t send. Please try again.');return;}
+    result=data;
+  }
+  if(other.length>=5){
+    const {error}=await sb.rpc('request_correction',{p_text:other});
+    if(error&&!result){btn.disabled=false;btn.textContent='Send';say(/Please|Too many/.test(error.message)?error.message:'Sorry, that didn’t send. Please try again.');return;}
+  }
   removeModal();
-  showToast(`Thanks — we’ll put it right by ${longDate(data.due)} and let you know here.`,false,4000);
+  if(result&&result.needs_id){startChangeCheck();return;}
+  if(result&&result.applied){
+    showModal(RIGHT_ICON('ti-circle-check','var(--green)')+RIGHT_H('Your details have been updated')+
+      RIGHT_P(result.sex_changed?'Your sex has been changed and your previous connections removed. BASED will now reload so Search shows the right people.':'Your profile now shows the corrected details.'+(other.length>=5?' We’ll look at the rest of your request and let you know here.':''),18)+
+      `<button class="btn-primary" style="width:100%" onclick="removeModal();location.reload()">OK</button>`);
+    return;
+  }
+  showToast('Thanks — we’ll put it right within one month and let you know here.',false,4000);
+}
+async function withdrawIdentityChange(){
+  await sb.rpc('cancel_identity_change');
+  removeModal();showToast('Your correction has been withdrawn. Your details are unchanged.');
+}
+// The ID check for a correction (Didit, as for verifying). Nothing changes until it passes.
+async function startChangeCheck(){
+  if(diditStarting())return;
+  setDiditBusy(true,null);
+  busyModal('Starting your ID check…<br><span style="font-size:12.5px">Use an ID that shows your new details</span>');
+  const [{ok,data},sdk]=await Promise.all([callDiditSession('start','change'),loadDiditSdk()]);
+  removeModal();setDiditBusy(false,null);
+  if(!ok||!data.url){showModal(RIGHT_ICON('ti-alert-circle','var(--red)')+RIGHT_H('Couldn’t start the ID check')+RIGHT_P(esc(data&&data.error||'Please try again in a moment.'),18)+`<button class="btn-primary" style="width:100%" onclick="removeModal()">OK</button>`);return;}
+  if(!sdk){try{sessionStorage.setItem('basedVerifyContext','change');}catch(e){}window.location.href=data.url;return;}
+  sdk.shared.onComplete=(r)=>{const t=r&&r.type;if(t==='completed')pollChangeCheck(10);else if(t==='cancelled')showToast('No problem. Your correction is waiting: finish it any time from Support → Correct your data.',false,5000);else showToast('Something went wrong during the ID check. Please try again.',true);};
+  try{await sdk.shared.startVerification({url:data.url,configuration:{showExitConfirmation:true,closeModalOnComplete:true,zIndex:10000}});}
+  catch(e){try{sessionStorage.setItem('basedVerifyContext','change');}catch(_){}window.location.href=data.url;}
+}
+async function pollChangeCheck(tries){
+  if(tries===10)busyModal('Checking your ID…');
+  const {data}=await callDiditSession('check','change');
+  const st=data&&data.status;
+  if(st==='applied'){removeModal();showModal(RIGHT_ICON('ti-circle-check','var(--green)')+RIGHT_H('Your details have been updated')+RIGHT_P('Your ID showed the new details, so your profile has been corrected. You’re still verified.',18)+`<button class="btn-primary" style="width:100%" onclick="removeModal();location.reload()">OK</button>`);return;}
+  if(st==='failed'){removeModal();showModal(RIGHT_ICON('ti-alert-circle','var(--red)')+RIGHT_H('Your details haven’t been changed')+RIGHT_P(esc(data.note||'The ID check didn’t show the new details.')+(data.tries_left?` You can try again (${data.tries_left} ${data.tries_left===1?'try':'tries'} left).`:data.tries_left===0?' You’ve used all your tries for this change. If your details really are wrong, please email support@baseddatingonline.com.':''),18)+`<div style="display:flex;gap:10px">${data.tries_left?'<button class="btn-primary" style="flex:1" onclick="removeModal();startChangeCheck()">Try again</button>':''}<button class="btn-ghost" style="flex:1" onclick="removeModal()">Close</button></div>`);return;}
+  if(tries>1){setTimeout(()=>pollChangeCheck(tries-1),3000);return;}
+  removeModal();showToast('We’re still checking your ID. You’ll see a notice here when it’s done.',false,5000);
 }
 function openRightRestrict(){
   const on=profileHidden;
@@ -5098,25 +5186,26 @@ function showVerifyIssue(issue){
   }
   if(issue==='dob_mismatch'){
     btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
-    skip.style.display='block';skip.textContent='Edit my date of birth';skip.onclick=()=>{openEditProfile();setTimeout(()=>document.getElementById('edit-dob').focus(),300);};
-    setVerifyMsg('Your ID checked out, but its date of birth doesn’t match the one on your profile. If your profile is wrong, correct it in Settings, then tap <b>Check again</b>. You won’t need to scan your ID again.','error');
+    skip.style.display='block';skip.textContent='Correct my date of birth';skip.onclick=()=>openRightRectify();
+    setVerifyMsg('Your ID checked out, but its date of birth doesn’t match the one on your profile. If your profile is wrong, correct it with the button below, then tap <b>Check again</b>. You won’t need to scan your ID again.','error');
     return true;
   }
   if(issue==='name_swapped'){
     btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
-    skip.style.display='block';skip.textContent='Edit my name';skip.onclick=()=>{openEditProfile();setTimeout(()=>document.getElementById('edit-name').focus(),300);};
-    setVerifyMsg('Your name matches your ID, but your first name and surname are the wrong way round on your profile. Swap them in Settings, then tap <b>Check again</b>. You won’t need to scan your ID again.','error');
+    skip.style.display='block';skip.textContent='Correct my name';skip.onclick=()=>openRightRectify();
+    setVerifyMsg('Your name matches your ID, but your first name and surname are the wrong way round on your profile. Swap them with the button below, then tap <b>Check again</b>. You won’t need to scan your ID again.','error');
     return true;
   }
   if(issue==='name_mismatch'){
     btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
-    skip.style.display='block';skip.textContent='Edit my name';skip.onclick=()=>{openEditProfile();setTimeout(()=>document.getElementById('edit-name').focus(),300);};
-    setVerifyMsg('The name on this ID doesn’t match the name on your profile, so we couldn’t verify you. The ID has to be your own. If your profile name is wrong, correct it in Settings (check your first name and surname are in the right boxes), then tap <b>Check again</b>. Otherwise, <a href="#" onclick="event.preventDefault();startVerification()" style="color:var(--verified)">try again with your own ID</a>.','error');
+    skip.style.display='block';skip.textContent='Correct my name';skip.onclick=()=>openRightRectify();
+    setVerifyMsg('The name on this ID doesn’t match the name on your profile, so we couldn’t verify you. The ID has to be your own. If your profile name is wrong, correct it with the button below (check your first name and surname are in the right boxes), then tap <b>Check again</b>. Otherwise, <a href="#" onclick="event.preventDefault();startVerification()" style="color:var(--verified)">try again with your own ID</a>.','error');
     return true;
   }
   if(issue==='sex_mismatch'){
-    btn.textContent='Try again with my ID';btn.onclick=startVerification;
-    setVerifyMsg('The sex on this ID doesn’t match the one on your profile, so we couldn’t verify you. The ID has to be your own. If your profile is wrong, email <a href="mailto:support@baseddatingonline.com" style="color:var(--verified)">support@baseddatingonline.com</a> and we’ll put it right.','error');
+    btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
+    skip.style.display='block';skip.textContent='Correct my sex';skip.onclick=()=>openRightRectify();
+    setVerifyMsg('The sex on this ID doesn’t match the one on your profile, so we couldn’t verify you. The ID has to be your own. If your profile is wrong, correct it with the button below, then tap <b>Check again</b>.','error');
     return true;
   }
   if(issue==='no_dob'||issue==='no_name'||issue==='no_sex'){
@@ -6907,12 +6996,11 @@ function openEditProfile(){
   document.getElementById('edit-name').value=myProfile.name||'';
   document.getElementById('edit-surname').value=myProfile.surname||'';updateShownAs();
   document.getElementById('edit-dob').value=isoToDobDisplay(myProfile.dob);
-  {const verified=myVerificationStatus==='approved',used=(myProfile.dob_changes||0)>=1,locked=verified||used;
-   const d=document.getElementById('edit-dob');d.readOnly=locked;d.style.opacity=locked?'0.6':'1';
-   document.getElementById('edit-dob-note').style.display=locked?'block':'none';
-   document.getElementById('edit-dob-note-text').textContent=verified?'Confirmed by your ID, so it can’t be changed.':DOB_USED_TEXT;
-   ['edit-name','edit-surname'].forEach(id=>{const el=document.getElementById(id);el.readOnly=verified;el.style.opacity=verified?'0.6':'1';});
-   document.getElementById('edit-name-note').style.display=verified?'block':'none';}
+  {const lock=(id,on)=>{const el=document.getElementById(id);el.readOnly=on;el.style.opacity=on?'0.6':'1';};
+   lock('edit-name',!!(myProfile.name||'').trim());lock('edit-surname',!!(myProfile.surname||'').trim());lock('edit-dob',!!myProfile.dob);
+   document.getElementById('edit-dob-note').style.display=myProfile.dob?'block':'none';
+   document.getElementById('edit-dob-note-text').innerHTML=RF_EDIT_NOTE;
+   document.getElementById('edit-name-note').style.display='block';document.getElementById('edit-name-note').innerHTML='<i class="ti ti-lock" style="margin-right:4px"></i>'+RF_EDIT_NOTE;}
   const ec=document.getElementById('edit-country');ec.innerHTML=countryOptionsHtml(myProfile.country||'GB');editPrevCountry=myProfile.country||'GB';
   document.getElementById('edit-country-note').style.display='none';
   applyCountryUI('edit');locState.edit.picked=null;hideSuggest('edit');
@@ -6966,6 +7054,7 @@ function discardEditChanges(){
 }
 
 // Date of birth can be corrected once (unless it's been confirmed by ID); after that, re-join
+const RF_EDIT_NOTE='To correct your name, sex or date of birth, go to <a href="#" onclick="event.preventDefault();openRightRectify()" style="color:var(--gold)">Support → Correct your data</a>.';
 const DOB_USED_TEXT='You’ve already corrected your date of birth once. To change it again, please delete your account and create a new one with the correct date of birth.';
 let dobChangeConfirmed=false;
 function confirmDobChange(iso){
@@ -7393,7 +7482,7 @@ document.head.appendChild(spinStyle);
   document.getElementById('inp-country').innerHTML=countryOptionsHtml('GB');applyCountryUI('inp');
   loadOpenCountries();
   const cfgReady=loadAppConfig();
-  const verifyReturn=new URLSearchParams(location.search).get('verification')==='done';
+  const verifyParam=new URLSearchParams(location.search).get('verification'),verifyReturn=verifyParam==='done'||verifyParam==='change';
   const qs=new URLSearchParams(location.search);
   const payReturn=qs.get('checkout')==='success'?'success':qs.get('checkout')==='cancel'?'cancel':qs.get('billing')==='done'?'billing':null;
   const topupReturn=qs.get('topup');
@@ -7426,7 +7515,7 @@ document.head.appendChild(spinStyle);
     document.getElementById('filter-dist-val').textContent=distLabel(dist);
     renderProfiles(minPct);
     updateMatchNotifs();
-    if(verifyReturn&&!authLinkError){let ctx='signup';try{ctx=sessionStorage.getItem('basedVerifyContext')||'signup';sessionStorage.removeItem('basedVerifyContext');}catch(e){}if(ctx==='age'){openAgeCheck();pollAgeCheck(10);}else{openVerifyScreen(ctx);pollVerification(10);}}
+    if(verifyReturn&&!authLinkError){let ctx='signup';try{ctx=sessionStorage.getItem('basedVerifyContext')||'signup';sessionStorage.removeItem('basedVerifyContext');}catch(e){}if(verifyParam==='change'||ctx==='change'){pollChangeCheck(10);}else if(ctx==='age'){openAgeCheck();pollAgeCheck(10);}else{openVerifyScreen(ctx);pollVerification(10);}}
     else if(!hasPendingSignupOnLoad&&!authLinkError&&needsAgeGate())openAgeCheck();
     else if(!hasPendingSignupOnLoad&&!authLinkError&&needsVerificationGate())openVerifyScreen('gate');
     else if(!hasPendingSignupOnLoad&&!authLinkError)goTo('screen-main'); // let the confirmation-completion flow navigate instead, if one's in progress; stay put on an auth-link error
