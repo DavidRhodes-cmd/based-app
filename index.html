@@ -406,6 +406,9 @@ button.ins-tile:active{opacity:0.75;}
 .feature-locked::after{content:'\eae2';font-family:'tabler-icons';position:absolute;top:6px;right:8px;font-size:16px;color:var(--gold);opacity:1;pointer-events:none;}
 .feature-locked[data-lock="plain"]>*{opacity:1;}
 .filter-btn.feature-locked::after{top:4px;right:6px;font-size:14px;}
+/* Settings buttons: a locked one keeps its words as bright as the rest (the padlock says it's locked); ones you can use get a brighter outline */
+.filter-btn.feature-locked>*{opacity:1;}
+.filter-btn:not(.feature-locked){border-color:rgba(255,255,255,0.42);}
 
 .cp-masked{-webkit-text-security:disc;}
 </style>
@@ -822,7 +825,7 @@ button.ins-tile:active{opacity:0.75;}
       <input type="file" id="edit-extra-photo-input" accept="image/*" style="display:none" onchange="handleExtraPhoto(this,'edit')" />
     </div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" id="edit-name" /><p id="edit-name-note" style="display:none;font-size:11px;color:var(--text-muted);margin-top:7px;line-height:1.5"><i class="ti ti-lock" style="margin-right:4px"></i>Your name is confirmed by your ID, so it can’t be changed. Email support@baseddatingonline.com if it needs correcting.</p></div>
-    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Surname</label><input class="form-input" type="text" id="edit-surname" autocomplete="family-name" /><p style="font-size:12px;color:var(--text-muted);margin-top:7px;line-height:1.45">Other members only see its first letter: <span id="edit-shown-as"></span></p></div>
+    <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Surname</label><input class="form-input" type="text" id="edit-surname" autocomplete="family-name" /><p id="edit-surname-note" style="display:none;font-size:11px;color:var(--text-muted);margin-top:7px;line-height:1.5"></p><p style="font-size:12px;color:var(--text-muted);margin-top:7px;line-height:1.45">Other members only see its first letter: <span id="edit-shown-as"></span></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="edit-dob" oninput="formatDobInput(this)" /><p id="edit-dob-note" style="display:none;font-size:11px;color:var(--text-muted);margin-top:7px;line-height:1.5"><i class="ti ti-lock" style="margin-right:4px"></i><span id="edit-dob-note-text">Confirmed by your ID, so it can’t be changed.</span></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Country</label><select class="form-input" id="edit-country" onchange="onCountryChange('edit')"></select><p id="edit-country-note" style="font-size:12px;color:var(--red);margin-top:7px;display:none"></p></div>
     <div style="margin-bottom:16px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block" id="edit-location-label">Postcode</label><div class="loc-wrap"><input class="form-input" type="text" id="edit-location" oninput="onLocationInput('edit')" onblur="setTimeout(()=>hideSuggest('edit'),200)" /><div class="loc-suggest" id="edit-loc-suggest"></div></div><p style="font-size:11px;color:var(--text-muted);margin-top:7px">Used to calculate distances — not shown to other users.</p></div>
@@ -7006,7 +7009,8 @@ function openEditProfile(){
    lock('edit-name',!!(myProfile.name||'').trim());lock('edit-surname',!!(myProfile.surname||'').trim());lock('edit-dob',!!myProfile.dob);
    document.getElementById('edit-dob-note').style.display=myProfile.dob?'block':'none';
    document.getElementById('edit-dob-note-text').innerHTML=RF_EDIT_NOTE;
-   document.getElementById('edit-name-note').style.display='block';document.getElementById('edit-name-note').innerHTML='<i class="ti ti-lock" style="margin-right:4px"></i>'+RF_EDIT_NOTE;}
+   document.getElementById('edit-name-note').style.display='block';document.getElementById('edit-name-note').innerHTML='<i class="ti ti-lock" style="margin-right:4px"></i>'+RF_EDIT_NOTE;
+   const sn=document.getElementById('edit-surname-note'),snLocked=!!(myProfile.surname||'').trim();sn.style.display=snLocked?'block':'none';sn.innerHTML='<i class="ti ti-lock" style="margin-right:4px"></i>'+RF_EDIT_NOTE;}
   const ec=document.getElementById('edit-country');ec.innerHTML=countryOptionsHtml(myProfile.country||'GB');editPrevCountry=myProfile.country||'GB';
   document.getElementById('edit-country-note').style.display='none';
   applyCountryUI('edit');locState.edit.picked=null;hideSuggest('edit');
