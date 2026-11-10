@@ -312,7 +312,7 @@ select.form-input option{background:#1a1f2e;color:#fff;}
 .chat-menu button:last-child{border-bottom:none;}
 .chat-menu button i{font-size:18px;color:var(--text-muted);}
 .chat-menu button.danger,.chat-menu button.danger i{color:var(--red);}
-.modal-box{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.15);border-radius:20px;padding:28px 22px;margin:24px;text-align:center;width:100%;}
+.modal-box{background:var(--navy-mid);border:0.5px solid rgba(255,255,255,0.15);border-radius:20px;padding:28px 22px;margin:24px;text-align:center;width:100%;box-sizing:border-box;max-height:calc(100% - 48px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;} /* a tall pop-up scrolls inside itself instead of running off the screen */
 .up-card{text-align:left;cursor:pointer;padding:13px 13px 12px;border-radius:14px;border:1px solid rgba(138,143,168,0.3);background:var(--navy-mid);color:var(--text-on-dark);font-family:var(--sans);display:flex;flex-direction:column;gap:5px;min-width:0;}
 .up-card.on{border:1.5px solid var(--gold);background:rgba(201,168,76,0.08);}
 .up-row{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:10px;}
