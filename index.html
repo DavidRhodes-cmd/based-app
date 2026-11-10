@@ -1346,8 +1346,7 @@ let lastProfileList=[]; // snapshot of current sorted/filtered search results, f
 // Search comes from the server one page at a time, already filtered by the sliders
 const SEARCH_PAGE=200;
 let widenTried=false,searchTotal=0,searchOffset=0,searchLoading=false,searchAuto=false,searchReloadTimer=null,searchSeq=0,useOldBrowse=false;
-let messageChannel=null; // Supabase realtime channel
-let interactionsChannel=null; // Supabase realtime channel for live match/interest detection
+let messageChannel=null; // the open chat: {matchId,onMessage,onReaction}, fed by the live channel
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 function goTo(id){if((id==='screen-main'||id==='screen-waiting')&&typeof needsReaccept==='function'&&needsReaccept()){id='screen-reaccept';renderReaccept();}else if(id==='screen-main'&&typeof needsWaiting==='function'&&needsWaiting()){id='screen-waiting';renderWaiting();}document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);if(id==='screen-main'){if(typeof updateGetVerifiedBtn==='function')updateGetVerifiedBtn();if(typeof maybeAutoWiden==='function'&&searchAuto&&!widenTried){widenTried=true;maybeAutoWiden();}}}
@@ -1728,7 +1727,7 @@ async function catchUpAfterBackground(){
     const {data:st}=await sb.from('profiles').select('account_status,suspended_until').eq('id',currentUser.id).maybeSingle();
     if(st&&st.account_status&&st.account_status!=='active'){await hardSignOut();showAccountBlocked(st.account_status,st.suspended_until);return;}
     checkNotices();
-    subscribeToInteractions();subscribeToAllMessages();subscribeToMyVerification();
+    subscribeToLive(!sb.realtime.isConnected());
     await loadMyInteractions();
     await loadBrowseProfiles();
     renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
@@ -2108,9 +2107,7 @@ async function finishProfileCreation(userId,email){
   isPremium=false;profileHidden=false;myVerificationStatus='unverified';myVerificationIssue=null;myAgeStatus='none';
   await loadPermissions();
   await loadMyInteractions();
-  subscribeToInteractions();
-  subscribeToAllMessages();
-  subscribeToMyVerification();
+  subscribeToLive(true);
   await loadBrowseProfiles();
   signupAnswered=false;
   afterResults(); // they saw their score before creating the account
@@ -2520,9 +2517,7 @@ async function restoreSession(){
   }
   await loadPermissions();
   await loadMyInteractions();
-  subscribeToInteractions();
-  subscribeToAllMessages();
-  subscribeToMyVerification();
+  subscribeToLive(true);
   setTimeout(()=>{refreshUnreadCounts();},0); // after profiles load; doesn't hold up sign-in
   setTimeout(()=>{checkNotices();},2500);    // warnings or removed content from the BASED team
   setTimeout(()=>{startAdverts();},1500);   // adverts (none on ad-free plans)
@@ -2535,12 +2530,8 @@ function showProfileLoadError(){
 }
 
 // ─── Interactions & matches from Supabase ─────────────────────────────────────
-function subscribeToInteractions(){
-  if(interactionsChannel)sb.removeChannel(interactionsChannel);
-  if(!currentUser)return;
-  interactionsChannel=sb.channel('interactions:'+currentUser.id)
-    .on('postgres_changes',{event:'*',schema:'public',table:'interactions',filter:`to_user=eq.${currentUser.id}`},
-      async()=>{
+// Someone's interest, move on or match involving you changed (sent over your live channel)
+async function onInteractionChange(){
         const prevMutual=new Set(mutualMatches),prevIncoming=new Set(incomingInterest);
         await loadMyInteractions();
         await loadBrowseProfiles(); // also refresh cached profile data (photos, names) — not just match status
@@ -2575,12 +2566,10 @@ function subscribeToInteractions(){
         const stillThere=id=>browseProfiles.some(x=>(x.id||x.name)===id);
         const onChat=document.getElementById('screen-chat').classList.contains('active');
         if(onChat&&activeChatPartnerId&&(!stillThere(activeChatPartnerId)||!mutualMatches.has(activeChatPartnerId))){
-          if(messageChannel){sb.removeChannel(messageChannel);messageChannel=null;}
+          messageChannel=null;
           goTo('screen-main');switchTab('messages');
           showToast('This conversation is no longer available.',true);
         }
-      })
-    .subscribe();
 }
 async function recordProfileView(profileKey){
   if(!currentUser||viewedProfiles.has(profileKey))return; // re-opening someone you've already viewed is always free
@@ -3371,7 +3360,7 @@ async function doHideForever(profileKey){
   passedProfiles.delete(profileKey);
   incomingInterest.delete(profileKey);
   mutualMatches.delete(profileKey);expressedInterest.delete(profileKey);
-  if(messageChannel){sb.removeChannel(messageChannel);messageChannel=null;}
+  messageChannel=null;
   await loadBrowseProfiles();
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   renderMatchesTab();
@@ -5479,15 +5468,7 @@ function onVerified(){
 
 // Live updates for my own verification status (webhook → profiles row → Realtime),
 // so nobody waiting on a manual review has to keep tapping "Check again".
-let myProfileChannel=null;
-function subscribeToMyVerification(){
-  if(myProfileChannel)sb.removeChannel(myProfileChannel);
-  if(!currentUser)return;
-  myProfileChannel=sb.channel('me:'+currentUser.id)
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'profiles',filter:`id=eq.${currentUser.id}`},
-      ({new:p})=>{if(p){onMyDobMaybeChanged(p);onMyVerificationChanged(p);onMyPlanMaybeChanged(p);}})
-    .subscribe();
-}
+function onMyProfileUpdate(p){if(p){onMyDobMaybeChanged(p);onMyVerificationChanged(p);onMyPlanMaybeChanged(p);}}
 // Verifying with ID sets the date of birth from the document if the profile's was different
 function onMyDobMaybeChanged(p){
   if(!p||!p.dob)return;
@@ -6340,26 +6321,41 @@ function showLiveBanner({title,sub,photo,initials,onTap,icon}){
 function hideLiveBanner(){const b=document.getElementById('live-banner');if(b)b.classList.remove('show');}
 function updateUnreadBadge(){renderMutualBadge();}
 function viewingChatWith(pid){return document.getElementById('screen-chat').classList.contains('active')&&activeChatPartnerId===pid;}
-let allMessagesChannel=null;
-function subscribeToAllMessages(){
-  if(allMessagesChannel)sb.removeChannel(allMessagesChannel);
-  if(!currentUser)return;
-  // Only listen for messages to you (and ones you send from another device), so the server checks
-  // just those rather than every message against every member online
-  const onInboxMessage=payload=>{
-      const m=payload.new||{};
-      if(!m.match_id)return;
-      const parts=m.match_id.split('__');if(!parts.includes(currentUser.id))return;
-      // Sent by you on another device: just bring the It's mutual list up to date here
-      if(String(m.sender_id)===currentUser.id){refreshChatListSoon();return;}
-      const due=msgDueIn(m);
-      if(due>0){setTimeout(()=>incomingMessageNotice(m),due+400);return;} // a reply that's on its way
-      incomingMessageNotice(m);
-  };
-  allMessagesChannel=sb.channel('inbox:'+currentUser.id)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`recipient_id=eq.${currentUser.id}`},onInboxMessage)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`sender_id=eq.${currentUser.id}`},onInboxMessage)
-    .subscribe();
+// ─── Live updates ────────────────────────────────────────────────────────────
+// One private channel per member ("user:<id>"). The database sends each update only to the members
+// it's for (new messages, reactions, interests and matches, and changes to your own account), and
+// nobody else can listen in. Supabase reconnects it by itself; coming back to the app checks it too.
+let liveChannel=null,liveQueue=Promise.resolve();
+function subscribeToLive(force){
+  liveQueue=liveQueue.then(()=>startLive(force)).catch(e=>console.warn('Live updates:',e));
+  return liveQueue;
+}
+async function stopLive(){
+  const old=liveChannel;liveChannel=null;if(!old)return;
+  try{await sb.removeChannel(old);}catch(e){}
+  try{if(sb.getChannels().includes(old))sb.realtime._remove(old);}catch(e){} // offline: make sure it's gone so a fresh one can start
+}
+async function startLive(force){
+  if(!currentUser){await stopLive();return;}
+  const topic='user:'+currentUser.id;
+  if(liveChannel&&!force&&liveChannel.topic==='realtime:'+topic&&['joined','joining'].includes(liveChannel.state))return;
+  await stopLive();
+  liveChannel=sb.channel(topic,{config:{private:true}})
+    .on('broadcast',{event:'message'},({payload})=>onLiveMessage(payload||{}))
+    .on('broadcast',{event:'reaction'},({payload})=>{const x=payload||{};if(messageChannel&&x.match_id===messageChannel.matchId)messageChannel.onReaction(x);})
+    .on('broadcast',{event:'interaction'},()=>onInteractionChange())
+    .on('broadcast',{event:'profile'},({payload})=>onMyProfileUpdate(payload))
+    .subscribe((status,err)=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('Live updates:',status,(err&&err.message)||'');});
+}
+function onLiveMessage(m){
+  if(!currentUser||!m.match_id)return;
+  const parts=m.match_id.split('__');if(!parts.includes(currentUser.id))return;
+  if(messageChannel&&m.match_id===messageChannel.matchId)messageChannel.onMessage(m); // the chat that's open
+  // Sent by you on another device: just bring the It's mutual list up to date here
+  if(String(m.sender_id)===currentUser.id){refreshChatListSoon();return;}
+  const due=msgDueIn(m);
+  if(due>0){setTimeout(()=>incomingMessageNotice(m),due+400);return;} // a reply that's on its way
+  incomingMessageNotice(m);
 }
 // Redraw the It's mutual list if it's on screen (several messages at once → one redraw)
 let chatListTimer=null;
@@ -6431,7 +6427,7 @@ async function executeUnmatch(pid,name){
   const {error}=await sb.rpc('unmatch',{p_other:pid});
   if(error){showToast(/NOT_MATCHED/.test(error.message)?'You are no longer matched.':'Something went wrong — please try again.',true);return;}
   mutualMatches.delete(pid);expressedInterest.delete(pid);incomingInterest.delete(pid);unreadFrom.delete(pid);
-  if(activeChatPartnerId===pid&&messageChannel){sb.removeChannel(messageChannel);messageChannel=null;}
+  if(activeChatPartnerId===pid)messageChannel=null;
   await loadMyInteractions();await loadBrowseProfiles();
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   renderMatchesTab();
@@ -6461,7 +6457,7 @@ async function executeBlock(){
   const ok=await recordInteraction(id,'hide_forever');
   if(!ok){showToast('Something went wrong — please try again.',true);return;}
   hiddenForever.add(id);mutualMatches.delete(id);expressedInterest.delete(id);incomingInterest.delete(id);
-  if(messageChannel){sb.removeChannel(messageChannel);messageChannel=null;}
+  messageChannel=null;
   await loadBrowseProfiles();
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   renderMatchesTab();
@@ -6505,7 +6501,7 @@ async function submitReport(){
   removeModal();
   const id=reportTarget.id;
   hiddenForever.add(id);mutualMatches.delete(id);expressedInterest.delete(id);incomingInterest.delete(id);
-  if(messageChannel){sb.removeChannel(messageChannel);messageChannel=null;}
+  messageChannel=null;
   await loadBrowseProfiles();
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   renderMatchesTab();
@@ -6668,14 +6664,13 @@ async function sendMessage(){
   await renderChatMessages();
 }
 
+// The chat that's open listens on your live channel (see Live updates)
 function subscribeToMessages(partnerId){
-  if(messageChannel)sb.removeChannel(messageChannel);
   const matchId=getMatchId(currentUser?.id||'',partnerId);
   const refresh=async()=>{if(!viewingChatWith(partnerId))return;await renderChatMessages();markChatRead(partnerId);updateMatchNotifs();};
-  messageChannel=sb.channel('messages:'+matchId)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`match_id=eq.${matchId}`},
-      async payload=>{
-        const m=payload.new||{},due=msgDueIn(m);
+  messageChannel={matchId,
+    onMessage:async m=>{
+        const due=msgDueIn(m);
         if(due>0&&m.id&&String(m.sender_id)!==currentUser.id){
           // A reply that's on its way: show "typing…" and bring it in when it's due
           pendingIncoming.add(m.id);drawChatMessages(false);scrollChatToBottom();
@@ -6685,13 +6680,12 @@ function subscribeToMessages(partnerId){
           return;
         }
         await refresh();
-      })
-    .on('postgres_changes',{event:'*',schema:'public',table:'message_reactions',filter:`match_id=eq.${matchId}`},
-      payload=>{const x=payload.new||{};if(!x.message_id||!viewingChatWith(partnerId))return;
+      },
+    onReaction:x=>{if(!x.message_id||!viewingChatWith(partnerId))return;
         const k=chatReactions[x.message_id]||(chatReactions[x.message_id]={});
         if(String(x.user_id)===currentUser.id)k.mine=x.emoji||undefined;else k.theirs=x.emoji||undefined;
-        drawChatMessages(false);})
-    .subscribe();
+        drawChatMessages(false);}};
+  subscribeToLive(); // make sure the live channel is up
 }
 
 // ─── Delayed replies ─────────────────────────────────────────────────────────
@@ -7376,9 +7370,7 @@ function confirmLogout(){
 // 4 seconds for it, then remove the saved session ourselves regardless.
 async function hardSignOut(){
   try{
-    if(messageChannel)sb.removeChannel(messageChannel);
-    if(interactionsChannel)sb.removeChannel(interactionsChannel);
-    if(myProfileChannel){sb.removeChannel(myProfileChannel);myProfileChannel=null;}
+    messageChannel=null;stopLive();
   }catch(e){}
   try{
     await Promise.race([sb.auth.signOut(),new Promise(r=>setTimeout(()=>r({error:{message:'timed out'}}),4000))])
