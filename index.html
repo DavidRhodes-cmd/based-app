@@ -6344,9 +6344,9 @@ let allMessagesChannel=null;
 function subscribeToAllMessages(){
   if(allMessagesChannel)sb.removeChannel(allMessagesChannel);
   if(!currentUser)return;
-  // Server-side rules only deliver messages from your own current matches
-  allMessagesChannel=sb.channel('inbox:'+currentUser.id)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},payload=>{
+  // Only listen for messages to you (and ones you send from another device), so the server checks
+  // just those rather than every message against every member online
+  const onInboxMessage=payload=>{
       const m=payload.new||{};
       if(!m.match_id)return;
       const parts=m.match_id.split('__');if(!parts.includes(currentUser.id))return;
@@ -6355,7 +6355,10 @@ function subscribeToAllMessages(){
       const due=msgDueIn(m);
       if(due>0){setTimeout(()=>incomingMessageNotice(m),due+400);return;} // a reply that's on its way
       incomingMessageNotice(m);
-    })
+  };
+  allMessagesChannel=sb.channel('inbox:'+currentUser.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`recipient_id=eq.${currentUser.id}`},onInboxMessage)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`sender_id=eq.${currentUser.id}`},onInboxMessage)
     .subscribe();
 }
 // Redraw the It's mutual list if it's on screen (several messages at once → one redraw)
