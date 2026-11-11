@@ -2977,7 +2977,7 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
       // same religion: the usual rule above
     }
     const col=cat==='differs'?'var(--red)':cat==='aligned'?'var(--gold)':'var(--green)';
-    const label=cat==='differs'?'Differs':cat==='aligned'?'Close':'Matched';
+    const label=cat==='differs'?'Differs':cat==='aligned'?'Close':'Aligned';
     const toP=v=>((v+10)/20)*100,myP=toP(my),themP=toP(them);
     const myLabel=ansLabel(my),themLabel=ansLabel(them);
     // Faith: your religion in gold, theirs in white (the same colours as the answer dots)
@@ -3047,10 +3047,10 @@ function openProfile(answers,compat,basedScore,inits,name,age,location,photoUrl,
     <div class="pf-legend"><span style="color:#e8e4dc"><i style="background:#e8e4dc"></i>${esc(first)} ${leanLabelHtml(them,true)}</span><span style="color:var(--gold)"><i style="background:var(--gold)"></i>You ${leanLabelHtml(me)}</span><button class="info-icon-btn" onclick="showScoreInfoPopup('based')" aria-label="How the score is worked out">i</button></div>
     ${canGallery?'<div id="profile-photo-strip"></div>':''}</div>
     <div class="meet"><div class="meet-sticky"><div class="meet-head">WHERE YOU MEET</div>
-      <div class="meet-tabs" role="tablist">${[['all','All'],['matched','Matched'],['aligned','Close'],['differs','Differs']].map(([k,t])=>`<button role="tab" data-tab="${k}" onclick="showMeetTab('${k}')">${t}<b>${k==='all'?rows.length:counts[k]}</b></button>`).join('')}</div></div>
+      <div class="meet-tabs" role="tablist">${[['all','All'],['matched','Aligned'],['aligned','Close'],['differs','Differs']].map(([k,t])=>`<button role="tab" data-tab="${k}" onclick="showMeetTab('${k}')">${t}<b>${k==='all'?rows.length:counts[k]}</b></button>`).join('')}</div></div>
       <div id="meet-list"></div></div>
     ${(/^[0-9a-f-]{36}$/.test(String(profileKey))||String(profileKey).startsWith('demo-'))&&!isMutual?`<div style="text-align:center;margin-top:12px"><button onclick="openReport('${profileKey}','${ja(name)}')" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px"><i class="ti ti-flag" style="margin-right:5px"></i>Report ${esc(name)}</button></div>`:''}`;
-  showMeetTab('matched'); // always opens on Matched
+  showMeetTab('matched'); // always opens on Aligned
   goTo('screen-profile');
   if(canGallery)matchPhotos(profileKey).then(urls=>{
     const strip=document.getElementById('profile-photo-strip');
@@ -4229,7 +4229,7 @@ const SCORE_INFO={
   compat:{title:'Compatibility',get text(){
     const n=leadingScored();
     const out=QUESTIONS.filter(q=>!q.scoring).map(q=>esc(q.text.toLowerCase()));
-    return `How closely your answers match theirs on the first ${n} statements. Each statement scores up to 5 points: <b>Matched</b> scores the most, <b>Close</b> a little less and <b>Differs</b> little or nothing. The score is the points you share as a percentage of the most possible.<br><br>Being on the same side and near each other counts as Matched. Being on opposite sides of a statement (one of you agrees, the other disagrees) costs more than the same gap on one side, and the further apart you are across the middle, the more it costs.`+(out.length?`<br><br>The ${out.join('/')} answers aren’t included.`:'');
+    return `How closely your answers match theirs on the first ${n} statements. Each statement scores up to 5 points: <b>Aligned</b> scores the most, <b>Close</b> a little less and <b>Differs</b> little or nothing. The score is the points you share as a percentage of the most possible.<br><br>Being on the same side and near each other counts as Matched. Being on opposite sides of a statement (one of you agrees, the other disagrees) costs more than the same gap on one side, and the further apart you are across the middle, the more it costs.`+(out.length?`<br><br>The ${out.join('/')} answers aren’t included.`:'');
   }},
   based:{title:'Score',get text(){
     const n=leadingScored();
