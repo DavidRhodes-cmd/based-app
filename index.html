@@ -3324,7 +3324,7 @@ function soundsOn(){try{return localStorage.getItem('basedSounds')!=='off';}catc
 function unlockSound(){
   try{
     if(!soundCtx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;soundCtx=new AC();}
-    if(soundCtx.state==='suspended')soundCtx.resume();
+    if(soundCtx.state!=='running')soundCtx.resume().catch(()=>{}); // 'suspended', or 'interrupted' on iPhone after being away
     const b=soundCtx.createBuffer(1,1,22050),src=soundCtx.createBufferSource();src.buffer=b;src.connect(soundCtx.destination);src.start(0);
   }catch(e){}
 }
@@ -3335,7 +3335,11 @@ function unlockAndCatchUp(){
   const p=pendingSound;pendingSound=null;
   if(p&&Date.now()-p.at<60000&&soundCtx)soundCtx.resume().then(()=>playSound(p.kind)).catch(()=>{});
 }
-['pointerdown','touchend','keydown'].forEach(ev=>document.addEventListener(ev,unlockAndCatchUp,{once:true,passive:true}));
+// Every tap, not just the first: phones switch sound off again when you leave the app (e.g. to pay
+// with Stripe), so the next tap after coming back has to switch it on again and play anything waiting
+['pointerdown','touchend','keydown'].forEach(ev=>document.addEventListener(ev,()=>{
+  if(!soundCtx||soundCtx.state!=='running'||pendingSound)unlockAndCatchUp();
+},{passive:true}));
 function tone(freq,start,dur,vol,type){
   const c=soundCtx,o=c.createOscillator(),g=c.createGain();
   o.type=type||'sine';o.frequency.setValueAtTime(freq,start);
