@@ -2880,7 +2880,13 @@ function leanLabel(l){if(!l)return '';if(!l.side||!l.pct)return 'in the middle';
 // The same, with the end's picture from the console (e.g. THIS / THAT) in place of its name
 function leanLabelHtml(l,white){if(!l)return '';if(!l.side||!l.pct)return 'in the middle';const img=endImg(l.side,15,46,white),n=(SCALE[l.side]&&SCALE[l.side].name)||'';return `${l.pct}%${img?` ${img}<span class="visually-hidden">${esc(n)}</span>`:(n?' '+esc(n):'')}`;}
 function scoreRingArc(l,r,w,colour){
-  if(!l||!l.side||!l.pct)return '';
+  if(!l)return '';
+  // In the middle (0%, or on the fence): no arc to draw, so mark their ring with a small triangle at
+  // the bottom, where every arc starts, pointing down: an equilateral triangle as wide as the ring
+  if(!l.side||!l.pct){
+    const h=w*Math.sqrt(3)/2,cy=80+r,f=n=>n.toFixed(2);
+    return `<path fill="${colour}" d="M ${f(80-w/2)} ${f(cy-h/2)} L ${f(80+w/2)} ${f(cy-h/2)} L 80 ${f(cy+h/2)} Z"/>`;
+  }
   const C=2*Math.PI*r,t=scoreTip(l.pct,r,w),right=l.side==='right';
   return `<circle cx="80" cy="80" r="${r}" fill="none" stroke="${colour}" stroke-width="${w}" stroke-dasharray="${t.len.toFixed(2)} ${C.toFixed(2)}" transform="${right?'translate(160 0) scale(-1 1) ':''}rotate(90 80 80)"/><path fill="${colour}" d="${t.d}"${right?' transform="translate(160 0) scale(-1 1)"':''}/>`;
 }
