@@ -952,7 +952,7 @@ button.ins-tile:active{opacity:0.75;}
       <div class="toggle-row">
         <div style="flex:1;padding-right:16px">
           <p style="font-size:15px;color:var(--text-on-dark);margin-bottom:4px">Sounds</p>
-          <p style="font-size:13px;color:var(--text-muted);line-height:1.4">Play a sound for interests, super interests and when it’s mutual. Your phone’s silent switch also turns them off.</p>
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.4">Play a sound for new messages, interests, super interests, when it’s mutual, and when you’re verified or upgrade. Your phone’s silent switch also turns them off.</p>
         </div>
         <div class="toggle-track" id="sounds-toggle" role="switch" aria-label="Sounds" tabindex="0" onclick="toggleSounds()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSounds();}"><div class="toggle-thumb"></div></div>
       </div>
@@ -1828,6 +1828,7 @@ async function catchUpAfterBackground(){
     await loadBrowseProfiles();
     renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
     renderMatchesTab();
+    if(document.querySelector('.screen.active')?.id==='screen-main')celebrateMissedMutuals();
     if(document.getElementById('tab-messages-content').style.display==='block')await renderConversationsTab();
     if(document.getElementById('screen-chat').classList.contains('active')&&activeChatPartnerId){
       subscribeToMessages(activeChatPartnerId);
@@ -2636,6 +2637,7 @@ async function onInteractionChange(){
         const pp=id=>browseProfiles.find(x=>x.id===id);
         if(newMatch&&pp(newMatch)){
           const p=pp(newMatch);
+          markMutualSeen(newMatch);
           playSound('mutual');
           launchConfetti(null);
           showLiveBanner({title:`It's mutual with ${p.name}! 🎉`,sub:'You can now message each other',photo:p.photo_url,initials:p.initials,
@@ -2652,7 +2654,7 @@ async function onInteractionChange(){
           }else{
             showLiveBanner({title:`${p.name} is interested in you`,sub:'Tap to see their profile',photo:p.photo_url,initials:p.initials,
               onTap:()=>{goTo('screen-main');switchTab('matches');}});
-            playSound('ping');
+            playSound('interest');
           }
         }
         renderMatchesTab();
@@ -3289,7 +3291,7 @@ function congratulate(kind){
 function nextCongrats(){
   const kind=congratsQueue.shift();if(!kind){congratsBusy=false;return;}
   congratsBusy=true;
-  launchConfetti(null);
+  launchConfetti(null);playSound('chime');
   const shell=document.getElementById('app-shell')||document.body;
   const el=document.createElement('div');
   el.setAttribute('role','status');
@@ -3303,7 +3305,12 @@ function nextCongrats(){
 }
 
 // ─── Super interest celebration ──────────────────────────────────────────────
-// ─── Sounds: a ping for an interest, a sparkle for a super interest (sent or received), a fanfare when it's mutual ───
+// ─── Sounds ───────────────────────────────────────────────────────────────────
+// ping      a new message (only when that chat isn't open: an open chat stays quiet)
+// interest  two notes rising: an interest sent or received
+// super     a rising sparkle (with confetti): a super interest sent or received
+// mutual    a fuller fanfare (with confetti): it's mutual, for both people, including one that happened while you were away
+// chime     a short bright arpeggio: selfie check passed, ID verified, upgraded
 // Made in the browser (no sound files). Off switch in Settings; remembered on this device.
 // Phones only allow sound after the member has touched the app, so the first touch unlocks it.
 let soundCtx=null;
@@ -3315,7 +3322,14 @@ function unlockSound(){
     const b=soundCtx.createBuffer(1,1,22050),src=soundCtx.createBufferSource();src.buffer=b;src.connect(soundCtx.destination);src.start(0);
   }catch(e){}
 }
-['pointerdown','touchend','keydown'].forEach(ev=>document.addEventListener(ev,unlockSound,{once:true,passive:true}));
+// A celebration that happened before the first touch (e.g. a match found as the app opened) plays on that touch
+let pendingSound=null;
+function unlockAndCatchUp(){
+  unlockSound();
+  const p=pendingSound;pendingSound=null;
+  if(p&&Date.now()-p.at<60000&&soundCtx)soundCtx.resume().then(()=>playSound(p.kind)).catch(()=>{});
+}
+['pointerdown','touchend','keydown'].forEach(ev=>document.addEventListener(ev,unlockAndCatchUp,{once:true,passive:true}));
 function tone(freq,start,dur,vol,type){
   const c=soundCtx,o=c.createOscillator(),g=c.createGain();
   o.type=type||'sine';o.frequency.setValueAtTime(freq,start);
@@ -3327,7 +3341,8 @@ function bell(freq,start,dur,vol){tone(freq,start,dur,vol,'sine');tone(freq*2.01
 function playSound(kind){
   if(!soundsOn())return;
   try{
-    unlockSound();if(!soundCtx||soundCtx.state!=='running')return;
+    unlockSound();
+    if(!soundCtx||soundCtx.state!=='running'){if(kind!=='ping'&&kind!=='interest')pendingSound={kind,at:Date.now()};return;}
     const t=soundCtx.currentTime+0.03;
     if(kind==='super'){
       // rising sparkle: E6 G#6 B6 E7, then a soft shimmer
@@ -3337,8 +3352,11 @@ function playSound(kind){
       // an interest sent: two soft bell notes rising, A5 then E6 (gentler than the super sparkle)
       bell(880,t,0.4,0.09);bell(1318.5,t+0.12,0.5,0.08);
     }else if(kind==='ping'){
-      // a single soft ping for an interest sent or received: one bell note, A5
+      // a new message: one soft bell note, A5
       bell(880,t,0.45,0.1);
+    }else if(kind==='chime'){
+      // well done: a quick bright arpeggio, G5 B5 D6, the last note ringing on
+      bell(783.99,t,0.45,0.09);bell(987.77,t+0.09,0.45,0.08);bell(1174.66,t+0.18,0.9,0.08);
     }else if(kind==='mutual'){
       // a short fanfare: C5 E5 G5 rising, then a full C major chord that rings, with sparkles on top
       [523.25,659.25,783.99].forEach((f,i)=>bell(f,t+i*0.11,0.4,0.12));
@@ -3376,6 +3394,27 @@ function launchConfetti(fromEl){
   setTimeout(()=>layer.remove(),2100);
 }
 // Celebrate each super interest you receive once (live, or the next time you open the Interest tab)
+// Mutual matches you've already celebrated, so one that happened while you were away is celebrated
+// once when you next open BASED. The first time this runs on a device it just notes the existing ones.
+function seenMutualsKey(){return 'based_seen_mutuals_'+(currentUser&&currentUser.id);}
+function seenMutuals(){try{const v=localStorage.getItem(seenMutualsKey());return v==null?null:new Set(JSON.parse(v));}catch(e){return new Set();}}
+function saveSeenMutuals(set){try{localStorage.setItem(seenMutualsKey(),JSON.stringify([...set]));}catch(e){}}
+function markMutualSeen(id){const s=seenMutuals()||new Set();s.add(id);saveSeenMutuals(s);}
+function celebrateMissedMutuals(){
+  if(!currentUser)return;
+  const seen=seenMutuals();
+  if(seen===null){saveSeenMutuals(new Set(mutualMatches));return;} // first time on this device: nothing to catch up on
+  const fresh=[...mutualMatches].filter(id=>!seen.has(id)&&!hiddenForever.has(id)&&browseProfiles.some(x=>x.id===id));
+  if(!fresh.length)return;
+  fresh.forEach(id=>seen.add(id));saveSeenMutuals(seen);
+  const p=browseProfiles.find(x=>x.id===fresh[0]);
+  setTimeout(()=>{
+    launchConfetti(null);playSound('mutual');
+    showLiveBanner(fresh.length===1
+      ?{title:`It's mutual with ${p.name}! 🎉`,sub:'You can now message each other',photo:p.photo_url,initials:p.initials,onTap:()=>{goTo('screen-main');switchTab('messages');}}
+      :{title:`You have ${fresh.length} new mutual matches! 🎉`,sub:'Tap to see them in It’s mutual',icon:'ti-hearts',onTap:()=>{goTo('screen-main');switchTab('messages');}});
+  },600);
+}
 function seenSupers(){try{return new Set(JSON.parse(localStorage.getItem('based_seen_supers_'+(currentUser&&currentUser.id))||'[]'));}catch(e){return new Set();}}
 function markSuperSeen(id){try{const s=seenSupers();s.add(id);localStorage.setItem('based_seen_supers_'+(currentUser&&currentUser.id),JSON.stringify([...s]));}catch(e){}}
 
@@ -3427,7 +3466,7 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
   let isMutual=false,reload=null;
   if(currentUser){
     const {data}=await sb.from('interactions').select('id,created_at').eq('from_user',profileKey).eq('to_user',currentUser.id).eq('action','interested');
-    if(data&&data.length){mutualMatches.add(profileKey);mutualDays.set(profileKey,0);renderMutualBadge();reload=loadBrowseProfiles();incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();playSound('mutual');isMutual=true;
+    if(data&&data.length){mutualMatches.add(profileKey);mutualDays.set(profileKey,0);renderMutualBadge();reload=loadBrowseProfiles();incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();markMutualSeen(profileKey);playSound('mutual');isMutual=true;
       // The same big moment the other person gets
       showLiveBanner({title:`It's mutual with ${name}! 🎉`,sub:'You can now message each other',photo:photoUrl||null,initials:inits,onTap:()=>{goTo('screen-main');switchTab('messages');}});
       launchConfetti(null);}
@@ -5541,7 +5580,7 @@ function showAgeOutcome(d){
   setAgeMsg(st==='failed'?'We couldn’t confirm you’re 18 or over from that selfie. Please try again in good light, looking straight at the camera.':'The check wasn’t completed. Please try again.','error');
 }
 async function onAgePassed(){
-  myAgeStatus='passed';diditBusy=false;
+  myAgeStatus='passed';diditBusy=false;playSound('chime');
   await loadPermissions();
   await loadBrowseProfiles();
   goMain();
@@ -6488,6 +6527,7 @@ function incomingMessageNotice(m){
       refreshChatListSoon();
       showLiveBanner({title:`New message from ${p?p.name:'your match'}`,sub:'Tap to open the chat',photo:p&&p.photo_url,initials:p&&p.initials,
         onTap:()=>{if(p)openChat(pid,p.initials,p.name,p.photo_url||'');}});
+      playSound('ping');
 }
 
 // ─── Read tracking (per chat, remembered on the server) ─────────────────────
@@ -7640,7 +7680,7 @@ document.head.appendChild(spinStyle);
     if(verifyReturn&&!authLinkError){let ctx='signup';try{ctx=sessionStorage.getItem('basedVerifyContext')||'signup';sessionStorage.removeItem('basedVerifyContext');}catch(e){}if(verifyParam==='change'||ctx==='change'){pollChangeCheck(10);}else if(ctx==='age'){openAgeCheck();pollAgeCheck(10);}else{openVerifyScreen(ctx);pollVerification(10);}}
     else if(!hasPendingSignupOnLoad&&!authLinkError&&needsAgeGate())openAgeCheck();
     else if(!hasPendingSignupOnLoad&&!authLinkError&&needsVerificationGate())openVerifyScreen('gate');
-    else if(!hasPendingSignupOnLoad&&!authLinkError)goTo('screen-main'); // let the confirmation-completion flow navigate instead, if one's in progress; stay put on an auth-link error
+    else if(!hasPendingSignupOnLoad&&!authLinkError){goTo('screen-main');celebrateMissedMutuals();} // let the confirmation-completion flow navigate instead, if one's in progress; stay put on an auth-link error
     if(topupReturn&&!authLinkError){if(topupReturn==='success')confirmTopUps(true);else showToast('Payment cancelled — you haven’t been charged');}
     if(payReturn&&!authLinkError){
       if(payReturn==='billing'){openEditProfile();}
