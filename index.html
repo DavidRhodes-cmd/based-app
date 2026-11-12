@@ -1836,6 +1836,7 @@ async function catchUpAfterBackground(){
     }
     await refreshUnreadCounts();
     updateMatchNotifs();
+    showAwaySummary();
   }catch(e){console.warn('Catch-up after background failed:',e);}
   finally{catchingUp=false;}
 }
@@ -2467,6 +2468,7 @@ async function trySignIn(){
   await switchTab('browse');
   renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
   updateMatchNotifs();
+  celebrateMissedMutuals(); // a match that happened while they were signed out
 }
 
 // A link from one of our emails didn't work (usually expired): offer a fresh one straight away
@@ -2615,7 +2617,8 @@ async function restoreSession(){
   await loadPermissions();
   await loadMyInteractions();
   subscribeToLive(true);
-  setTimeout(()=>{refreshUnreadCounts();},0); // after profiles load; doesn't hold up sign-in
+  awaySince=readAwaySince(); // when this phone last had BASED open, for "While you were away"
+  setTimeout(async()=>{await refreshUnreadCounts();showAwaySummary();},0); // after profiles load; doesn't hold up sign-in
   setTimeout(()=>{checkNotices();},2500);    // warnings or removed content from the BASED team
   setTimeout(()=>{startAdverts();},1500);   // adverts (none on ad-free plans)
   return true;
@@ -2640,20 +2643,20 @@ async function onInteractionChange(){
           markMutualSeen(newMatch);
           playSound('mutual');
           launchConfetti(null);
-          showLiveBanner({title:`It's mutual with ${p.name}! 🎉`,sub:'You can now message each other',photo:p.photo_url,initials:p.initials,
-            onTap:()=>{goTo('screen-main');switchTab('messages');}});
+          showLiveBanner({title:`It's mutual with ${p.name}! 🎉`,sub:'Tap to send them a message',photo:p.photo_url,initials:p.initials,long:true,
+            onTap:()=>openChat(newMatch,p.initials,p.name,p.photo_url||'')});
           // Looking at their profile right now: redraw it as a match (real photo, Send a message)
           const open=document.querySelector('.screen.active');
           if(open&&open.id==='screen-profile'&&lastProfileArgs&&lastProfileArgs[8]===newMatch)openProfile(...lastProfileArgs);
         }else if(newInterest&&pp(newInterest)){
           const p=pp(newInterest);
           if(theirSuper.has(newInterest)){
-            showLiveBanner({title:`${p.name} sent you a super interest!`,sub:'They’re especially keen. Tap to see their profile',icon:'ti-confetti',
-              onTap:()=>{goTo('screen-main');switchTab('matches');}});
+            showLiveBanner({title:`${p.name} sent you a super interest!`,sub:'They’re especially keen. Tap to see their profile',icon:'ti-confetti',long:true,
+              onTap:()=>openIncomingProfile(newInterest)});
             markSuperSeen(newInterest);launchConfetti();playSound('super');
           }else{
             showLiveBanner({title:`${p.name} is interested in you`,sub:'Tap to see their profile',photo:p.photo_url,initials:p.initials,
-              onTap:()=>{goTo('screen-main');switchTab('matches');}});
+              onTap:()=>openIncomingProfile(newInterest)});
             playSound('interest');
           }
         }
@@ -3411,8 +3414,8 @@ function celebrateMissedMutuals(){
   setTimeout(()=>{
     launchConfetti(null);playSound('mutual');
     showLiveBanner(fresh.length===1
-      ?{title:`It's mutual with ${p.name}! 🎉`,sub:'You can now message each other',photo:p.photo_url,initials:p.initials,onTap:()=>{goTo('screen-main');switchTab('messages');}}
-      :{title:`You have ${fresh.length} new mutual matches! 🎉`,sub:'Tap to see them in It’s mutual',icon:'ti-hearts',onTap:()=>{goTo('screen-main');switchTab('messages');}});
+      ?{title:`It's mutual with ${p.name}! 🎉`,sub:'Tap to send them a message',photo:p.photo_url,initials:p.initials,long:true,onTap:()=>openChat(p.id,p.initials,p.name,p.photo_url||'')}
+      :{title:`You have ${fresh.length} new mutual matches! 🎉`,sub:'Tap to see them in It’s mutual',icon:'ti-hearts',long:true,onTap:()=>{goTo('screen-main');switchTab('messages');}});
   },600);
 }
 function seenSupers(){try{return new Set(JSON.parse(localStorage.getItem('based_seen_supers_'+(currentUser&&currentUser.id))||'[]'));}catch(e){return new Set();}}
@@ -3468,7 +3471,7 @@ async function doExpressInterest(profileKey,inits,aEncoded,compat,basedScore,age
     const {data}=await sb.from('interactions').select('id,created_at').eq('from_user',profileKey).eq('to_user',currentUser.id).eq('action','interested');
     if(data&&data.length){mutualMatches.add(profileKey);mutualDays.set(profileKey,0);renderMutualBadge();reload=loadBrowseProfiles();incomingInterest.delete(profileKey);matchCreatedAt[profileKey]=new Date().toISOString();updateMatchNotifs();markMutualSeen(profileKey);playSound('mutual');isMutual=true;
       // The same big moment the other person gets
-      showLiveBanner({title:`It's mutual with ${name}! 🎉`,sub:'You can now message each other',photo:photoUrl||null,initials:inits,onTap:()=>{goTo('screen-main');switchTab('messages');}});
+      showLiveBanner({title:`It's mutual with ${name}! 🎉`,sub:'Tap to send them a message',photo:photoUrl||null,initials:inits,long:true,onTap:()=>openChat(profileKey,inits,name,photoUrl||'')});
       launchConfetti(null);}
   }
   if(!isSuper&&!isMutual)playSound('interest'); // two notes for an interest sent (a mutual match gets the fanfare instead)
@@ -6462,18 +6465,43 @@ function openChatPartnerProfile(){
 // A banner slides down for a new match, new interest, or a message from someone
 // whose chat you're not currently looking at. Tapping it takes you there.
 const unreadFrom=new Map(); // partnerId -> number of unread messages
-let bannerTimer=null;
-function showLiveBanner({title,sub,photo,initials,onTap,icon}){
+// Banners queue up, so a new one never knocks another off before it's been seen. The big moments
+// (long: true — it's mutual, a super interest) stay 8 seconds, the rest 5. A banner with a key
+// (key: 'msg:<id>') that's showing or waiting is updated in place instead of adding another,
+// e.g. "3 new messages from Sarah".
+let bannerTimer=null,bannerNow=null;const bannerQueue=[];
+function showLiveBanner(opts){
+  if(opts.key){
+    if(bannerNow&&bannerNow.key===opts.key){Object.assign(bannerNow,opts);drawLiveBanner(bannerNow,true);return;}
+    const waiting=bannerQueue.find(x=>x.key===opts.key);
+    if(waiting){Object.assign(waiting,opts);return;}
+  }
+  bannerQueue.push({...opts});
+  if(!bannerNow)nextLiveBanner();
+}
+function nextLiveBanner(){
+  // Skip a waiting message banner for a chat that's now open
+  while(bannerQueue.length&&bannerQueue[0].key&&bannerQueue[0].key.startsWith('msg:')&&viewingChatWith(bannerQueue[0].key.slice(4)))bannerQueue.shift();
+  bannerNow=bannerQueue.shift()||null;
+  if(bannerNow)drawLiveBanner(bannerNow,false);
+}
+function drawLiveBanner(o,update){
   let b=document.getElementById('live-banner');
   if(!b){b=document.createElement('div');b.id='live-banner';b.className='live-banner';document.getElementById('app-shell').appendChild(b);}
-  const av=icon?`<i class="ti ${icon}" style="font-size:20px;color:var(--gold)"></i>`:photo?`<img src="${esc(photo)}" style="width:100%;height:100%;object-fit:cover" />`:esc(initials||'?');
-  b.innerHTML=`<div class="lb-av">${av}</div><div style="flex:1;min-width:0"><div class="lb-title">${esc(title)}</div>${sub?`<div class="lb-sub">${esc(sub)}</div>`:''}</div><i class="ti ti-chevron-right" style="color:var(--text-muted)"></i>`;
-  b.onclick=()=>{hideLiveBanner();onTap&&onTap();};
+  const av=o.icon?`<i class="ti ${o.icon}" style="font-size:20px;color:var(--gold)"></i>`:o.photo?`<img src="${esc(o.photo)}" style="width:100%;height:100%;object-fit:cover" />`:esc(o.initials||'?');
+  b.innerHTML=`<div class="lb-av">${av}</div><div style="flex:1;min-width:0"><div class="lb-title">${esc(o.title)}</div>${o.sub?`<div class="lb-sub">${esc(o.sub)}</div>`:''}</div><i class="ti ti-chevron-right" style="color:var(--text-muted)"></i>`;
+  b.onclick=()=>{const tap=o.onTap;hideLiveBanner();tap&&tap();};
   requestAnimationFrame(()=>b.classList.add('show'));
-  try{if(navigator.vibrate)navigator.vibrate(30);}catch(e){}
-  clearTimeout(bannerTimer);bannerTimer=setTimeout(hideLiveBanner,5000);
+  if(!update){try{if(navigator.vibrate)navigator.vibrate(30);}catch(e){}}
+  clearTimeout(bannerTimer);bannerTimer=setTimeout(hideLiveBanner,o.long?8000:5000);
 }
-function hideLiveBanner(){const b=document.getElementById('live-banner');if(b)b.classList.remove('show');}
+function hideLiveBanner(){
+  clearTimeout(bannerTimer);
+  const b=document.getElementById('live-banner');if(b)b.classList.remove('show');
+  if(!bannerNow)return;
+  bannerNow=null;
+  if(bannerQueue.length)setTimeout(()=>{if(!bannerNow)nextLiveBanner();},450); // after the slide up
+}
 function updateUnreadBadge(){renderMutualBadge();}
 function viewingChatWith(pid){return document.getElementById('screen-chat').classList.contains('active')&&activeChatPartnerId===pid;}
 // ─── Live updates ────────────────────────────────────────────────────────────
@@ -6525,7 +6553,9 @@ function incomingMessageNotice(m){
       unreadFrom.set(pid,(unreadFrom.get(pid)||0)+1);updateUnreadBadge();
       const p=browseProfiles.find(x=>x.id===pid);
       refreshChatListSoon();
-      showLiveBanner({title:`New message from ${p?p.name:'your match'}`,sub:'Tap to open the chat',photo:p&&p.photo_url,initials:p&&p.initials,
+      // Several in a row from the same person share one banner: "3 new messages from Sarah"
+      const key='msg:'+pid,same=(bannerNow&&bannerNow.key===key)?bannerNow:bannerQueue.find(x=>x.key===key),n=same?(same.count||1)+1:1;
+      showLiveBanner({key,count:n,title:n>1?`${n} new messages from ${p?p.name:'your match'}`:`New message from ${p?p.name:'your match'}`,sub:'Tap to open the chat',photo:p&&p.photo_url,initials:p&&p.initials,
         onTap:()=>{if(p)openChat(pid,p.initials,p.name,p.photo_url||'');}});
       playSound('ping');
 }
@@ -6549,17 +6579,60 @@ function countUnread(msgs,matchId){
   const since=chatLastRead[matchId]?new Date(chatLastRead[matchId]).getTime():0;
   return (msgs||[]).filter(m=>m.sender_id!==currentUser.id&&new Date(m.created_at).getTime()>since).length;
 }
+// ─── While you were away ───────────────────────────────────────────────────────
+// The app notes (on this phone) when it was last open. Coming back — opening it, signing in, or
+// returning to it — one banner sums up what arrived meanwhile: "3 new messages, 2 new interests".
+// A mutual match gets its own celebration instead (celebrateMissedMutuals), queued first.
+const lastActiveKey=()=>'based_last_active_'+(currentUser&&currentUser.id);
+let awaySince=null,awayMsgs=new Map(),activeStamp=null;
+function stampActive(){if(currentUser&&document.visibilityState==='visible'){try{localStorage.setItem(lastActiveKey(),new Date().toISOString());}catch(e){}}}
+function readAwaySince(){try{const v=localStorage.getItem(lastActiveKey());return v?new Date(v).getTime():null;}catch(e){return null;}}
+function startActiveStamps(){clearInterval(activeStamp);activeStamp=setInterval(stampActive,60000);}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){try{if(currentUser)localStorage.setItem(lastActiveKey(),new Date().toISOString());}catch(e){}}
+  else if(currentUser)awaySince=readAwaySince(); // when it was put away: the catch-up after coming back uses it
+});
+window.addEventListener('pagehide',()=>{try{if(currentUser)localStorage.setItem(lastActiveKey(),new Date().toISOString());}catch(e){}});
+// Interest times come from the server without a time zone, but they are UTC
+function utcMs(t){const s=String(t||'');return new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s)?s:s+'Z').getTime();}
+async function showAwaySummary(){
+  const since=awaySince;awaySince=null;
+  if(!currentUser)return;
+  if(since===null){stampActive();startActiveStamps();return;} // first time on this phone: nothing to compare with
+  // Wait for the main screen (sign-in may still be finishing)
+  for(let i=0;i<20&&document.querySelector('.screen.active')?.id!=='screen-main';i++)await new Promise(r=>setTimeout(r,500));
+  stampActive();startActiveStamps();
+  if(document.querySelector('.screen.active')?.id!=='screen-main')return;
+  let msgs=0;const from=[];
+  awayMsgs.forEach((n,pid)=>{if(n>0&&!viewingChatWith(pid)){msgs+=n;from.push(pid);}});
+  const fresh=[...incomingInterest].filter(id=>!dismissedIncoming.has(id)&&!hiddenForever.has(id)&&!mutualMatches.has(id)&&incomingInterestAt[id]&&utcMs(incomingInterestAt[id])>since);
+  let interests=fresh.length;const supers=fresh.filter(id=>theirSuper.has(id)).length;
+  // Interest from people whose names are hidden on this plan: count how many more there are than last time
+  try{const k='based_hidden_interest_'+currentUser.id,prev=parseInt(localStorage.getItem(k)||'0',10);
+    if(incomingHiddenCount>prev)interests+=incomingHiddenCount-prev;localStorage.setItem(k,String(incomingHiddenCount));}catch(e){}
+  if(!msgs&&!interests)return;
+  const parts=[];
+  if(msgs)parts.push(`${msgs} new message${msgs>1?'s':''}${from.length>1?` from ${from.length} people`:''}`);
+  if(interests)parts.push(`${interests} new interest${interests>1?'s':''}${supers?` (${supers} super)`:''}`);
+  const one=from.length===1?browseProfiles.find(x=>x.id===from[0]):null;
+  showLiveBanner({title:'While you were away',sub:parts.join(', '),icon:msgs?'ti-message':'ti-heart',
+    onTap:()=>{if(one)openChat(one.id,one.initials,one.name,one.photo_url||'');else if(msgs){goTo('screen-main');switchTab('messages');}else{goTo('screen-main');switchTab('matches');}}});
+}
+
 // Works out unread counts for every chat (used at sign-in so the tab dot is right straight away)
 async function refreshUnreadCounts(){
   if(!currentUser)return;
   await loadChatReads();
   const prevUnread=new Map(unreadFrom); // kept for any conversation that fails to load
-  unreadFrom.clear();
+  unreadFrom.clear();awayMsgs=new Map();
+  const awayT=awaySince;
   const days=new Map();const now=Date.now();
   for(const pid of mutualMatches){
     const matchId=getMatchId(currentUser.id,pid);
     const {data:msgs,error:uErr}=await sb.rpc('get_decrypted_messages',{p_match_id:matchId});
     const n=uErr?(prevUnread.get(pid)||0):countUnread(msgs,matchId);if(n)unreadFrom.set(pid,n); // failed load → keep the last known count
+    // Unread and arrived since the app was last open (for "While you were away")
+    if(!uErr&&n&&awayT!==null){const k=(msgs||[]).filter(m=>m.sender_id!==currentUser.id&&new Date(m.created_at).getTime()>awayT&&new Date(m.created_at).getTime()<=now).length;if(Math.min(k,n))awayMsgs.set(pid,Math.min(k,n));}
     const last=latestOf(msgs&&msgs.length?msgs[msgs.length-1].created_at:null,matchCreatedAt[pid]);
     days.set(pid,last?(now-new Date(last).getTime())/86400000:0);
   }
