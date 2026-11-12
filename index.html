@@ -2611,13 +2611,16 @@ async function restoreSession(){
     myVerificationStatus=p.verification_status||'unverified';
     myVerificationIssue=p.verification_issue||null;
     myAgeStatus=p.age_check_status||'none';
+    serverLastSeen=p.last_seen_at?utcMs(p.last_seen_at):null; // read before this visit updates it
   } else {
     console.warn('No profile found for user:', currentUser.id);
   }
   await loadPermissions();
   await loadMyInteractions();
   subscribeToLive(true);
-  awaySince=readAwaySince(); // when this phone last had BASED open, for "While you were away"
+  // When BASED was last open: on this phone, or anywhere (the server's "last seen", kept to within a few
+  // minutes, which also covers a phone that's never had BASED open before). The later of the two.
+  {const a=readAwaySince(),b=serverLastSeen;awaySince=(a===null&&b===null)?null:Math.max(a||0,b||0);}
   setTimeout(async()=>{await refreshUnreadCounts();showAwaySummary();},0); // after profiles load; doesn't hold up sign-in
   setTimeout(()=>{checkNotices();},2500);    // warnings or removed content from the BASED team
   setTimeout(()=>{startAdverts();},1500);   // adverts (none on ad-free plans)
@@ -3341,11 +3344,12 @@ function tone(freq,start,dur,vol,type){
 }
 // A bell: the note plus a quieter, higher partial
 function bell(freq,start,dur,vol){tone(freq,start,dur,vol,'sine');tone(freq*2.01,start,dur*0.6,vol*0.35,'sine');tone(freq*3.02,start,dur*0.35,vol*0.12,'sine');}
-function playSound(kind){
+function playSound(kind,queue){
   if(!soundsOn())return;
   try{
     unlockSound();
-    if(!soundCtx||soundCtx.state!=='running'){if(kind!=='ping'&&kind!=='interest')pendingSound={kind,at:Date.now()};return;}
+    // Not allowed to play yet (no tap since opening): celebrations, and anything asked to (queue), play on the first tap
+    if(!soundCtx||soundCtx.state!=='running'){if(queue||(kind!=='ping'&&kind!=='interest'))pendingSound={kind,at:Date.now()};return;}
     const t=soundCtx.currentTime+0.03;
     if(kind==='super'){
       // rising sparkle: E6 G#6 B6 E7, then a soft shimmer
@@ -6584,7 +6588,7 @@ function countUnread(msgs,matchId){
 // returning to it — one banner sums up what arrived meanwhile: "3 new messages, 2 new interests".
 // A mutual match gets its own celebration instead (celebrateMissedMutuals), queued first.
 const lastActiveKey=()=>'based_last_active_'+(currentUser&&currentUser.id);
-let awaySince=null,awayMsgs=new Map(),activeStamp=null;
+let awaySince=null,awayMsgs=new Map(),activeStamp=null,serverLastSeen=null;
 function stampActive(){if(currentUser&&document.visibilityState==='visible'){try{localStorage.setItem(lastActiveKey(),new Date().toISOString());}catch(e){}}}
 function readAwaySince(){try{const v=localStorage.getItem(lastActiveKey());return v?new Date(v).getTime():null;}catch(e){return null;}}
 function startActiveStamps(){clearInterval(activeStamp);activeStamp=setInterval(stampActive,60000);}
@@ -6615,6 +6619,7 @@ async function showAwaySummary(){
   if(msgs)parts.push(`${msgs} new message${msgs>1?'s':''}${from.length>1?` from ${from.length} people`:''}`);
   if(interests)parts.push(`${interests} new interest${interests>1?'s':''}${supers?` (${supers} super)`:''}`);
   const one=from.length===1?browseProfiles.find(x=>x.id===from[0]):null;
+  playSound(interests?'interest':'ping',true);
   showLiveBanner({title:'While you were away',sub:parts.join(', '),icon:msgs?'ti-message':'ti-heart',
     onTap:()=>{if(one)openChat(one.id,one.initials,one.name,one.photo_url||'');else if(msgs){goTo('screen-main');switchTab('messages');}else{goTo('screen-main');switchTab('matches');}}});
 }
