@@ -6893,7 +6893,7 @@ function renderMatchesTab(){
   const visible=id=>browseProfiles.some(x=>(x.id||x.name)===id);
   const byNewest=at=>(a,b)=>new Date(at[b]||0)-new Date(at[a]||0)||String(a).localeCompare(String(b)); // fixed order, so rows never shuffle under your finger
   const incomingIds=Array.from(incomingInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&!dismissedIncoming.has(id)&&visible(id)).sort((a,b)=>(theirSuper.has(b)-theirSuper.has(a))||byNewest(incomingInterestAt)(a,b)); // super interests first
-  if(!incomingIds.length){inList.innerHTML=lockedCard||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">No one has expressed interest in you yet.</p>';}
+  if(!incomingIds.length){inList.innerHTML=lockedCard||'<p style="font-size:14px;color:var(--text-muted);padding:6px 0">There are no new expressions of interest.</p>';}
   else{
     inList.innerHTML=lockedCard+incomingIds.map(pid=>{
       const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
@@ -6908,7 +6908,7 @@ function renderMatchesTab(){
     }).join('');
   }
   const expIds=Array.from(expressedInterest).filter(id=>!mutualMatches.has(id)&&!hiddenForever.has(id)&&visible(id)).sort(byNewest(myInterestedAt));
-  if(!expIds.length){ee.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">You haven\'t expressed interest in anyone yet.</p>';}
+  if(!expIds.length){ee.innerHTML='<p style="font-size:14px;color:var(--text-muted);padding:6px 0">You have no outstanding expressions of interest.</p>';}
   else{
     ee.innerHTML=expIds.map(pid=>{
       const p=browseProfiles.find(x=>x.id===pid||x.name===pid);
