@@ -3312,7 +3312,8 @@ function nextCongrats(){
 
 // ─── Super interest celebration ──────────────────────────────────────────────
 // ─── Sounds ───────────────────────────────────────────────────────────────────
-// ping      a new message (only when that chat isn't open: an open chat stays quiet)
+// ping      a new message (when that chat isn't open)
+// tick      a very quiet tick: a message arriving in the chat you have open
 // interest  two notes rising: an interest sent or received
 // super     a rising sparkle (with confetti): a super interest sent or received
 // mutual    a fuller fanfare (with confetti): it's mutual, for both people, including one that happened while you were away
@@ -3365,6 +3366,9 @@ function playSound(kind,queue){
     }else if(kind==='ping'){
       // a new message: one soft bell note, A5
       bell(880,t,0.45,0.1);
+    }else if(kind==='tick'){
+      // a message arriving in the chat you have open: a very quiet, short high tick
+      bell(1318.51,t,0.12,0.035);
     }else if(kind==='chime'){
       // well done: a quick bright arpeggio, G5 B5 D6, the last note ringing on
       bell(783.99,t,0.45,0.09);bell(987.77,t+0.09,0.45,0.08);bell(1174.66,t+0.18,0.9,0.08);
@@ -6913,11 +6917,13 @@ function subscribeToMessages(partnerId){
           // A reply that's on its way: show "typing…" and bring it in when it's due
           pendingIncoming.add(m.id);drawChatMessages(false);scrollChatToBottom();
           let tries=0;const check=async()=>{if(!viewingChatWith(partnerId)||!pendingIncoming.has(m.id))return;
-            await refresh();if(pendingIncoming.has(m.id)){if(++tries<10)setTimeout(check,1000);else{pendingIncoming.delete(m.id);drawChatMessages(false);}}};
+            await refresh();if(pendingIncoming.has(m.id)){if(++tries<10)setTimeout(check,1000);else{pendingIncoming.delete(m.id);drawChatMessages(false);}}
+            else playSound('tick');};
           setTimeout(check,due+300);
           return;
         }
         await refresh();
+        if(String(m.sender_id)!==currentUser.id&&viewingChatWith(partnerId))playSound('tick');
       },
     onReaction:x=>{if(!x.message_id||!viewingChatWith(partnerId))return;
         const k=chatReactions[x.message_id]||(chatReactions[x.message_id]={});
