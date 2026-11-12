@@ -741,6 +741,10 @@ button.ins-tile:active{opacity:0.75;}
     <p id="agecheck-msg" style="display:none;font-size:14px;line-height:1.5;text-align:center;margin-bottom:16px;max-width:360px"></p>
     <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:400px;margin-top:auto;align-items:center" class="bottom-safe">
       <button class="btn-primary" id="agecheck-start-btn" onclick="startAgeCheck()">Start selfie check</button>
+      <div id="agecheck-id-route" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <button class="btn-ghost" onclick="openVerifyScreen('agegate')"><i class="ti ti-id" style="margin-right:7px"></i>Verify with photo ID instead</button>
+        <p style="font-size:12.5px;color:var(--text-muted);text-align:center;line-height:1.45;max-width:340px">One step instead of two: a selfie and your ID, which also earns you a <span style="color:var(--verified);white-space:nowrap"><i class="ti ti-discount-check-filled"></i> Verified</span> badge.</p>
+      </div>
       <button onclick="confirmLogout()" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px">Log out</button>
     </div>
   </div>
@@ -760,6 +764,7 @@ button.ins-tile:active{opacity:0.75;}
     <div style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
       <div style="display:flex;gap:11px;align-items:flex-start"><i class="ti ti-clock" style="font-size:18px;color:var(--gold);margin-top:1px"></i><p style="font-size:14px;color:var(--text-on-dark);line-height:1.45">Takes about two minutes</p></div>
       <div style="display:flex;gap:11px;align-items:flex-start"><i class="ti ti-id" style="font-size:18px;color:var(--gold);margin-top:1px"></i><p style="font-size:14px;color:var(--text-on-dark);line-height:1.45">Have your passport, driving licence or national ID card ready</p></div>
+      <div id="verify-selfie-again" style="display:none;gap:11px;align-items:flex-start"><i class="ti ti-face-id" style="font-size:18px;color:var(--gold);margin-top:1px"></i><p style="font-size:14px;color:var(--text-on-dark);line-height:1.45">You’ll take one more quick selfie, so we can match your face to your ID</p></div>
       <div style="display:flex;gap:11px;align-items:flex-start"><i class="ti ti-lock" style="font-size:18px;color:var(--gold);margin-top:1px"></i><p style="font-size:14px;color:var(--text-on-dark);line-height:1.45">Your ID is checked securely by our verification partner, Didit. BASED only keeps whether you passed, not your document.</p></div>
     </div>
     <p id="verify-msg" style="display:none;font-size:14px;line-height:1.5;text-align:center;margin-bottom:16px;max-width:360px"></p>
@@ -5252,6 +5257,7 @@ function afterResults(){
   openVerifyScreen(requireVerification?'gate':'signup');
 }
 function skipVerification(){
+  if(verifyContext==='agegate'){openAgeCheck();return;}
   if(verifyContext==='settings'){renderVerifyRow();goTo('screen-edit-profile');return;}
   if(verifyContext==='header'){goMain();return;}
   if(needsVerificationGate())return;
@@ -5310,10 +5316,13 @@ function openVerifyScreen(context){
   verifyContext=context||'signup';
   const gate=verifyContext==='gate'||needsVerificationGate();
   const backBtn=document.getElementById('verify-back-btn');
-  backBtn.style.visibility=(verifyContext==='settings'||verifyContext==='header')?'visible':'hidden';
-  backBtn.onclick=()=>{clearTimeout(verifyPollTimer);if(verifyContext==='header')goMain();else{renderVerifyRow();goTo('screen-edit-profile');}};
+  const fromAgeCheck=verifyContext==='agegate'; // chose photo ID instead of the selfie check, so has no way in yet
+  backBtn.style.visibility=(verifyContext==='settings'||verifyContext==='header'||fromAgeCheck)?'visible':'hidden';
+  backBtn.onclick=()=>{clearTimeout(verifyPollTimer);if(fromAgeCheck)openAgeCheck();else if(verifyContext==='header')goMain();else{renderVerifyRow();goTo('screen-edit-profile');}};
   const skip=document.getElementById('verify-skip-btn');
-  skip.style.display=(verifyContext==='settings'||verifyContext==='header'||gate)?'none':'block';
+  skip.style.display=(verifyContext==='settings'||verifyContext==='header'||gate||fromAgeCheck)?'none':'block';
+  // Already passed the selfie check? Say why there's another selfie (Didit matches a live selfie to the ID)
+  document.getElementById('verify-selfie-again').style.display=myAgeStatus==='passed'?'flex':'none';
   skip.textContent='Skip for now';skip.onclick=skipVerification;
   document.getElementById('verify-start-btn').style.display='block';
   document.getElementById('verify-logout-btn').style.display=gate&&verifyContext!=='settings'&&verifyContext!=='header'?'inline-block':'none';
@@ -5415,7 +5424,7 @@ function handleDiditResult(result){
   const type=result&&result.type;
   if(type==='completed'){pollVerification(10);return;}
   if(type==='cancelled'){
-    setVerifyMsg(needsVerificationGate()?'You’ll need to finish verifying to continue.':'No problem. You can verify any time from Settings.');
+    setVerifyMsg(needsVerificationGate()?'You’ll need to finish verifying to continue.':verifyContext==='agegate'?'No problem. Try again, or go back and take the quick selfie check instead.':'No problem. You can verify any time from Settings.');
     return;
   }
   const err=result&&result.error&&result.error.type;
@@ -5465,6 +5474,9 @@ function openAgeCheck(){
   const b=document.getElementById('agecheck-start-btn');
   b.style.display='block';b.disabled=false;b.style.opacity='1';b.textContent='Start selfie check';b.onclick=startAgeCheck;diditBusy=false;
   setAgeMsg('');
+  const idRoute=document.getElementById('agecheck-id-route');
+  idRoute.style.display=(myVerificationIssue==='underage'||myVerificationStatus==='approved')?'none':'flex';
+  if(myVerificationStatus==='in_review')setAgeMsg('Your ID check is being reviewed. We’ll let you in as soon as it’s approved, usually within a few minutes, and email you. Or take the selfie check now to get in straight away.');
   if(myVerificationIssue==='underage')showAgeOutcome({status:'failed',issue:'underage'});
   else if(myAgeStatus==='in_review')showAgeOutcome({status:'in_review'});
   goTo('screen-agecheck');
@@ -5510,7 +5522,7 @@ function showAgeOutcome(d){
   if(st)myAgeStatus=st;
   if(st==='passed'){onAgePassed();return;}
   if(d.issue==='underage'){
-    myVerificationIssue='underage';btn.style.display='none';
+    myVerificationIssue='underage';btn.style.display='none';document.getElementById('agecheck-id-route').style.display='none';
     setAgeMsg('BASED is only for adults aged 18 and over, so we can’t let you in. If you think this is a mistake, please contact support@baseddatingonline.com.','error');
     return;
   }
@@ -5617,6 +5629,11 @@ function onMyVerificationChanged(p){
   const id=p.verification_status||'unverified',age=p.age_check_status||'none',issue=p.verification_issue||null;
   if(id===prevId&&age===prevAge&&issue===myVerificationIssue)return;
   const onScreen=s=>{const el=document.getElementById(s);return !!el&&el.classList.contains('active');};
+  // Went for photo ID instead of the selfie, and it's been approved while they wait on the selfie screen:
+  // the ID check covers the age check too, so straight in (not "Selfie check passed")
+  if(id==='approved'&&prevId!=='approved'&&onScreen('screen-agecheck')){
+    clearTimeout(agePollTimer);onVerified();updateGetVerifiedBtn();renderVerifyRow();renderPlanRow();return;
+  }
   // Selfie/age check finished
   if(age!==prevAge&&['passed','failed','in_review'].includes(age)){
     if(onScreen('screen-agecheck')){clearTimeout(agePollTimer);const b=document.getElementById('agecheck-start-btn');b.disabled=false;b.style.opacity='1';showAgeOutcome({status:age,issue:issue==='underage'?'underage':null});}
@@ -5629,6 +5646,8 @@ function onMyVerificationChanged(p){
       clearTimeout(verifyPollTimer);
       if(id==='approved')onVerified();
       else if(id==='declined'||id==='in_review'||issue)pollVerification(1); // reuse the existing messages for each state
+    }else if(prevId==='in_review'&&onScreen('screen-agecheck')){
+      if(id==='declined')setAgeMsg(issue&&issue!=='underage'?'Your ID check needs a quick fix. Tap <b>Verify with photo ID instead</b> to see what, or take the selfie check.':'Your ID check wasn’t approved. Take the selfie check, or try your ID again.','error');
     }else if(prevId==='in_review'){
       if(id==='approved'){myAgeStatus='passed';congratulate('id');reloadAfterLevelChange();}
       else if(id==='declined')showToast(issue==='dob_mismatch'||issue==='name_mismatch'||issue==='name_swapped'||issue==='sex_mismatch'?'Your ID check needs a quick fix: see Settings':'Your ID check wasn’t approved: you can try again in Settings');
