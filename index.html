@@ -527,6 +527,8 @@ button.ins-tile:active{opacity:0.75;}
       <button class="btn-ghost" onclick="startSignup()">Create profile</button>
     </div>
   </div>
+  <!-- Company details (UK trading disclosure rules: name, number, where registered, registered office) -->
+  <p id="welcome-company" style="font-size:10.5px;line-height:1.55;color:var(--text-muted);opacity:.75;text-align:center;padding:0 20px calc(14px + env(safe-area-inset-bottom,0px));margin:0">BASED ON VALUES DATING LIMITED<br>Registered in England and Wales &middot; Company no. 17522425<br>Registered office: 124 Acomb Road, York, YO24&nbsp;4EY, UK<br><span style="text-decoration:underline;cursor:pointer" onclick="openTerms('terms','screen-welcome')">Terms</span> &middot; <span style="text-decoration:underline;cursor:pointer" onclick="openTerms('privacy','screen-welcome')">Privacy</span></p>
 </div>
 
 <!-- PERSONAL DETAILS -->
@@ -3655,7 +3657,7 @@ const TERMS_TEXT=`
 <p style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Last updated: 11 October 2026</p>
 
 <p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:8px">1. Who we are</p>
-<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">BASED is operated by BASED ON VALUES DATING LIMITED, a company registered in England and Wales ("we", "us", "our"). These Terms and Conditions ("Terms") govern your use of the BASED app and website (the "Service"). By creating an account, you agree to be bound by these Terms.</p>
+<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">BASED is operated by BASED ON VALUES DATING LIMITED (no. 17522425), a company registered in England and Wales ("we", "us", "our"). These Terms and Conditions ("Terms") govern your use of the BASED app and website (the "Service"). By creating an account, you agree to be bound by these Terms.</p>
 
 <p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:8px">2. Eligibility</p>
 <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:18px">You must be at least 18 years old to use BASED. By creating an account, you confirm that you are 18 or older, that you are legally permitted to enter into a binding contract, and that the information you provide is accurate. We may ask you to verify your age or identity at any time and may suspend or terminate accounts we reasonably believe belong to someone under 18.</p>
@@ -3722,7 +3724,7 @@ const H_=t=>`<p style="font-family:var(--serif);font-size:16px;color:var(--text-
 const PRIVACY_UPDATED='11 October 2026';
 const PRIVACY_TEXT=
   `<p style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Last updated: ${PRIVACY_UPDATED}</p>`+
-  H_('Who we are')+P_('BASED is run by BASED ON VALUES DATING LIMITED, a company registered in England and Wales. We are the “controller” of your personal data. Contact: support@baseddatingonline.com.',18)+
+  H_('Who we are')+P_('BASED is run by BASED ON VALUES DATING LIMITED (no. 17522425), a company registered in England and Wales. We are the “controller” of your personal data. Contact: support@baseddatingonline.com.',18)+
   H_('What we collect')+P_('<b style="color:var(--text-on-dark)">From you:</b> your first name, email, password (stored only as a secure hash), date of birth, biological sex, whether you’re married and whether you have children, country and postcode or town (turned into a map position for distances), photos, questionnaire answers, your religion (if you choose to give it), your Search settings, your pre-saved introduction, and the messages and emoji reactions you send.')+
     P_('<b style="color:var(--text-on-dark)">From your use of BASED:</b> who you show interest in, move on from or block; profiles you view; reports you make; when you last read each chat; when you last had BASED open (so we can see how many members are online); your plan and its status; and your consents.')+
     P_('<b style="color:var(--text-on-dark)">From others:</b> messages other members send you, reports made about you, your payment status from Stripe, and your age and identity check results from Didit.',18)+
@@ -3806,7 +3808,7 @@ function openTerms(kind,from){
   const area=document.getElementById('terms-scroll-area');
   area.innerHTML=LEGAL[termsKind]&&LEGAL[termsKind].body?legalHtml(LEGAL[termsKind]):{special:SPECIAL_DATA_TEXT,privacy:PRIVACY_TEXT,terms:TERMS_TEXT}[termsKind];
   const btn=document.getElementById('terms-agree-btn');
-  btn.parentElement.style.display=termsKind==='privacy'?'none':''; // nothing to agree to — it's information
+  btn.parentElement.style.display=termsKind==='privacy'||termsReturn==='screen-welcome'?'none':''; // nothing to agree to — it's information (or just reading it from the welcome screen)
   // Already agreed (e.g. reading it again)? No need to scroll to the end again.
   const box=document.getElementById(termsReturn==='screen-support'?(termsKind==='special'?'sup-agree-special':'sup-agree-terms'):(termsKind==='special'?'inp-agree-special':'inp-agree-terms'));
   const agreed=!!(box&&box.checked);
