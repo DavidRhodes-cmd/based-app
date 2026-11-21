@@ -293,7 +293,7 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .pf-bar .btn-primary{flex:2;padding:10px;font-size:14px;border-radius:11px}
 .filter-bar{display:flex;align-items:center;gap:9px;width:100%;min-height:44px;margin-bottom:12px;padding:0 14px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.14);border-radius:13px;color:var(--text-on-dark);font-family:var(--sans);font-size:13px;cursor:pointer;text-align:left}
 .filter-bar .ti{font-size:17px;color:var(--gold)}.filter-bar .fb-title{font-weight:600}.filter-bar .fb-sum{flex:1;min-width:0;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sr-card{gap:12px;padding:12px}
+.sr-card{gap:12px;padding:12px;content-visibility:auto;contain-intrinsic-size:auto 150px}
 .list-tile{min-height:108px;box-sizing:border-box;padding:12px!important;gap:12px!important}
 .list-tile .avatar{width:76px;height:76px;font-size:24px}
 @media (max-width:360px){.list-tile{min-height:89px}.list-tile .avatar{width:64px;height:64px}}
@@ -2958,7 +2958,7 @@ function renderProfiles(minPct){
     const hasInterest=expressedInterest.has(profileKey);
     const compatColor=p.compat>=80?'var(--green)':p.compat>=60?'var(--gold)':'var(--red)';
     const badge=isMutual?`<span style="font-size:10px;color:var(--green);border:0.5px solid rgba(111,207,151,0.4);border-radius:5px;padding:2px 7px;margin-left:5px"><i class="ti ti-heart" style="font-size:10px"></i> Match</span>`:'';
-    const avatarContent=p.photo_url?`<img src="${esc(p.photo_url)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${isMutual?'':'filter:blur(7px);transform:scale(1.15)'}" />`:`<span style="color:var(--text-on-dark)">${esc(p.initials)}</span>`;
+    const avatarContent=p.photo_url?`<img src="${esc(p.photo_url)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${isMutual||String(p.photo_url).startsWith(BLUR_BASE)?'':'filter:blur(7px);transform:scale(1.15)'}" />`:`<span style="color:var(--text-on-dark)">${esc(p.initials)}</span>`;
     const aStr=JSON.stringify(p.answers).replace(/"/g,'&quot;');
     if(isLocked){const them=leanOf(p.basedScore),lockMsg=perm('profile_views').period==='day'?'More views tomorrow, or upgrade':'Upgrade to view';
       html+=`<div class="profile-card sr-card" style="margin-bottom:12px;pointer-events:auto;cursor:pointer" onclick="showUpgradePrompt('profile_views','limit')">`
