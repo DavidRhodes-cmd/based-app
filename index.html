@@ -2213,6 +2213,7 @@ async function finishProfileCreation(userId,email){
   await loadPermissions();
   await loadMyInteractions();
   subscribeToLive(true);
+  setTimeout(startPush,1500); // phone app: ask to send alerts, and keep this phone signed up for them
   await loadBrowseProfiles();
   signupAnswered=false;
   afterResults(); // they saw their score before creating the account
@@ -2625,6 +2626,7 @@ async function restoreSession(){
   await loadPermissions();
   await loadMyInteractions();
   subscribeToLive(true);
+  setTimeout(startPush,1500); // phone app: ask to send alerts, and keep this phone signed up for them
   // When BASED was last open: on this phone, or anywhere (the server's "last seen", kept to within a few
   // minutes, which also covers a phone that's never had BASED open before). The later of the two.
   {const a=readAwaySince(),b=serverLastSeen;awaySince=(a===null&&b===null)?null:Math.max(a||0,b||0);}
@@ -6577,8 +6579,28 @@ async function startLive(force){
     .on('broadcast',{event:'reaction'},({payload})=>{const x=payload||{};if(messageChannel&&x.match_id===messageChannel.matchId)messageChannel.onReaction(x);})
     .on('broadcast',{event:'interaction'},()=>onInteractionChange())
     .on('broadcast',{event:'profile'},({payload})=>onMyProfileUpdate(payload))
-    .subscribe((status,err)=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('Live updates:',status,(err&&err.message)||'');});
+    .subscribe((status,err)=>{
+      if(status==='SUBSCRIBED'){liveRetries=0;return;}
+      if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){console.warn('Live updates:',status,(err&&err.message)||'');retryLiveSoon();}
+    });
 }
+// If the live channel fails to join (often an expired sign-in token after the phone has been asleep),
+// fetch a fresh token and try again: after 3s, 10s, 30s, then every minute
+let liveRetries=0,liveRetryTimer=null;
+function retryLiveSoon(){
+  if(liveRetryTimer||!currentUser)return;
+  const wait=[3000,10000,30000,60000][Math.min(liveRetries,3)];liveRetries++;
+  liveRetryTimer=setTimeout(async()=>{
+    liveRetryTimer=null;
+    try{const {data:{session}}=await sb.auth.getSession();if(session&&session.access_token)await sb.realtime.setAuth(session.access_token);}catch(e){}
+    subscribeToLive(true);
+  },wait);
+}
+// Belt and braces: while BASED is on screen, check every 45 seconds that the live channel is really joined
+setInterval(()=>{
+  if(document.visibilityState!=='visible'||!currentUser||!profileLoaded||liveRetryTimer)return;
+  if(!liveChannel||liveChannel.state!=='joined')retryLiveSoon();
+},45000);
 function onLiveMessage(m){
   if(!currentUser||!m.match_id)return;
   const parts=m.match_id.split('__');if(!parts.includes(currentUser.id))return;
@@ -7653,6 +7675,7 @@ async function hardSignOut(){
   try{
     messageChannel=null;stopLive();
   }catch(e){}
+  try{await Promise.race([pushForgetThisPhone(),new Promise(r=>setTimeout(r,2500))]);}catch(e){} // no alerts here once signed out
   try{
     await Promise.race([sb.auth.signOut(),new Promise(r=>setTimeout(()=>r({error:{message:'timed out'}}),4000))])
       .then(r=>{if(r&&r.error)console.warn('Sign-out:',r.error.message);});
@@ -7671,6 +7694,75 @@ async function executeLogout(){
   // lists, badges, cached profiles, live connections) can carry over to the
   // next person who signs in on this device.
   window.location.replace(window.location.pathname);
+}
+
+// ─── Phone alerts (push notifications), in the Android app ─────────────────────
+// After sign-in the app asks to send alerts; if the member says yes, this phone's push address is saved
+// to their account (register_push_device), and the server alerts it for new messages, new interest and
+// mutual matches while BASED is closed. Logging out removes it. The iPhone app joins in once the Apple
+// developer account and its push key are set up (PUSH_IOS).
+const PUSH_IOS=false;
+const PUSH_PLATFORM=IS_APP&&typeof window.Capacitor.getPlatform==='function'?window.Capacitor.getPlatform():'web';
+const PUSH=(IS_APP&&window.Capacitor.Plugins&&window.Capacitor.Plugins.PushNotifications)||null;
+const PUSH_ON=!!PUSH&&(PUSH_PLATFORM==='android'||(PUSH_PLATFORM==='ios'&&PUSH_IOS));
+const PUSH_TOKEN_KEY='based_push_token';
+let pushToken=null,pushListening=false,pushTapWaiting=null;
+function pushListen(){
+  if(!PUSH_ON||pushListening)return;
+  pushListening=true;
+  try{
+    PUSH.addListener('registration',async t=>{
+      pushToken=t&&t.value;if(!pushToken||!currentUser)return;
+      try{localStorage.setItem(PUSH_TOKEN_KEY,pushToken);}catch(e){}
+      const {error}=await sb.rpc('register_push_device',{p_token:pushToken,p_platform:PUSH_PLATFORM});
+      if(error)console.warn('Push sign-up:',error.message);
+    });
+    PUSH.addListener('registrationError',e=>console.warn('Push registration failed:',e&&e.error));
+    // Tapping an alert (also when it started the app): go to the chat or the matches list
+    PUSH.addListener('pushNotificationActionPerformed',a=>{
+      pushTapWaiting=(a&&a.notification&&a.notification.data)||{};
+      openFromPushSoon();
+    });
+  }catch(e){console.warn('Push listeners:',e);}
+}
+pushListen(); // straight away, so a tap that opened the app isn't missed
+async function startPush(){
+  if(!PUSH_ON||!currentUser)return;
+  try{
+    let perm=await PUSH.checkPermissions();
+    if(perm.receive!=='granted'&&perm.receive!=='denied')perm=await PUSH.requestPermissions();
+    if(perm.receive!=='granted')return; // they said no: Settings → Apps → BASED → Notifications turns it on later
+    if(PUSH_PLATFORM==='android'){
+      try{await PUSH.createChannel({id:'based',name:'Messages and matches',description:'New messages, interest and mutual matches',importance:4,visibility:0,vibration:true,lights:true,lightColor:'#C9A84C'});}catch(e){}
+    }
+    await PUSH.register(); // the 'registration' listener saves it
+    if(pushTapWaiting)openFromPushSoon();
+  }catch(e){console.warn('Push start:',e);}
+}
+async function pushForgetThisPhone(){
+  if(!PUSH_ON)return;
+  let t=pushToken;try{t=t||localStorage.getItem(PUSH_TOKEN_KEY);}catch(e){}
+  try{if(PUSH.removeAllDeliveredNotifications)await PUSH.removeAllDeliveredNotifications();}catch(e){}
+  if(t&&currentUser){const {error}=await sb.rpc('unregister_push_device',{p_token:t});if(error)console.warn('Push sign-out:',error.message);}
+}
+// Waits (up to ~20 s) until the member is signed in and on the main screen, then opens what the alert was about
+function openFromPushSoon(tries=0){
+  const d=pushTapWaiting;if(!d)return;
+  const main=document.getElementById('screen-main');
+  if(!currentUser||!main||!main.classList.contains('active')){if(tries<40)setTimeout(()=>openFromPushSoon(tries+1),500);return;}
+  pushTapWaiting=null;
+  openFromPush(d).catch(e=>console.warn('Open from alert:',e));
+}
+async function openFromPush(d){
+  removeModal();
+  const pid=d.partner_id?String(d.partner_id):null;
+  if(d.type==='interest'){await switchTab('matches');return;}
+  if(!pid){await switchTab('messages');return;}
+  let p=browseProfiles.find(x=>x.id===pid);
+  if(!p){await loadMyInteractions();await loadBrowseProfiles();p=browseProfiles.find(x=>x.id===pid);}
+  if(d.type==='match'){await switchTab('matches');}
+  else await switchTab('messages');
+  if(p&&d.type==='message')openChat(pid,p.initials,p.name,p.photo_url||'');
 }
 
 // One last check before anything is deleted. The reasons ticked on the first box are kept for the delete.
