@@ -751,9 +751,9 @@ button.ins-tile:active{opacity:0.75;}
     <p id="agecheck-msg" style="display:none;font-size:14px;line-height:1.5;text-align:center;margin-bottom:16px;max-width:360px"></p>
     <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:400px;margin-top:auto;align-items:center" class="bottom-safe">
       <button class="btn-primary" id="agecheck-start-btn" onclick="startAgeCheck()">Start selfie check</button>
-      <div id="agecheck-id-route" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:6px">
-        <button class="btn-ghost" onclick="openVerifyScreen('agegate')"><i class="ti ti-id" style="margin-right:7px"></i>Verify with photo ID instead</button>
-        <p style="font-size:12.5px;color:var(--text-muted);text-align:center;line-height:1.45;max-width:340px">One step instead of two: a selfie and your ID, which also earns you a <span style="color:var(--verified);white-space:nowrap"><i class="ti ti-discount-check-filled"></i> Verified</span> badge.</p>
+      <div id="agecheck-id-route" style="width:100%;display:none;flex-direction:column;align-items:center;gap:6px">
+        <button class="btn-ghost" onclick="openVerifyScreen('agegate')"><i class="ti ti-id" style="margin-right:7px"></i>Use photo ID instead</button>
+        <p style="font-size:12.5px;color:var(--text-muted);text-align:center;line-height:1.45;max-width:340px">If the selfie check isn’t working for you, you can show your passport or driving licence instead.</p>
       </div>
       <button onclick="confirmLogout()" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;font-family:var(--sans);cursor:pointer;text-decoration:underline;padding:6px">Log out</button>
     </div>
@@ -4212,6 +4212,7 @@ function onSupportConsent(kind,box){
 
 // target: 'main' (the main photo) or 'extra' (an additional photo); src: the image to crop
 function openRepositionPhoto(returnScreen,target,srcOverride){
+  closePhotoPick();photoBackAt=Date.now();
   if(returnScreen)repositionState.returnScreen=returnScreen;
   repositionState.target=target||'main';
   const src=srcOverride||myProfile.photo_raw||myProfile.photo;
@@ -4273,9 +4274,11 @@ function initRepositionDrag(){
   vp.addEventListener('pointercancel',onUp);
 }
 function cancelRepositionPhoto(){
+  closePhotoPick();photoBackAt=Date.now();
   goTo(repositionState.returnScreen);
 }
 function saveRepositionPhoto(){
+  closePhotoPick();photoBackAt=Date.now();
   const s=repositionState;
   const scale=s.baseScale*s.zoom;
   const OUT=600;
@@ -4749,12 +4752,18 @@ async function confirmTopUps(show,paid=true){
 
 // Choosing a photo. In the Android app the system only offers the gallery, so BASED asks first
 // (camera or photos); the iPhone app and browsers already offer both themselves.
+// The "Add a photo" box is closed whenever a photo comes back, and a tap that lands just as BASED comes back
+// from the camera (some Android phones pass it through) can't open it again.
+let photoBackAt=0;
+function closePhotoPick(){if(document.getElementById('photo-pick'))removeModal();}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){photoBackAt=Date.now();closePhotoPick();}});
 function pickPhoto(id){
   const inp=document.getElementById(id); if(!inp)return;
+  if(Date.now()-photoBackAt<1500)return;
   const android=IS_APP&&window.Capacitor&&typeof window.Capacitor.getPlatform==='function'&&window.Capacitor.getPlatform()==='android';
   if(!android){inp.removeAttribute('capture');inp.click();return;}
   window._pickPhotoGo=(cam)=>{removeModal();if(cam)inp.setAttribute('capture','user');else inp.removeAttribute('capture');inp.click();};
-  showModal(`<p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:16px">Add a photo</p>
+  showModal(`<p id="photo-pick" style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:16px">Add a photo</p>
     <button class="btn-primary" style="margin-bottom:10px" onclick="_pickPhotoGo(true)"><i class="ti ti-camera" style="margin-right:6px"></i>Take a photo</button>
     <button class="btn-ghost" style="margin-bottom:10px" onclick="_pickPhotoGo(false)"><i class="ti ti-photo" style="margin-right:6px"></i>Choose from your photos</button>
     <button class="btn-ghost" style="border:none" onclick="removeModal()">Cancel</button>`);
@@ -5706,7 +5715,7 @@ function openAgeCheck(){
   b.style.display='block';b.disabled=false;b.style.opacity='1';b.textContent='Start selfie check';b.onclick=startAgeCheck;diditBusy=false;
   setAgeMsg('');
   const idRoute=document.getElementById('agecheck-id-route');
-  idRoute.style.display=(myVerificationIssue==='underage'||myVerificationStatus==='approved')?'none':'flex';
+  idRoute.style.display='none'; // just the selfie here; photo ID is offered if the selfie doesn't work out
   if(myVerificationStatus==='in_review')setAgeMsg('Your ID check is being reviewed. We’ll let you in as soon as it’s approved, usually within a few minutes, and email you. Or take the selfie check now to get in straight away.');
   if(myVerificationIssue==='underage')showAgeOutcome({status:'failed',issue:'underage'});
   else if(myAgeStatus==='in_review')showAgeOutcome({status:'in_review'});
@@ -5763,6 +5772,7 @@ function showAgeOutcome(d){
     return;
   }
   btn.textContent='Try again';btn.onclick=startAgeCheck;
+  if(myVerificationStatus!=='approved')document.getElementById('agecheck-id-route').style.display='flex'; // another way in
   setAgeMsg(st==='failed'?'We couldn’t confirm you’re 18 or over from that selfie. Please try again in good light, looking straight at the camera.':'The check wasn’t completed. Please try again.','error');
 }
 async function onAgePassed(){
