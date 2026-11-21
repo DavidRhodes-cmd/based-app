@@ -535,14 +535,14 @@ button.ins-tile:active{opacity:0.75;}
 <!-- PERSONAL DETAILS -->
 <div id="screen-details" class="screen">
   <div class="app-header">
-    <button class="btn-back" onclick="goTo(signupAnswered?'screen-results':'screen-welcome')"><i class="ti ti-arrow-left"></i></button>
+    <button class="btn-back" onclick="detailsBack()"><i class="ti ti-arrow-left"></i></button>
     <div class="logo-mark" role="img" aria-label="BASED" style="padding:3px 11px"><span class="logo-text" style="font-size:14px"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span></div>
     <div style="width:28px"></div>
   </div>
   <div class="scrollable" style="padding:22px 16px">
-    <p style="font-family:var(--serif);font-size:22px;color:var(--text-on-dark);margin-bottom:5px">About you</p>
-    <p style="font-size:14px;color:var(--text-muted);margin-bottom:22px;line-height:1.5">Just the basics. The rest is for conversation.</p>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Country</label><select class="form-input" id="inp-country" onchange="onCountryChange('inp')"></select></div>
+    <p id="details-title" style="font-family:var(--serif);font-size:22px;color:var(--text-on-dark);margin-bottom:5px">About you</p>
+    <p id="details-sub" style="font-size:14px;color:var(--text-muted);margin-bottom:22px;line-height:1.5">Just the basics. The rest is for conversation.</p>
+    <div id="details-country-box" style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Country</label><select class="form-input" id="inp-country" onchange="onCountryChange('inp')"></select></div>
     <div id="details-waitlist" style="display:none">
       <div style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.3);border-radius:14px;padding:18px;margin-bottom:16px;text-align:center">
         <i class="ti ti-world" style="font-size:28px;color:var(--gold);display:block;margin-bottom:10px"></i>
@@ -556,6 +556,22 @@ button.ins-tile:active{opacity:0.75;}
     </div>
     <div id="details-main">
     <div id="details-prereg-note" class="banner-note" style="display:none;margin-bottom:20px">BASED opens area by area. Create your profile now and we’ll email you the day BASED opens near you. Until then, nobody can see your profile.</div>
+    <div id="details-part-account">
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" placeholder="Your first name" id="inp-name" autocomplete="given-name" tabindex="1" enterkeyhint="next" onkeydown="nextField(event,'inp-dob')" /></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="inp-dob" tabindex="2" enterkeyhint="next" onkeydown="nextField(event,'inp-email')" oninput="formatDobInput(this)" /></div>
+    <div class="details-cred">
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="inp-email" autocomplete="email" list="based-remembered-emails" tabindex="4" enterkeyhint="next" onkeydown="nextField(event,'inp-password')" /></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Min. 8 characters" id="inp-password" autocomplete="new-password" tabindex="5" enterkeyhint="next" onkeydown="nextField(event,'inp-password-confirm')" /><button type="button" class="pw-toggle" tabindex="-1" onclick="togglePasswordVisibility('inp-password',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div><p class="field-hint" id="pw-hint" aria-live="polite">8 characters or more</p></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Confirm password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Re-enter your password" id="inp-password-confirm" autocomplete="new-password" tabindex="6" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" /><button type="button" class="pw-toggle" tabindex="-1" onclick="togglePasswordVisibility('inp-password-confirm',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div><p class="field-hint ok" id="pw-match" aria-live="polite" style="display:none"><i class="ti ti-check"></i> Passwords match</p></div>
+    <label style="display:flex;align-items:center;gap:9px;margin-bottom:20px;cursor:pointer"><input type="checkbox" id="inp-remember-password" checked style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0" /><span style="font-size:13px;color:var(--text-muted)">Remember my password on this device</span></label>
+    </div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Are you married?</label><div style="display:flex;gap:10px" role="group" aria-label="Are you married?"><button class="sex-btn" id="married-yes" tabindex="8" onclick="selectMarried(true)" aria-pressed="false">Yes</button><button class="sex-btn" id="married-no" tabindex="8" onclick="selectMarried(false)" aria-pressed="false">No</button></div></div>
+    <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-terms" tabindex="9" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to the BASED <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('terms');">Terms and Conditions</span></span></label>
+    <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-special" tabindex="10" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to BASED processing my <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('special');">special category data</span> to operate the Service</span></label>
+    <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:22px;cursor:pointer"><input type="checkbox" id="inp-marketing-consent" tabindex="11" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">Send me updates and offers from BASED (optional — you can unsubscribe anytime)</span></label>
+    <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin:-8px 0 18px">To find out what we collect, why, and your rights, read <span style="color:var(--gold);text-decoration:underline;cursor:pointer" onclick="openTerms('privacy','screen-details')">how we use your data</span> (our privacy notice).</p>
+    </div>
+    <div id="details-part-profile">
     <div style="margin-bottom:20px">
       <label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:9px;display:block">Your photo <span style="color:var(--gold)">*</span></label>
       <div class="photo-upload-area" id="upload-area" onclick="pickPhoto('photo-input')">
@@ -574,22 +590,13 @@ button.ins-tile:active{opacity:0.75;}
         <input type="file" id="extra-photo-input" accept="image/*" style="display:none" onchange="handleExtraPhoto(this,'signup')" />
       </div>
     </div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">First name</label><input class="form-input" type="text" placeholder="Your first name" id="inp-name" autocomplete="given-name" tabindex="1" enterkeyhint="next" onkeydown="nextField(event,'inp-surname')" /></div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Surname</label><input class="form-input" type="text" placeholder="Your surname" id="inp-surname" autocomplete="family-name" tabindex="1" enterkeyhint="next" onkeydown="nextField(event,'inp-dob')" /><p style="font-size:12px;color:var(--text-muted);margin-top:7px;line-height:1.45">Other members only ever see its first letter, e.g. Sarah R.</p></div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Date of birth</label><input class="form-input" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" id="inp-dob" tabindex="2" enterkeyhint="next" onkeydown="nextField(event,'inp-location')" oninput="formatDobInput(this)" /></div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block" id="inp-location-label">Postcode</label><div class="loc-wrap"><input class="form-input" type="text" placeholder="e.g. LS1 4BR" id="inp-location" autocomplete="postal-code" tabindex="3" enterkeyhint="next" onkeydown="nextField(event,'inp-email')" oninput="onLocationInput('inp')" onblur="setTimeout(()=>hideSuggest('inp'),200)" /><div class="loc-suggest" id="inp-loc-suggest"></div></div></div>
-    <p style="font-size:11px;color:var(--text-muted);margin-top:-10px;margin-bottom:17px">Used to calculate distances — not shown to other users.</p><div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Email</label><input class="form-input" type="email" placeholder="your@email.com" id="inp-email" autocomplete="email" list="based-remembered-emails" tabindex="4" enterkeyhint="next" onkeydown="nextField(event,'inp-password')" /></div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Min. 8 characters" id="inp-password" autocomplete="new-password" tabindex="5" enterkeyhint="next" onkeydown="nextField(event,'inp-password-confirm')" /><button type="button" class="pw-toggle" tabindex="-1" onclick="togglePasswordVisibility('inp-password',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div><p class="field-hint" id="pw-hint" aria-live="polite">8 characters or more</p></div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Confirm password</label><div class="pw-wrap"><input class="form-input" type="password" placeholder="Re-enter your password" id="inp-password-confirm" autocomplete="new-password" tabindex="6" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" /><button type="button" class="pw-toggle" tabindex="-1" onclick="togglePasswordVisibility('inp-password-confirm',this)" aria-label="Show password"><i class="ti ti-eye"></i></button></div><p class="field-hint ok" id="pw-match" aria-live="polite" style="display:none"><i class="ti ti-check"></i> Passwords match</p></div>
-    <label style="display:flex;align-items:center;gap:9px;margin-bottom:20px;cursor:pointer"><input type="checkbox" id="inp-remember-password" checked style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0" /><span style="font-size:13px;color:var(--text-muted)">Remember my password on this device</span></label>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Surname</label><input class="form-input" type="text" placeholder="Your surname" id="inp-surname" autocomplete="family-name" tabindex="1" enterkeyhint="next" onkeydown="nextField(event,'inp-location')" /><p style="font-size:12px;color:var(--text-muted);margin-top:7px;line-height:1.45">Other members only ever see its first letter, e.g. Sarah R.</p></div>
+    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block" id="inp-location-label">Postcode</label><div class="loc-wrap"><input class="form-input" type="text" placeholder="e.g. LS1 4BR" id="inp-location" autocomplete="postal-code" tabindex="3" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" oninput="onLocationInput('inp')" onblur="setTimeout(()=>hideSuggest('inp'),200)" /><div class="loc-suggest" id="inp-loc-suggest"></div></div></div>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:-10px;margin-bottom:17px">Used to calculate distances — not shown to other users.</p>
     <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Biological sex</label><div style="display:flex;gap:10px"><button class="sex-btn" id="sex-male" tabindex="7" onclick="selectSex('male')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="9" cy="15" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="13.5" y1="10.5" x2="20" y2="4" stroke="currentColor" stroke-width="2.2"/><polyline points="14,4 20,4 20,10" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linejoin="round"/></svg>Male</button><button class="sex-btn" id="sex-female" tabindex="8" onclick="selectSex('female')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-3px;margin-right:6px"><circle cx="12" cy="9" r="6" stroke="currentColor" stroke-width="2.2"/><line x1="12" y1="15" x2="12" y2="21.5" stroke="currentColor" stroke-width="2.2"/><line x1="8.5" y1="18.5" x2="15.5" y2="18.5" stroke="currentColor" stroke-width="2.2"/></svg>Female</button></div></div>
-    <div style="margin-bottom:17px"><label style="font-size:11px;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;display:block">Are you married?</label><div style="display:flex;gap:10px" role="group" aria-label="Are you married?"><button class="sex-btn" id="married-yes" tabindex="8" onclick="selectMarried(true)" aria-pressed="false">Yes</button><button class="sex-btn" id="married-no" tabindex="8" onclick="selectMarried(false)" aria-pressed="false">No</button></div></div>
     <div class="banner-note" style="margin-bottom:22px">We don't want to rob you of conversation, so you can figure out the rest.</div>
-    <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-terms" tabindex="9" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to the BASED <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('terms');">Terms and Conditions</span></span></label>
-    <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="inp-agree-special" tabindex="10" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">I agree to BASED processing my <span style="color:var(--gold);text-decoration:underline" onclick="event.preventDefault();event.stopPropagation();openTerms('special');">special category data</span> to operate the Service</span></label>
-    <label style="display:flex;align-items:flex-start;gap:9px;margin-bottom:22px;cursor:pointer"><input type="checkbox" id="inp-marketing-consent" tabindex="11" style="width:17px;height:17px;accent-color:var(--gold);flex-shrink:0;margin-top:2px" /><span style="font-size:13px;color:var(--text-muted);line-height:1.4">Send me updates and offers from BASED (optional — you can unsubscribe anytime)</span></label>
-    <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin:-8px 0 18px">To find out what we collect, why, and your rights, read <span style="color:var(--gold);text-decoration:underline;cursor:pointer" onclick="openTerms('privacy','screen-details')">how we use your data</span> (our privacy notice).</p>
-    <button class="btn-primary btn-safe" id="details-continue-btn" tabindex="12" onclick="tryDetails()">Create my profile</button>
+    </div>
+    <button class="btn-primary btn-safe" id="details-continue-btn" tabindex="12" onclick="tryDetails()">Continue</button>
         <p style="font-size:12px;color:var(--red);text-align:center;margin-top:9px;display:none" id="details-error">Please upload a photo before continuing.</p>
     </div>
   </div>
@@ -1253,23 +1260,9 @@ sb.auth.onAuthStateChange(async(event,session)=>{
     return;
   }
   if(event==='SIGNED_IN'&&session&&session.user){
-    const pending=await getPendingSignup(session.user.id);
-    if(pending){
-      currentUser=session.user;
-      myProfile.name=pending.name;myProfile.surname=pending.surname||null;myProfile.dob=pending.dob;myProfile.location=pending.location;
-      myProfile.sex=pending.sex;myProfile.religion=pending.religion;myProfile.photo=pending.photo;
-      myProfile.marketing_consent=pending.marketing_consent;myProfile.terms_accepted_at=pending.terms_accepted_at;
-      myProfile.referred_by=pending.referred_by;
-      myProfile.married=pending.married===false?false:null;myProfile.has_children=typeof pending.has_children==='boolean'?pending.has_children:null;
-      myProfile.country=pending.country||'GB';myProfile.units=pending.units||defaultUnitsFor(myProfile.country);
-      if(pending.lat!=null&&pending.lng!=null){myProfile.lat=pending.lat;myProfile.lng=pending.lng;}
-      myProfile.photo_file=pending.photo?dataURLtoFile(pending.photo,'profile.jpg'):null;
-      myProfile.extra_photos=(Array.isArray(pending.extra_photos)?pending.extra_photos:[]).filter(u=>typeof u==='string'&&u.startsWith('data:image/')).slice(0,MAX_PHOTOS-1).map((u,k)=>({url:u,file:dataURLtoFile(u,`photo${k+2}.jpg`)}));
-      myAnswers=pending.answers||myAnswers;
-      showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Finishing your profile…</p></div>');
-      await finishProfileCreation(session.user.id,session.user.email);
-      await clearPendingSignup(session.user.id);
-    }
+    // No profile yet: finish it (everything was given before the email was confirmed) or carry on
+    // where they left off. Shared with restoreSession, so it only ever runs once per sign-in.
+    handleNoProfile(session.user);
   }
 });
 
@@ -1433,6 +1426,8 @@ const scaleReady=loadScaleEnds();
 // Coming back to the app picks up any change made in the admin console (ends of the slider, questions)
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){loadScaleEnds();loadQuestions();}});
 let pendingEmail='',pendingPassword=''; // stored when user moves from details to questions
+// The sign-up in progress (see "Sign-up steps")
+let signupStage=null,signupUserId=null,signupDone=0,signupNeedsAccountPart=false,finishingSignup=false,progressTimer=null;
 let myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null,extra_photos:[]};
 let myAnswers=new Array(NUM_Q).fill(0);
 let isPremium=false,profileHidden=false;
@@ -1904,6 +1899,7 @@ function addTileHtml(onClick){return `<button type="button" class="photo-tile ph
 // Empties the Create profile form (after a sign-up has been sent, or an account deleted),
 // so the next person to tap "Create one" never sees someone else's details.
 function resetSignupForm(){
+  signupStage=null;signupUserId=null;signupDone=0;signupNeedsAccountPart=false;clearTimeout(progressTimer);
   myProfile={name:'',dob:'',location:'',sex:'',photo:null,photo_file:null,lat:null,lng:null,religion:null,extra_photos:[]};
   myAnswers=new Array(NUM_Q).fill(0);
   ['inp-name','inp-surname','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.classList.remove('input-error');}});
@@ -2057,92 +2053,273 @@ async function checkBreachedNow(){
   });
   ['inp-agree-terms','inp-agree-special'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',()=>{if(el.checked)fieldErr(id,'');});});
 })();
-// Everything at once, on Create my profile: every problem marked, and the first one scrolled to
+// ─── Sign-up steps ─────────────────────────────────────────────────────────────
+// signupStage: null (not signing up) · 'account' (the first form) · 'questions' · 'profile' (photo and
+// the rest, after the score) · 'all' (signed in but nothing saved from the first form: both halves).
+function inSignup(){return signupStage!==null;}
+function signupTakesOver(){return inSignup()||finishingSignup;}
+function detailParts(){
+  const m=signupStage||'all';
+  return {acc:m!=='profile',prof:m!=='account',cred:!currentUser&&m!=='profile'};
+}
+const DETAILS_COPY={
+  account:['Create your account','First the essentials, then the fun part: the questions.','Continue'],
+  profile:['Your profile','A photo and a few basics. The rest is for conversation.','Create my profile'],
+  all:['About you','Just the basics. The rest is for conversation.','Create my profile']
+};
+function showDetailsStep(mode){
+  signupStage=mode;
+  const {acc,prof,cred}=detailParts();
+  const show=(id,on)=>{const e=document.getElementById(id);if(e)e.style.display=on?'block':'none';};
+  show('details-part-account',acc);show('details-part-profile',prof);show('details-country-box',acc);
+  const c=document.querySelector('#details-part-account .details-cred');if(c)c.style.display=cred?'block':'none';
+  if(!acc){show('details-main',true);show('details-waitlist',false);}
+  const [t,sub,btn]=DETAILS_COPY[mode]||DETAILS_COPY.all;
+  document.getElementById('details-title').textContent=t;document.getElementById('details-sub').textContent=sub;
+  document.getElementById('details-continue-btn').textContent=btn;
+  const n=document.getElementById('details-prereg-note');if(n)n.style.display=preregMode&&acc?'block':'none';
+  clearDetailErrors();
+  const err=document.getElementById('details-error');if(err)err.style.display='none';
+  goTo('screen-details');detailsToTop();
+}
+function detailsBack(){
+  if(signupStage==='account'||!inSignup()){goTo('screen-welcome');return;}
+  goTo('screen-results'); // the photo step comes after the score
+}
+
+// Every problem on this step marked at once, and the first one scrolled to
 function validateAllDetails(){
   detailsTried=true;
-  const bad=[];
-  if(!myProfile.photo){fieldErr('upload-area','Please add a photo. It’s needed to create your profile.');bad.push('upload-area');}else fieldErr('upload-area','');
-  ['inp-name','inp-surname','inp-dob','inp-location','inp-email','inp-password','inp-password-confirm'].forEach(id=>{if(!checkDetail(id))bad.push(id);});
-  ['inp-surname','inp-name'].forEach(id=>{if(nameCheckCache[document.getElementById(id).value.trim()]){fieldErr(id,NAME_BLOCKED_MSG);if(!bad.includes(id))bad.unshift(id);}});
-  if(breachChecked.pass===document.getElementById('inp-password').value&&breachChecked.bad){fieldErr('inp-password',BREACHED_MSG);if(!bad.includes('inp-password'))bad.push('inp-password');}
-  if(!myProfile.sex){fieldErr('sex-male','Please choose your biological sex.');bad.push('sex-male');}
-  if(myProfile.married!==false){fieldErr('married-no','Please say whether you’re married.');bad.push('married-no');}
-  if(typeof myProfile.has_children!=='boolean')myProfile.has_children=false; // ticked on the Children question, otherwise no
-  if(!document.getElementById('inp-agree-terms').checked){fieldErr('inp-agree-terms','Please agree to the Terms and Conditions.');bad.push('inp-agree-terms');}
-  if(!document.getElementById('inp-agree-special').checked){fieldErr('inp-agree-special','Please agree to BASED processing your special category data.');bad.push('inp-agree-special');}
+  const {acc,prof,cred}=detailParts(),bad=[];
+  if(prof){if(!myProfile.photo){fieldErr('upload-area','Please add a photo. It’s needed to create your profile.');bad.push('upload-area');}else fieldErr('upload-area','');}
+  [...(acc?['inp-name','inp-dob']:[]),...(cred?['inp-email','inp-password','inp-password-confirm']:[]),...(prof?['inp-surname','inp-location']:[])]
+    .forEach(id=>{if(!checkDetail(id))bad.push(id);});
+  [...(prof?['inp-surname']:[]),...(acc?['inp-name']:[])].forEach(id=>{if(nameCheckCache[document.getElementById(id).value.trim()]){fieldErr(id,NAME_BLOCKED_MSG);if(!bad.includes(id))bad.unshift(id);}});
+  if(cred&&breachChecked.pass===document.getElementById('inp-password').value&&breachChecked.bad){fieldErr('inp-password',BREACHED_MSG);if(!bad.includes('inp-password'))bad.push('inp-password');}
+  if(acc&&myProfile.married!==false){fieldErr('married-no','Please say whether you’re married.');bad.push('married-no');}
+  if(acc&&!document.getElementById('inp-agree-terms').checked){fieldErr('inp-agree-terms','Please agree to the Terms and Conditions.');bad.push('inp-agree-terms');}
+  if(acc&&!document.getElementById('inp-agree-special').checked){fieldErr('inp-agree-special','Please agree to BASED processing your special category data.');bad.push('inp-agree-special');}
+  if(prof&&!myProfile.sex){fieldErr('sex-male','Please choose your biological sex.');bad.push('sex-male');}
   if(bad.length){const b=detailsBox(bad[0]);if(b)b.scrollIntoView({behavior:'smooth',block:'center'});}
   return !bad.length;
 }
-function clearDetailErrors(){detailsTried=false;breachChecked={pass:null,bad:false};document.querySelectorAll('#details-main .field-err').forEach(p=>{p.style.display='none';p.textContent='';});updatePasswordHints();}
+function clearDetailErrors(){detailsTried=false;breachChecked={pass:null,bad:false};document.querySelectorAll('#details-main .field-err').forEach(p=>{p.style.display='none';p.textContent='';});document.querySelectorAll('#details-main .input-error').forEach(e=>e.classList.remove('input-error'));updatePasswordHints();}
+
 async function tryDetails(){
   const err=document.getElementById('details-error');
-  const nameEl=document.getElementById('inp-name'),passEl=document.getElementById('inp-password'),confirmEl=document.getElementById('inp-password-confirm');
-  const emailEl=document.getElementById('inp-email'),dobEl=document.getElementById('inp-dob'),locationEl=document.getElementById('inp-location');
-  [nameEl,emailEl,dobEl,locationEl,passEl,confirmEl].forEach(el=>el.classList.remove('input-error'));
-  if(!openCountries.has(document.getElementById('inp-country').value)){onCountryChange('inp');return;}
+  const {acc,prof,cred}=detailParts();
+  document.querySelectorAll('#details-main .input-error').forEach(e=>e.classList.remove('input-error'));
+  const country=document.getElementById('inp-country').value;
+  if(acc&&!openCountries.has(country)){onCountryChange('inp');return;}
   if(!validateAllDetails()){err.style.display='block';err.textContent='Please check the items marked in red above.';return;}
-  if(!myProfile.photo){err.style.display='block';err.textContent='Please upload a photo before continuing.';return;}
-  const name=nameEl.value.trim();
-  const email=emailEl.value.trim();
-  const pass=passEl.value;
-  const passConfirm=confirmEl.value;
-  const dobRaw=dobEl.value;
-  const location=locationEl.value.trim();
-  if(!name){err.style.display='block';err.textContent='Please enter your name.';nameEl.classList.add('input-error');return;}
-  if(!nameOk(name)){err.style.display='block';err.textContent=NAME_RULE;nameEl.classList.add('input-error');return;}
-  const surname=document.getElementById('inp-surname').value.trim();
-  if(!surname||!nameOk(surname)){err.style.display='block';err.textContent=!surname?'Please enter your surname.':NAME_RULE;fieldErr('inp-surname',err.textContent);detailsBox('inp-surname')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
-  for(const [id,v] of [['inp-name',name],['inp-surname',surname]]){
-    if(!(await isNameAllowed(v))){nameCheckCache[v]=true;err.style.display='block';err.textContent=NAME_BLOCKED_MSG;fieldErr(id,NAME_BLOCKED_MSG);detailsBox(id)?.scrollIntoView({behavior:'smooth',block:'center'});return;}
+  const btn=document.getElementById('details-continue-btn'),label=btn.textContent;
+  const fail=(msg,id)=>{
+    err.style.display='block';err.textContent=msg;
+    if(id){fieldErr(id,msg);const b=detailsBox(id);if(b)b.scrollIntoView({behavior:'smooth',block:'center'});}
+    btn.disabled=false;btn.textContent=label;
+  };
+  btn.disabled=true;btn.textContent='Checking…';
+  if(acc){
+    const name=document.getElementById('inp-name').value.trim();
+    if(!(await isNameAllowed(name))){nameCheckCache[name]=true;return fail(NAME_BLOCKED_MSG,'inp-name');}
+    myProfile.name=name;myProfile.dob=parseDobToISO(document.getElementById('inp-dob').value);
+    myProfile.country=country;myProfile.units=defaultUnitsFor(country);
+    myProfile.married=false;
+    myProfile.marketing_consent=document.getElementById('inp-marketing-consent').checked;
+    myProfile.referred_by=getReferralCode();
+    myProfile.terms_accepted_at=new Date().toISOString();
   }
-  myProfile.surname=surname;
-  if(!email){err.style.display='block';err.textContent='Please enter your email.';emailEl.classList.add('input-error');return;}
-  if(!dobRaw){err.style.display='block';err.textContent='Please enter your date of birth.';dobEl.classList.add('input-error');return;}
-  const signupCountry=document.getElementById('inp-country').value;
-  if(!openCountries.has(signupCountry)){onCountryChange('inp');return;}
-  if(!location){err.style.display='block';err.textContent=signupCountry==='GB'?'Please enter your postcode.':'Please enter your nearest town or city.';locationEl.classList.add('input-error');return;}
-  if(!pass){err.style.display='block';err.textContent='Please enter a password.';passEl.classList.add('input-error');return;}
-  if(!passConfirm){err.style.display='block';err.textContent='Please confirm your password.';confirmEl.classList.add('input-error');return;}
-  if(!myProfile.sex){err.style.display='block';err.textContent='Please select your biological sex.';return;}
-  if(myProfile.married!==false){err.style.display='block';err.textContent='Please say whether you’re married.';return;}
-  if(typeof myProfile.has_children!=='boolean')myProfile.has_children=false;
-  const dob=parseDobToISO(dobRaw);
-  if(!dob){err.style.display='block';err.textContent='Please enter a valid date of birth (DD/MM/YYYY).';dobEl.classList.add('input-error');return;}
-  if(calcAge(dob)<18){err.style.display='block';err.textContent='You must be at least 18 to use BASED.';dobEl.classList.add('input-error');return;}
-  if(!document.getElementById('inp-agree-terms').checked){err.style.display='block';err.textContent='Please agree to the Terms and Conditions to continue.';return;}
-  if(!document.getElementById('inp-agree-special').checked){err.style.display='block';err.textContent='Please agree to BASED processing your special category data to continue.';return;}
-  if(pass.length<8){err.style.display='block';err.textContent='Password must be at least 8 characters.';passEl.classList.add('input-error');confirmEl.classList.add('input-error');return;}
-  if(pass!==passConfirm){err.style.display='block';err.textContent='Passwords do not match.';passEl.classList.add('input-error');confirmEl.classList.add('input-error');return;}
-  err.style.display='none';
-  myProfile.marketing_consent=document.getElementById('inp-marketing-consent').checked;
-  myProfile.referred_by=getReferralCode();
-  myProfile.terms_accepted_at=new Date().toISOString();
-  const btn=document.getElementById('details-continue-btn');
-  const originalLabel=btn.textContent;
-  btn.disabled=true;btn.textContent='Checking password…';
-  // (No "is this email already registered?" check here — for privacy, the app
-  // never reveals whether an email address has a BASED account.)
-  if(await isBreachedPassword(pass)){
-    err.style.display='block';err.textContent=BREACHED_MSG;fieldErr('inp-password',BREACHED_MSG);breachChecked={pass,bad:true};
-    passEl.classList.add('input-error');confirmEl.classList.add('input-error');
-    btn.disabled=false;btn.textContent=originalLabel;
-    return;
+  if(cred){
+    const pass=document.getElementById('inp-password').value;
+    btn.textContent='Checking password…';
+    // (No "is this email already registered?" check: for privacy, the app never reveals whether an
+    // email address has a BASED account.)
+    if(await isBreachedPassword(pass)){breachChecked={pass,bad:true};return fail(BREACHED_MSG,'inp-password');}
+    pendingEmail=document.getElementById('inp-email').value.trim();pendingPassword=pass;
   }
-  btn.textContent=signupCountry==='GB'?'Checking postcode…':'Checking location…';
-  const geo=await resolveLocation('inp');
-  if(!geo){
-    err.style.display='block';err.textContent=locationErrorText(signupCountry);
-    fieldErr('inp-location',locationErrorText(signupCountry));
-    btn.disabled=false;btn.textContent=originalLabel;
-    return;
+  if(prof){
+    const surname=document.getElementById('inp-surname').value.trim();
+    if(!(await isNameAllowed(surname))){nameCheckCache[surname]=true;return fail(NAME_BLOCKED_MSG,'inp-surname');}
+    myProfile.surname=surname;
+    const cc=document.getElementById('inp-country').value;
+    btn.textContent=cc==='GB'?'Checking postcode…':'Checking location…';
+    const geo=await resolveLocation('inp');
+    if(!geo)return fail(locationErrorText(cc),'inp-location');
+    myProfile.location=geo.location;myProfile.lat=geo.lat;myProfile.lng=geo.lng;
+    myProfile.country=myProfile.country||cc;myProfile.units=myProfile.units||defaultUnitsFor(cc);
+    if(typeof myProfile.has_children!=='boolean')myProfile.has_children=false; // ticked on the Children question, otherwise no
   }
-  btn.disabled=false;btn.textContent=originalLabel;
-  myProfile.name=name;myProfile.dob=dob;myProfile.location=geo.location;
-  myProfile.lat=geo.lat;myProfile.lng=geo.lng;
-  myProfile.country=signupCountry;myProfile.units=defaultUnitsFor(signupCountry);
-  pendingEmail=email;pendingPassword=pass;
-  if(!signupAnswered){startQuestions();return;} // the questions come first
-  signUpAndSave();
+  btn.disabled=false;btn.textContent=label;err.style.display='none';
+  if(signupStage==='account')return createAccountStep();
+  return finishSignup();
+}
+
+function showSignUpError(e){
+  if(e.status===429){showToast('Too many attempts — please wait a few minutes and try again.',true);}
+  else if(e.code==='weak_password'){showToast(e.message,true,6000);}
+  else if(/SIGNUPS_CLOSED|Database error saving new user/i.test(e.message||'')){
+    // Sign-ups are closed until launch (only invited test addresses can join)
+    showModal('<i class="ti ti-calendar-time" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px;text-align:center"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">BASED isn’t open yet</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:20px;text-align:center">We’re not taking new members just yet. Please come back soon.</p><button class="btn-primary" onclick="removeModal()">OK</button>');
+  }
+  else{console.warn('Sign up error:',e.message);showToast('Couldn’t create your account just now — please try again.',true);}
+}
+const LOADER=t=>`<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">${t}</p></div>`;
+
+// Step 1 done: make the account, keep what they've given, and go straight on to the questions.
+// Someone whose email already has an account sees exactly the same (the app never says who has one).
+async function createAccountStep(){
+  showModal(LOADER('Creating your account…'));
+  const email=pendingEmail,pass=pendingPassword;
+  const {data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:PUBLIC_URL}});
+  if(error){removeModal();showSignUpError(error);return;}
+  if(document.getElementById('inp-remember-password').checked)await tryStoreCredential(email,pass);
+  try{localStorage.setItem('basedSignupEmail',email);}catch(e){}
+  signupUserId=data.user?data.user.id:null;
+  myAnswers=new Array(NUM_Q).fill(0);signupDone=0;
+  if(data.session)currentUser=data.user; // email confirmation is switched off: signed in already
+  else if(signupUserId)await stageSignupRemotely(signupUserId); // kept, so a sign-in later carries on from here
+  removeModal();
+  signupStage='questions';signupAnswered=false;
+  startQuestions();
+  const n=SIGNUP_QUESTIONS.length;
+  showModal(`<div style="text-align:center"><i class="ti ti-mail-check" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px"></i>
+    <p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px">Your account is set up</p>
+    ${data.session?'':`<p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:10px">We’ve sent a link to <b style="color:var(--text-on-dark)">${esc(email)}</b>. Confirm it whenever suits you. Your answers are saved as you go.</p>`}
+    <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:20px">Now the fun part: ${n} questions about what matters to you. Then you’ll see your score.</p>
+    <button class="btn-primary" onclick="removeModal()">Start the questions</button></div>`);
+}
+
+// Answers saved as they go (a moment after each one): signed in, straight to the account; before the
+// email's been confirmed, through stage-signup.
+function saveSignupProgress(){clearTimeout(progressTimer);progressTimer=setTimeout(doSaveSignupProgress,700);}
+async function doSaveSignupProgress(){
+  try{
+    if(!inSignup())return;
+    if(currentUser){
+      const {error}=await sb.rpc('save_my_signup_progress',{p_answers:myAnswers,p_questions_done:signupDone,
+        p_religion:myProfile.religion||null,p_has_children:typeof myProfile.has_children==='boolean'?myProfile.has_children:null});
+      if(error)console.warn('Progress not saved:',error.message);
+    }else if(signupUserId){
+      const r=await stageSignupRemotely(signupUserId);
+      if(r==='confirmed'&&await signInAfterConfirm())doSaveSignupProgress(); // confirmed in another tab
+    }
+  }catch(e){console.warn('Progress not saved:',e);}
+}
+// The email has been confirmed (in another tab or on another device): sign in here with the password
+// they've just chosen, so this tab carries on and saves to their account.
+async function signInAfterConfirm(){
+  if(currentUser)return true;
+  if(!pendingEmail||!pendingPassword)return false;
+  const {data,error}=await sb.auth.signInWithPassword({email:pendingEmail,password:pendingPassword});
+  if(error||!data||!data.user)return false;
+  currentUser=data.user;
+  try{localStorage.removeItem(SIGNED_OUT_FLAG);}catch(e){}
+  return true;
+}
+function showCheckEmail(email){
+  goTo('screen-check-email');
+  document.getElementById('check-email-address').textContent=email||'';
+  try{localStorage.setItem('basedSignupEmail',email||'');}catch(e){}
+}
+
+// The last step: save the profile. Signed in: straight away. Not yet confirmed: keep it all and ask them
+// to confirm (and if they already have, sign in and save it now).
+async function finishSignup(){
+  showModal(LOADER('Creating your profile…'));
+  if(!currentUser&&signupUserId){
+    const r=await stageSignupWithRetry(signupUserId);
+    if(r==='fail'){stagingRetry=true;showStagingError();return;}
+    if(r==='ok'||r==='gone'){ // 'gone': an email that already had an account. Shown exactly the same.
+      const email=pendingEmail;removeModal();showCheckEmail(email);resetSignupForm();pendingPassword=null;return;
+    }
+    // 'confirmed' (or too long ago to keep): sign in and finish here
+    if(!(await signInAfterConfirm())){const email=pendingEmail;removeModal();showCheckEmail(email);resetSignupForm();pendingPassword=null;return;}
+  }
+  if(!currentUser){removeModal();showToast('Please sign in to finish your profile.',true);openSignIn();return;}
+  finishingSignup=true;
+  try{
+    const stage=signupStage;signupStage=null; // the profile exists from here on
+    const ok=await finishProfileCreation(currentUser.id,currentUser.email);
+    if(ok){await clearPendingSignup(currentUser.id);signupUserId=null;signupDone=0;pendingPassword=null;signupNeedsAccountPart=false;}
+    else signupStage=stage; // not saved: they can try again
+  }finally{finishingSignup=false;}
+}
+
+// ─── Signed in without a profile ───────────────────────────────────────────────
+// Either everything was given before the email was confirmed (the old way, or all steps done): save it.
+// Or they stopped part-way: carry on from there. Runs once per sign-in (SIGNED_IN and restoreSession
+// both ask).
+const noProfileChecks={};
+function handleNoProfile(user){
+  if(!user)return Promise.resolve(false);
+  if(!noProfileChecks[user.id])noProfileChecks[user.id]=checkNoProfile(user).catch(e=>{console.warn('Unfinished sign-up check:',e);return false;});
+  return noProfileChecks[user.id];
+}
+async function checkNoProfile(user){
+  if(inSignup())return false; // this tab is already part-way through signing up
+  const {data:pr,error}=await sb.from('profiles').select('id').eq('id',user.id).maybeSingle();
+  if(error||pr){delete noProfileChecks[user.id];return false;}
+  currentUser=user;
+  const pending=await getPendingSignup(user.id);
+  if(pending&&pendingIsComplete(pending)){await finishFromPending(user,pending);return true;}
+  resumeSignup(user,pending);
+  return true;
+}
+function pendingIsComplete(p){
+  return !!(p.photo&&p.sex&&p.location&&p.name&&p.dob&&(p.questions_done==null||p.questions_done>=SIGNUP_QUESTIONS.length));
+}
+function loadPendingIntoProfile(p){
+  myProfile.name=p.name||'';myProfile.surname=p.surname||null;myProfile.dob=p.dob||'';myProfile.location=p.location||'';
+  myProfile.sex=p.sex||'';myProfile.religion=p.religion||null;myProfile.photo=p.photo||null;
+  myProfile.marketing_consent=!!p.marketing_consent;myProfile.terms_accepted_at=p.terms_accepted_at||null;
+  myProfile.referred_by=p.referred_by||null;
+  myProfile.married=p.married===false?false:null;myProfile.has_children=typeof p.has_children==='boolean'?p.has_children:null;
+  myProfile.country=p.country||'GB';myProfile.units=p.units||defaultUnitsFor(myProfile.country);
+  if(p.lat!=null&&p.lng!=null){myProfile.lat=p.lat;myProfile.lng=p.lng;}
+  myProfile.photo_file=p.photo?dataURLtoFile(p.photo,'profile.jpg'):null;
+  myProfile.extra_photos=(Array.isArray(p.extra_photos)?p.extra_photos:[]).filter(u=>typeof u==='string'&&u.startsWith('data:image/')).slice(0,MAX_PHOTOS-1).map((u,k)=>({url:u,file:dataURLtoFile(u,`photo${k+2}.jpg`)}));
+  if(Array.isArray(p.answers)&&p.answers.length){myAnswers=new Array(NUM_Q).fill(0);p.answers.slice(0,NUM_Q).forEach((v,k)=>{myAnswers[k]=Number(v)||0;});}
+}
+async function finishFromPending(user,pending){
+  finishingSignup=true;
+  try{
+    loadPendingIntoProfile(pending);
+    showModal(LOADER('Finishing your profile…'));
+    if(await finishProfileCreation(user.id,user.email))await clearPendingSignup(user.id);
+  }finally{finishingSignup=false;}
+}
+// Back where they stopped: the questions (at the next one), or the photo step if they're all answered
+function resumeSignup(user,p){
+  resetSignupForm();
+  currentUser=user;pendingEmail=user.email;
+  if(p)loadPendingIntoProfile(p);
+  signupNeedsAccountPart=!(p&&p.name&&p.dob&&p.terms_accepted_at);
+  signupDone=p&&Number.isInteger(p.questions_done)?p.questions_done:0;
+  // Fill in what's known, for the photo step
+  const set=(id,v)=>{const e=document.getElementById(id);if(e&&v)e.value=v;};
+  const c=document.getElementById('inp-country');
+  if(c&&myProfile.country&&[...c.options].some(o=>o.value===myProfile.country)){c.value=myProfile.country;applyCountryUI('inp');}
+  set('inp-name',myProfile.name);set('inp-dob',isoToDobDisplay(myProfile.dob));set('inp-surname',myProfile.surname);set('inp-location',myProfile.location);
+  if(myProfile.sex)selectSex(myProfile.sex);
+  if(myProfile.married===false)pickYesNo('married',false);
+  if(myProfile.photo){
+    const pv=document.getElementById('upload-preview');pv.src=myProfile.photo;pv.style.display='block';
+    document.getElementById('upload-placeholder').style.display='none';
+    document.getElementById('upload-area').classList.add('has-photo');
+    const rb=document.getElementById('reposition-btn');if(rb)rb.style.display='flex';
+  }
+  renderSignupExtras();
+  const n=SIGNUP_QUESTIONS.length,first=myProfile.name?esc(myProfile.name):'';
+  signupStage='questions';
+  if(signupDone>=n){signupAnswered=true;showResults();}
+  else{signupAnswered=false;signupIdx=Math.min(signupDone,n-1);signupFinishLabel='See my score';goTo('screen-questions');renderSignupQuestions();}
+  const what=signupDone>=n?'Your answers are saved. Next, add your photo.'
+    :signupDone?`You’ve answered ${signupDone} of ${n} questions. Carry on where you left off.`
+    :`Answer ${n} questions about what matters to you to see your score, then add a photo.`;
+  showModal(`<div style="text-align:center"><i class="ti ti-sparkles" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px"></i>
+    <p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px">Welcome${first?', '+first:''}! Let’s finish your profile</p>
+    <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:20px">${what}</p>
+    <button class="btn-primary" onclick="removeModal()">Continue</button></div>`);
 }
 
 async function finishProfileCreation(userId,email){
@@ -2251,33 +2428,31 @@ async function stageSignupRemotely(userId){
         marketing_consent:!!myProfile.marketing_consent,terms_accepted_at:myProfile.terms_accepted_at,
         referred_by:myProfile.referred_by||null,
         married:myProfile.married===false?false:null,has_children:typeof myProfile.has_children==='boolean'?myProfile.has_children:null,
-        country:myProfile.country||'GB',units:myProfile.units||'mi',lat:myProfile.lat??null,lng:myProfile.lng??null
+        country:myProfile.country||'GB',units:myProfile.units||'mi',lat:myProfile.lat??null,lng:myProfile.lng??null,
+        questions_done:signupDone
       })
     });
-    if(!resp.ok){const body=await resp.json().catch(()=>({}));console.warn('Staging signup failed:',body.error||resp.statusText);return false;}
-    return true;
-  }catch(e){console.warn('Staging signup exception:',e);return false;}
+    if(!resp.ok){
+      const body=await resp.json().catch(()=>({}));
+      if(body.error==='CONFIRMED')return 'confirmed'; // the email's been confirmed: sign in instead
+      if(body.error==='EXPIRED')return 'expired';
+      if(resp.status===404)return 'gone';
+      console.warn('Staging signup failed:',body.error||resp.statusText);return 'fail';
+    }
+    return 'ok';
+  }catch(e){console.warn('Staging signup exception:',e);return 'fail';}
 }
 // The profile must be safely stored before we say "check your email" — otherwise the
 // member would confirm and arrive with no profile. Three tries, then let them retry.
 async function stageSignupWithRetry(userId){
-  for(let i=0;i<3;i++){if(await stageSignupRemotely(userId))return true;await wait(1500*(i+1));}
-  return false;
+  for(let i=0;i<3;i++){const r=await stageSignupRemotely(userId);if(r!=='fail')return r;await wait(1500*(i+1));}
+  return 'fail';
 }
 let stagingRetry=null;
 function showStagingError(){
   showModal(`<i class="ti ti-cloud-off" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px;text-align:center"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">We couldn’t save your profile yet</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:20px;text-align:center">Your account has been created, but your profile details didn’t reach us. Please check your connection and tap Try again — don’t close this page, or your answers will be lost.</p><button class="btn-primary" onclick="retryStaging()">Try again</button>`);
 }
-async function retryStaging(){
-  if(!stagingRetry)return;
-  showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Saving your profile…</p></div>');
-  if(!(await stageSignupWithRetry(stagingRetry.userId))){showStagingError();return;}
-  const email=stagingRetry.email;stagingRetry=null;
-  removeModal();
-  goTo('screen-check-email');
-  document.getElementById('check-email-address').textContent=email;try{localStorage.setItem('basedSignupEmail',email);}catch(e){}
-  resetSignupForm();
-}
+async function retryStaging(){stagingRetry=null;await finishSignup();}
 // Answers are stored encrypted: the server decrypts an unfinished sign-up for its owner only
 async function getPendingSignup(userId){
   try{
@@ -2291,53 +2466,6 @@ async function getPendingSignup(userId){
 }
 async function clearPendingSignup(userId){
   try{await sb.from('pending_signups').delete().eq('user_id',userId);}catch(e){}
-}
-
-async function signUpAndSave(){
-  showModal('<div style="text-align:center;padding:20px"><i class="ti ti-loader" style="font-size:32px;color:var(--gold);animation:spin 1s linear infinite"></i><p style="color:var(--text-on-dark);margin-top:12px">Creating your account…</p></div>');
-  const email=pendingEmail||document.getElementById('inp-email').value.trim();
-  const pass=pendingPassword||document.getElementById('inp-password').value;
-  const {data:signUpData,error:signUpErr}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:PUBLIC_URL}});
-  if(signUpErr){
-    removeModal();
-    if(signUpErr.status===429){showToast('Too many attempts — please wait a few minutes and try again.',true);}
-    else if(signUpErr.code==='weak_password'){showToast(signUpErr.message,true,6000);}
-    else if(/SIGNUPS_CLOSED|Database error saving new user/i.test(signUpErr.message||'')){
-      // Sign-ups are closed until launch (only invited test addresses can join)
-      showModal('<i class="ti ti-calendar-time" style="font-size:30px;color:var(--gold);display:block;margin-bottom:10px;text-align:center"></i><p style="font-family:var(--serif);font-size:19px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">BASED isn’t open yet</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:20px;text-align:center">We’re not taking new members just yet. Please come back soon.</p><button class="btn-primary" onclick="removeModal()">OK</button>');
-    }
-    else{console.warn('Sign up error:',signUpErr.message);showToast('Couldn’t create your account just now — please try again.',true);}
-    return;
-  }
-  // Supabase returns a "success-looking" response with no error when the email is already
-  // registered (to prevent attackers probing which emails exist) — identities is empty in that case
-  if(signUpData.user&&signUpData.user.identities&&signUpData.user.identities.length===0){
-    // Deliberately identical to a brand-new sign-up, so nobody can use this
-    // screen to find out whether an email address has a BASED account.
-    removeModal();
-    goTo('screen-check-email');
-    document.getElementById('check-email-address').textContent=email;try{localStorage.setItem('basedSignupEmail',email);}catch(e){}
-    resetSignupForm(); // this sign-up is done: "Create one" starts afresh
-    return;
-  }
-  if(document.getElementById('inp-remember-password').checked)await tryStoreCredential(email,pass);
-  if(!signUpData.session){
-    // Email confirmation is required — stage the profile data server-side (not
-    // localStorage) so it's there regardless of which device/browser the
-    // confirmation link is opened on, then finish automatically once confirmed.
-    if(!(await stageSignupWithRetry(signUpData.user.id))){
-      stagingRetry={userId:signUpData.user.id,email};
-      showStagingError();
-      return;
-    }
-    removeModal();
-    goTo('screen-check-email');
-    document.getElementById('check-email-address').textContent=email;try{localStorage.setItem('basedSignupEmail',email);}catch(e){}
-    resetSignupForm(); // this sign-up is done: "Create one" starts afresh
-    return;
-  }
-  currentUser=signUpData.user;
-  await finishProfileCreation(signUpData.user.id,email);
 }
 
 function openForgotPassword(){
@@ -2466,6 +2594,7 @@ async function trySignIn(){
   rememberEmail(email);
   const restoredOk=await restoreSession();
   if(!restoredOk){if(!accountBlockedShown)removeModal();return;}
+  if(signupTakesOver())return; // an unfinished profile: it shows its own screen
   removeModal();
   if(profileLoadError){showProfileLoadError();return;}
   restoreFilterPrefs(); // first — the server search uses the sliders
@@ -2579,6 +2708,8 @@ async function restoreSession(){
     profileLoadError=true;
     return true; // signed in, but the app must not carry on as if the profile were empty
   }
+  // Signed in but no profile yet: an unfinished sign-up takes over from here
+  if(!p&&!pErr&&await handleNoProfile(currentUser))return true;
   // Your answers are stored encrypted: the server decrypts them for you alone
   let myStoredAnswers=p?p.answers:null;
   if(p&&!myStoredAnswers&&!(p.account_status&&p.account_status!=='active')){
@@ -4200,11 +4331,14 @@ let signupAnswered=false;
 // Return / Next on the sign-up form moves the cursor to the next box (it used to do nothing on email and
 // submitted the whole form from the password box, which marked every unanswered field in red).
 function nextField(e,id){if(e.key!=='Enter'||e.isComposing)return;e.preventDefault();const n=document.getElementById(id);if(n){n.focus();try{const l=n.value.length;n.setSelectionRange(l,l);}catch(_){}}}
-function startSignup(){signupAnswered=false;startQuestions();}
+// Sign-up: the account first (email, password, first name, date of birth, agreements), then the
+// questions and the score, then the photo and the rest. Answers are saved as they go, so someone who
+// stops part-way carries on where they left off the next time they sign in.
+function startSignup(){resetSignupForm();signupAnswered=false;showDetailsStep('account');}
 function startQuestions(){myAnswers=new Array(NUM_Q).fill(0);signupIdx=0;signupFinishLabel='See my score';goTo('screen-questions');renderSignupQuestions();}
-function resetQuestions(){myAnswers=new Array(NUM_Q).fill(0);signupIdx=0;signupFinishLabel='See my score';renderSignupQuestions();}
-function signupBack(){if(signupIdx>0){signupIdx--;renderSignupQuestions();}else if(currentUser||signupAnswered)goTo('screen-results');else goTo('screen-welcome');}
-function signupNext(){if(signupIdx<SIGNUP_QUESTIONS.length-1){signupIdx++;renderSignupQuestions();}else finishQuestions();}
+function resetQuestions(){myAnswers=new Array(NUM_Q).fill(0);signupIdx=0;signupFinishLabel='See my score';if(inSignup()){signupDone=0;signupAnswered=false;saveSignupProgress();}renderSignupQuestions();}
+function signupBack(){if(signupIdx>0){signupIdx--;renderSignupQuestions();}else if((currentUser&&!inSignup())||signupAnswered)goTo('screen-results');else if(!inSignup())goTo('screen-welcome');}
+function signupNext(){if(inSignup()){signupDone=Math.max(signupDone,signupIdx+1);saveSignupProgress();}if(signupIdx<SIGNUP_QUESTIONS.length-1){signupIdx++;renderSignupQuestions();}else finishQuestions();}
 function religionPickerHtml(pickerId,selected,show){
   // "Leave blank" lets someone say they have a faith without naming it (selected until they pick one)
   const box=(r,label,extra='')=>`<button type="button" class="religion-box ${(selected||'')===r?'selected':''}" data-r="${r}"${extra} onclick="selectReligion('${r}','${pickerId}')">${label}</button>`;
@@ -4278,6 +4412,7 @@ function mountQuestionArt(el,qid){
 function renderSignupQuestions(){
   const qs=SIGNUP_QUESTIONS;if(!qs.length)return;
   if(signupIdx>=qs.length)signupIdx=qs.length-1;
+  {const bb=document.getElementById('q-back-btn');if(bb)bb.style.visibility=inSignup()&&signupIdx===0&&!signupAnswered?'hidden':'visible';}
   const i=signupIdx,q=qs[i],n=qs.length,v=myAnswers[q.slot]||0;
   const isFaithQ=q.slot===FAITH_Q_INDEX;
   const card=(id,text,right)=>`<div id="${id}" style="box-sizing:border-box;min-height:150px;border-radius:16px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);transition:background .15s,border-color .15s"><p class="sq-text" style="margin:0;flex:1;font-family:var(--serif);font-size:16px;line-height:1.4;color:var(--text-muted);overflow-wrap:break-word">${sqText(text)}</p><div class="sq-tag" style="font-size:11.5px;font-weight:600;color:var(--gold-light);min-height:15px;${right?'text-align:right':''}"></div></div>`;
@@ -4405,7 +4540,7 @@ const SCORE_INFO={
   }}
 };
 function showScoreInfoPopup(type){const info=SCORE_INFO[type];showModal(`<i class="ti ti-info-circle" style="font-size:26px;color:var(--gold);margin-bottom:12px;display:block"></i><p style="font-family:var(--serif);font-size:16px;color:var(--text-on-dark);margin-bottom:10px;line-height:1.4">${info.title}</p><p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;text-align:left">${info.text}</p><button class="btn-primary" onclick="removeModal()" style="font-size:14px;padding:12px">Got it</button>`);}
-function finishQuestions(){if(currentUser){updateProfileAnswers();}else{signupAnswered=true;showResults();}}
+function finishQuestions(){if(currentUser&&!inSignup()){updateProfileAnswers();}else{signupAnswered=true;showResults();}}
 
 async function updateProfileAnswers(){
   // Called when an existing user retakes questions
@@ -4530,7 +4665,7 @@ function showResults(){
   }
   // Before an account exists, the score leads on to creating the profile
   const pb=document.getElementById('results-primary-btn');
-  pb.textContent=!currentUser?'Save my score and create my profile':needsWaiting()?'Continue':'Find my matches';
+  pb.textContent=(inSignup()||!currentUser)?'Next: add your photo':needsWaiting()?'Continue':'Find my matches';
   document.getElementById('results-share-btn').style.display='block';
   lastScoreText=l.side&&l.pct?(SCALE[l.side].name?`${l.pct}% ${towardsText(l.side)}`:`leaning ${l.pct}% one way`):allZero?'on the fence':'right in the middle';
   goTo('screen-results');
@@ -4540,7 +4675,7 @@ let lastScoreText='';
 // About you always opens at the top when you arrive from your score (it keeps its place when
 // you come back from reading the Terms or positioning a photo)
 function detailsToTop(){const sc=document.querySelector('#screen-details .scrollable');if(!sc)return;sc.scrollTop=0;requestAnimationFrame(()=>{sc.scrollTop=0;});}
-function resultsPrimary(){if(!currentUser){showPreregNote();goTo('screen-details');detailsToTop();return;}afterResults();}
+function resultsPrimary(){if(inSignup()||!currentUser){showDetailsStep(signupNeedsAccountPart?'all':'profile');return;}afterResults();}
 function showPreregNote(){const n=document.getElementById('details-prereg-note');if(n)n.style.display=preregMode?'block':'none';}
 // Share my score: with the member's own invite code once they have an account
 async function shareScore(){
@@ -6453,7 +6588,7 @@ function sliderValues(container){return [...container.querySelectorAll('input[ty
 // Your Score → the last question; About you → Your Score, like its back arrow (what you've typed is kept). Dragging a slider isn't a swipe.
 [['screen-questions',()=>signupBack()],
  ['screen-results',()=>{if(currentUser||!SIGNUP_QUESTIONS.length)return;signupIdx=SIGNUP_QUESTIONS.length-1;renderSignupQuestions();goTo('screen-questions');}],
- ['screen-details',()=>goTo(signupAnswered?'screen-results':'screen-welcome')]].forEach(([id,back])=>{
+ ['screen-details',()=>detailsBack()]].forEach(([id,back])=>{
   const container=document.getElementById(id);if(!container)return;
   let startX=0,startY=0,tracking=false,vals='';
   container.addEventListener('touchstart',e=>{
@@ -7684,6 +7819,7 @@ async function hardSignOut(){
   // Tell the browser not to sign anyone back in silently with a saved password
   try{if(navigator.credentials&&navigator.credentials.preventSilentAccess)await navigator.credentials.preventSilentAccess();}catch(e){}
   currentUser=null;
+  signupStage=null;signupUserId=null;pendingPassword=null;
 }
 async function executeLogout(){
   if(window.__loggingOut)return; // a second tap while the first is still going
@@ -7889,6 +8025,7 @@ document.head.appendChild(spinStyle);
   try{restored=await restoreSession();}finally{if(splash&&!restored)splash.remove();}
   await cfgReady;
   if(restored&&profileLoadError){showProfileLoadError();}
+  else if(restored&&signupTakesOver()){} // carrying on with an unfinished profile
   else if(restored){
     restoreFilterPrefs(); // first — the server search uses the sliders
     await loadBrowseProfiles();
