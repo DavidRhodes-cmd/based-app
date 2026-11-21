@@ -7726,6 +7726,9 @@ function pushListen(){
   }catch(e){console.warn('Push listeners:',e);}
 }
 pushListen(); // straight away, so a tap that opened the app isn't missed
+// Opening BASED clears its alerts from the phone's notification list (they've been seen in the app)
+function pushClearDelivered(){if(PUSH_ON&&currentUser&&document.visibilityState==='visible'){try{PUSH.removeAllDeliveredNotifications();}catch(e){}}}
+document.addEventListener('visibilitychange',pushClearDelivered);
 async function startPush(){
   if(!PUSH_ON||!currentUser)return;
   try{
@@ -7736,6 +7739,7 @@ async function startPush(){
       try{await PUSH.createChannel({id:'based',name:'Messages and matches',description:'New messages, interest and mutual matches',importance:4,visibility:0,vibration:true,lights:true,lightColor:'#C9A84C'});}catch(e){}
     }
     await PUSH.register(); // the 'registration' listener saves it
+    pushClearDelivered();
     if(pushTapWaiting)openFromPushSoon();
   }catch(e){console.warn('Push start:',e);}
 }
