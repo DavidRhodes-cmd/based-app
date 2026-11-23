@@ -1232,6 +1232,11 @@ function watchForEndedSession(res){
 // Inside the iPhone/Android app (Capacitor) the page's own address is capacitor://localhost, which
 // means nothing in an email or a shared link, so links point at the website instead.
 const IS_APP=!!(window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform());
+// The iPhone app takes payments through Apple (see "Paying in the iPhone app")
+const APP_PLATFORM=IS_APP&&typeof window.Capacitor.getPlatform==='function'?window.Capacitor.getPlatform():'web';
+const STORE_PAY=APP_PLATFORM==='ios';
+let mySubSource=null;     // where the plan is paid for: stripe | apple | google (null = nowhere yet)
+let storeProducts={};     // {plus:{product, price, intro}, gold:{…}} from Apple
 const PUBLIC_URL=IS_APP?'https://www.baseddatingonline.com/':window.location.origin+window.location.pathname;
 const sb = createClient(
   'https://okubbpsvaogqzdtajiqz.supabase.co',
@@ -2385,7 +2390,7 @@ async function finishProfileCreation(userId,email){
   myPhotos=savedPhotos;myProfile.extra_photos=[];
   rememberEmail(email);
   try{localStorage.removeItem('basedReferralCode');}catch(e){}
-  excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;dealbreakers=new Set();pendingDealbreakers=null;hideWithChildren=false;pendingHideChildren=null;LEGAL_NEED=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
+  excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;mySubSource=null;dealbreakers=new Set();pendingDealbreakers=null;hideWithChildren=false;pendingHideChildren=null;LEGAL_NEED=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
   isPremium=false;profileHidden=false;myVerificationStatus='unverified';myVerificationIssue=null;myAgeStatus='none';
   await loadPermissions();
   await loadMyInteractions();
@@ -2598,7 +2603,7 @@ async function trySignIn(){
   removeModal();
   if(profileLoadError){showProfileLoadError();return;}
   restoreFilterPrefs(); // first — the server search uses the sliders
-  await loadBrowseProfiles();
+  await Promise.race([loadBrowseProfiles(),wait(2500)]); // slow connection: show Search (with the demo profiles) and fill it when the results come
   if(needsAgeGate()){openAgeCheck();return;}
   if(needsVerificationGate()){openVerifyScreen('gate');return;}
   goTo('screen-main');
@@ -2743,7 +2748,7 @@ async function restoreSession(){
     mySearchFilters=(p.search_filters&&typeof p.search_filters==='object')?p.search_filters:{};
     profileHidden=p.is_hidden||false;
     readReceipts=p.read_receipts!==false;
-    myStripeCustomer=!!p.stripe_customer_id;
+    myStripeCustomer=!!p.stripe_customer_id;mySubSource=p.subscription_source||null;
     myCancelAt=p.subscription_cancel_at||null;
     mySubStatus=p.subscription_status||null;mySubEnd=p.subscription_expires_at||null;mySubTier=p.subscription_tier||null;mySubNext=subNextOf(p);
     savedIntro=p.saved_intro||'';
@@ -2892,13 +2897,24 @@ async function loadBrowseProfiles(){
   // the filters — everyone the Interest and Messages tabs need (related = true).
   // A reload keeps however many pages you'd already scrolled through.
   const seq=++searchSeq;
+  // Something to look at straight away: the demo profiles show while the first search is on its way
+  if(!browseProfiles.length){browseProfiles=[...demoForSex];searchShowWhenDone=true;}
+  // Still waiting after a couple of seconds (e.g. poor wifi): say so on Search
+  const slowTimer=setTimeout(()=>{if(seq===searchSeq)setSearchStatus('slow');},2500);
   let profiles,bErr;
   {
     const lim=Math.min(500,Math.max(SEARCH_PAGE,searchOffset));
-    ({data:profiles,error:bErr}=await sb.rpc('browse_search',{...searchParams(),p_limit:lim,p_offset:0}));
+    ({data:profiles,error:bErr}=await browseSearchCall({...searchParams(),p_limit:lim,p_offset:0},()=>{if(seq===searchSeq)setSearchStatus('slow');}));
   }
+  clearTimeout(slowTimer);
   if(seq!==searchSeq)return; // a newer search has started — let that one fill the list
-  if(bErr){console.warn('Search failed — keeping the current list:',bErr.message);if(!browseProfiles.length)browseProfiles=[...demoForSex];return;}
+  if(bErr){
+    console.warn('Search failed — keeping the current list:',bErr.message);
+    if(!browseProfiles.length)browseProfiles=[...demoForSex];
+    setSearchStatus('failed');
+    if(searchShowWhenDone){searchShowWhenDone=false;renderProfiles(parseInt(document.getElementById('filter-min').value)||0);}
+    return;
+  }
   profiles=profiles||[];
   const real=await mapBrowseRows(profiles);
   if(seq!==searchSeq)return;
@@ -2906,7 +2922,50 @@ async function loadBrowseProfiles(){
   searchOffset=n;
   searchTotal=useOldBrowse?n:(profiles.find(p=>p.total!=null)||{}).total||0;
   browseProfiles=[...real,...demoForSex];
+  setSearchStatus(null);
   renderMutualBadge(); // who's visible decides which chats count towards the It's mutual dot
+  // Search was shown before the results came: show them now
+  if(searchShowWhenDone){searchShowWhenDone=false;renderProfiles(parseInt(document.getElementById('filter-min').value)||0);if(typeof renderMatchesTab==='function')renderMatchesTab();}
+}
+// The search, with a time limit. On poor wifi (a pub, a train) a request can be lost on the way and
+// never answered; rather than wait for ever, it's given up after a few seconds and sent again.
+// onRetry is called before each new try. Returns {data, error} like sb.rpc.
+async function browseSearchCall(args,onRetry){
+  let last={data:null,error:{message:'not tried'}};
+  const limits=[8000,10000,15000];
+  for(let i=0;i<limits.length;i++){
+    if(i>0&&onRetry)onRetry(i);
+    const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),limits[i]);
+    try{last=await sb.rpc('browse_search',args).abortSignal(ctl.signal);}
+    catch(e){last={data:null,error:{message:String(e&&e.message||e)}};}
+    finally{clearTimeout(t);}
+    if(!last.error)return last;
+    // Only a lost or timed-out request is worth sending again; anything the server said no to isn't
+    if(!/abort|fetch|network|timeout|load failed/i.test(last.error.message||''))return last;
+  }
+  return last;
+}
+// A line at the top of Search while it's slow, or when it couldn't get through
+let searchShowWhenDone=false;
+function setSearchStatus(kind){
+  let el=document.getElementById('search-status');
+  const cards=document.getElementById('profile-cards');
+  if(!el){
+    if(!kind||!cards||!cards.parentNode)return;
+    el=document.createElement('div');el.id='search-status';el.setAttribute('role','status');
+    el.style.cssText='display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:10px 13px;border-radius:12px;background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.35);font-size:13px;line-height:1.4;color:var(--text-on-dark)';
+    cards.parentNode.insertBefore(el,cards);
+  }
+  if(!kind){el.remove();return;}
+  el.innerHTML=kind==='slow'
+    ?'<i class="ti ti-loader" style="font-size:18px;color:var(--gold);animation:spin 1s linear infinite;flex-shrink:0"></i><span style="flex:1">Your connection looks slow, still searching…</span>'
+    :'<i class="ti ti-wifi-off" style="font-size:18px;color:var(--gold);flex-shrink:0"></i><span style="flex:1">Couldn’t reach BASED just now. Check your connection.</span><button onclick="retrySearch()" style="background:rgba(201,168,76,0.12);border:0.5px solid rgba(201,168,76,0.5);color:var(--verified);border-radius:10px;padding:7px 12px;font-size:13px;font-family:var(--sans);cursor:pointer;white-space:nowrap">Try again</button>';
+}
+async function retrySearch(){
+  setSearchStatus('slow');
+  searchOffset=0;await loadBrowseProfiles();
+  renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
+  if(typeof renderMatchesTab==='function')renderMatchesTab();
 }
 // What the sliders are set to, in the form the server wants
 function searchParams(){
@@ -2951,7 +3010,7 @@ async function loadMoreProfiles(){
   if(useOldBrowse||searchLoading||!currentUser||searchOffset>=searchTotal)return;
   searchLoading=true;renderMoreButton();
   const seq=searchSeq;
-  const {data,error}=await sb.rpc('browse_search',{...searchParams(),p_limit:SEARCH_PAGE,p_offset:searchOffset});
+  const {data,error}=await browseSearchCall({...searchParams(),p_limit:SEARCH_PAGE,p_offset:searchOffset});
   searchLoading=false;
   if(seq!==searchSeq)return; // the filters changed meanwhile
   if(error){console.warn('Loading more failed:',error.message);renderMoreButton();showToast('Couldn’t load more people — please try again.',true);return;}
@@ -4711,22 +4770,25 @@ async function callTopUp(body){
 }
 async function openTopUp(){
   if(!TOPUP)await loadTopUps();
-  const offers=(TOPUP&&TOPUP.offers)||[];
+  if(STORE_PAY)await storeLoadTopUps();
+  const offers=((TOPUP&&TOPUP.offers)||[]).filter(o=>!STORE_PAY||storeTopUps[o.store_product_id]);
+  const packPrice=o=>STORE_PAY?storeTopUps[o.store_product_id].priceString:moneyText(o.currency||TOPUP.currency,o.amount);
   if(!TOPUP||!TOPUP.allowed||!offers.length){showToast('There are no top-ups available just now',false,3000);return;}
   const line=o=>[o.views?`<span><i class="ti ti-eye"></i> ${o.views} view${o.views===1?'':'s'}</span>`:'',o.interests?`<span><i class="ti ti-heart"></i> ${o.interests} interest${o.interests===1?'':'s'}</span>`:'',o.supers?`<span><i class="ti ti-confetti"></i> ${o.supers} super interest${o.supers===1?'':'s'}</span>`:''].filter(Boolean).join('');
   showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:6px;text-align:center">Top up</p>
     <p style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:16px;text-align:center">A one-off payment for extra views and interests. They’re used once your usual allowance runs out.</p>
     ${offers.map(o=>`<div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(201,168,76,0.3);border-radius:13px;padding:14px;margin-bottom:10px;text-align:left">
-      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${esc(o.name)}</span><span style="font-family:var(--serif);font-size:19px;color:var(--gold)">${moneyText(o.currency||TOPUP.currency,o.amount)}</span></div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px"><span style="font-size:15px;color:var(--text-on-dark);font-weight:600">${esc(o.name)}</span><span style="font-family:var(--serif);font-size:19px;color:var(--gold)">${esc(packPrice(o))}</span></div>
       <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--text-muted);margin-bottom:${o.valid_days?6:12}px">${line(o)}</div>
       ${o.valid_days?`<p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Lasts ${o.valid_days} day${o.valid_days===1?'':'s'}</p>`:''}
-      <button class="btn-primary" style="font-size:15px" data-topup="${o.id}" onclick="buyTopUp(${Number(o.id)})">Buy for ${moneyText(o.currency||TOPUP.currency,o.amount)}</button></div>`).join('')}
+      <button class="btn-primary" style="font-size:15px" data-topup="${o.id}" onclick="buyTopUp(${Number(o.id)})">Buy for ${esc(packPrice(o))}</button></div>`).join('')}
     ${myTierNow()!=='gold'?`<button class="btn-ghost" style="font-size:15px;margin-top:4px;color:var(--gold);border-color:var(--gold)" onclick="removeModal();openPlanUpgrade('gold')">Upgrade instead</button>`:''}
     <button class="btn-ghost" style="font-size:14px;margin-top:8px" onclick="removeModal()">Not now</button>
     <p style="font-size:11.5px;color:var(--text-muted);text-align:center;margin-top:12px;line-height:1.5">Want more every month? <span style="color:var(--gold);text-decoration:underline;cursor:pointer" onclick="removeModal();upgradeState=null;openPlans()">See the plans</span></p>`);
 }
 let topUpBusy=false;
 async function buyTopUp(id){
+  if(STORE_PAY){storeBuyTopUp(id);return;}
   if(topUpBusy)return;topUpBusy=true;
   busyModal('Opening secure checkout…');
   const {ok,data}=await callTopUp({action:'checkout',offer_id:id});
@@ -4872,8 +4934,8 @@ function planPrice(t){
   const c=(myProfile&&myProfile.country)||(PERMS&&PERMS.country)||'GB',l=LOCAL_PRICES[c]||LOCAL_PRICES.GB;
   return {currency:l.cur,amount:l[t],intro:null};
 }
-function localPrice(t){const p=planPrice(t);return p&&p.amount?money(p.currency,p.amount):'';}
-function introPrice(t){const p=planPrice(t);return p&&p.intro!=null&&p.intro<p.amount?money(p.currency,p.intro):null;}
+function localPrice(t){if(STORE_PAY&&storeProducts[t])return storeProducts[t].price;const p=planPrice(t);return p&&p.amount?money(p.currency,p.amount):'';}
+function introPrice(t){if(STORE_PAY&&storeProducts[t])return storeProducts[t].intro;const p=planPrice(t);return p&&p.intro!=null&&p.intro<p.amount?money(p.currency,p.intro):null;}
 const TIER_PRICE={get plus(){return localPrice('plus');},get gold(){return localPrice('gold');}};
 async function loadPrices(){
   try{const {data,error}=await sb.rpc('my_plan_prices',{p_country:(myProfile&&myProfile.country)||null});if(!error&&data&&data.plans)PRICES=data;}
@@ -4910,6 +4972,7 @@ async function loadPermissions(){
   const preDone=loadPrereg();
   const pricesDone=loadPrices();
   loadTopUps();
+  storeInit(); // iPhone app: Apple's prices and purchases
   getMyReferralCode(); // ready for Invite friends
   let ok=false;
   for(let i=0;i<2&&!ok;i++){
@@ -5149,7 +5212,7 @@ function closeUpgrade(){const back=(upgradeState&&upgradeState.returnTo)||'scree
 function pickUpgradeOption(t){if(!upgradeState)return;upgradeState.selected=t;renderUpgrade();}
 
 // BASED+ chosen now would be free until… (free months waiting or running); null if not
-function plusTrialEnd(){const t=PRE&&PRE.trial_end;return t&&new Date(t).getTime()>Date.now()+2*86400000?new Date(t):null;}
+function plusTrialEnd(){if(STORE_PAY)return null;const t=PRE&&PRE.trial_end;return t&&new Date(t).getTime()>Date.now()+2*86400000?new Date(t):null;}
 const longDate=(d)=>new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
 const shortDate=(d)=>new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
 function renderUpgrade(){
@@ -5209,10 +5272,11 @@ function renderUpgrade(){
     const intro=introPrice(sel),trial=sel==='plus'?plusTrialEnd():null;
     const waiting=((PRE&&PRE.rewards)||[]).some(r=>!r.claimed);
     cta=`<button class="btn-primary" onclick="startUpgrade('${sel}')">Get ${OPTION_LABEL[sel]}</button>`; // the price is on the cards above and in the note below
-    note=trial?`Your free months make BASED+ free until ${longDate(trial)}, then ${TIER_PRICE[sel]} a month. Nothing is charged until then, and if you cancel before, you pay nothing.`
+    note=STORE_PAY?storeTermsNote(sel,intro):trial?`Your free months make BASED+ free until ${longDate(trial)}, then ${TIER_PRICE[sel]} a month. Nothing is charged until then, and if you cancel before, you pay nothing.`
         :(intro?`${intro} for your first month, then ${TIER_PRICE[sel]} a month until you cancel. Cancel anytime in Settings.`:'Monthly subscription. Cancel anytime in Settings.')
           +(sel==='gold'&&waiting?'<br>Your free BASED+ months stay waiting while you’re on Gold.':'');
     note+=(my==='liveness'?`<br>You’ll do a quick ID check after ${trial?'adding your card':'paying'}.`:'');
+    if(STORE_PAY)note+=storeLinks('screen-upgrade');
   }
   document.getElementById('upgrade-footer').innerHTML=`${cta}<p style="font-size:12px;line-height:1.5;color:var(--text-muted);text-align:center">${note}</p><button onclick="closeUpgrade()" style="background:transparent;border:none;color:var(--text-muted);font-size:15px;font-family:var(--sans);cursor:pointer;padding:10px">Not now</button>`;
 }
@@ -5240,8 +5304,9 @@ async function openPlans(){
   html+=`</div><p style="margin-top:14px;font-size:12px;line-height:1.5;color:var(--text-muted)">Selfie = selfie and age check. ID = photo ID verified. Paid plans need a verified ID${my==='liveness'?'; you’ll do a quick ID check after paying':''}. Prices are per month.${['plus','gold'].filter(t=>introPrice(t)).map(t=>` *${OPTION_LABEL[t]}: ${introPrice(t)} for your first month, then ${TIER_PRICE[t]} a month until you cancel.`).join('')}${['plus','gold'].some(t=>introPrice(t))?' First-month prices are for new subscribers only.':''}</p>`;
   document.getElementById('plans-body').innerHTML=html;
   const buys=['plus','gold'].filter(t=>TIER_ORDER.indexOf(t)>TIER_ORDER.indexOf(my));
-  document.getElementById('plans-footer').style.display=buys.length?'flex':'none';
-  document.getElementById('plans-footer').innerHTML=buys.map(t=>`<button class="${t==='gold'?'btn-primary':'btn-ghost'}" style="font-size:15px;font-weight:600;${t==='plus'?'color:var(--gold);border-color:var(--gold);':''}" onclick="startUpgrade('${t}')">Get ${OPTION_LABEL[t]}</button>`).join('');
+  document.getElementById('plans-footer').style.display=buys.length||STORE_PAY?'flex':'none';
+  document.getElementById('plans-footer').innerHTML=buys.map(t=>`<button class="${t==='gold'?'btn-primary':'btn-ghost'}" style="font-size:15px;font-weight:600;${t==='plus'?'color:var(--gold);border-color:var(--gold);':''}" onclick="startUpgrade('${t}')">Get ${OPTION_LABEL[t]}</button>`).join('')
+    +(STORE_PAY?`<p style="font-size:11.5px;line-height:1.5;color:var(--text-muted);text-align:center">${storeTermsNote(null,null)}${storeLinks('screen-plans')}</p>`:'');
   goTo('screen-plans');
   document.getElementById('plans-body').scrollTop=0;
 }
@@ -5286,6 +5351,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 window.addEventListener('pageshow',e=>{if(e.persisted)backFromStripe();});
 window.addEventListener('focus',backFromStripe);
 async function resumePlan(){
+  if(planPaidThrough()!=='stripe'||STORE_PAY){storeManageElsewhere();return;}
   busyModal('Resuming your plan…');
   const {ok,data}=await callStripe('resume');
   removeModal();
@@ -5296,6 +5362,8 @@ async function resumePlan(){
   showToast(`You’re staying on ${TIER_LABEL[data.tier]||'your plan'} ✓`);
 }
 async function startUpgrade(tier){
+  if(STORE_PAY){storeBuy(tier);return;}
+  if(planPaidThrough()==='apple'&&mySubStatusLive()){storeManageElsewhere();return;}
   const from=myTierNow();
   const upgradeInPlace=from==='plus'&&tier==='gold';
   if(upgradeInPlace&&myStripeCustomer){
@@ -5334,8 +5402,159 @@ function closeUpgradeScreens(){
   const back=(upgradeState&&upgradeState.returnTo)||'screen-main';upgradeState=null;
   if(back==='screen-edit-profile'){renderPlanRow();goTo('screen-edit-profile');}else goMain();
 }
+// ─── Paying in the iPhone app (Apple in-app purchase, through RevenueCat) ──────
+// Apple only allows its own payments for plans and packs bought in an iPhone app, so there BASED+,
+// Gold and top-ups are bought through Apple, never Stripe. RevenueCat handles the purchase; the server
+// (store-purchases) then asks RevenueCat what was bought and sets the plan, just as Stripe's webhook does.
+// The member's RevenueCat id is their BASED account id (never their email).
+// Android to follow (Google Play billing): until then the Android app keeps using Stripe.
+const RC_IOS_KEY='appl_REPLACE_WITH_REVENUECAT_PUBLIC_IOS_KEY'; // RevenueCat → API keys → the App Store app's public key (safe to be in the app)
+const STORE_IDS={plus:'based_plus_monthly',gold:'based_gold_monthly'};
+const APPLE_TERMS_URL='https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+// (STORE_PAY, APP_PLATFORM, mySubSource and storeProducts are set near the top, by IS_APP)
+let storeTopUps={};       // App Store product id -> Apple's product (one-off packs)
+let storeUser=null,storeStarting=null,storeBusy=false;
+const RC=()=>(IS_APP&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Purchases)||null;
+function planPaidThrough(){return mySubSource||(myStripeCustomer?'stripe':null);}
+function mySubStatusLive(){
+  return ['plus','gold'].includes(mySubTier)&&['active','trialing','past_due'].includes(mySubStatus||'')&&(!mySubEnd||new Date(mySubEnd).getTime()>Date.now());
+}
+// Signs the store in as this member (once per member) and fetches Apple's prices
+function storeInit(){
+  if(!STORE_PAY||!currentUser||!RC())return Promise.resolve(false);
+  if(storeUser===currentUser.id&&storeStarting)return storeStarting;
+  const uid=currentUser.id;
+  storeStarting=(async()=>{
+    const P=RC();
+    try{
+      const {isConfigured}=await P.isConfigured().catch(()=>({isConfigured:false}));
+      if(!isConfigured)await P.configure({apiKey:RC_IOS_KEY,appUserID:uid});
+      else await P.logIn({appUserID:uid});
+      storeUser=uid;
+      const {products}=await P.getProducts({productIdentifiers:Object.values(STORE_IDS)});
+      let elig={};
+      try{elig=await P.checkTrialOrIntroductoryPriceEligibility({productIdentifiers:Object.values(STORE_IDS)})||{};}catch(e){}
+      const out={};
+      for(const [t,id] of Object.entries(STORE_IDS)){
+        const pr=(products||[]).find(x=>x.identifier===id);if(!pr)continue;
+        const st=elig[id]&&elig[id].status;
+        // First-month price: only while Apple says this Apple ID can still have it
+        const intro=pr.introPrice&&pr.introPrice.priceString&&(st===2||(st===0&&!(PRICES&&PRICES.first_month===false)))?pr.introPrice.priceString:null;
+        out[t]={product:pr,price:pr.priceString,intro};
+      }
+      storeProducts=out;
+      return true;
+    }catch(e){console.warn('App Store unavailable:',e&&(e.message||e.code)||e);storeStarting=null;return false;}
+  })();
+  return storeStarting;
+}
+async function storeLoadTopUps(){
+  if(!STORE_PAY||!(await storeInit()))return;
+  const ids=((TOPUP&&TOPUP.offers)||[]).map(o=>o.store_product_id).filter(id=>id&&!storeTopUps[id]);
+  if(!ids.length)return;
+  try{const {products}=await RC().getProducts({productIdentifiers:ids,type:'NON_SUBSCRIPTION'});for(const p of products||[])storeTopUps[p.identifier]=p;}
+  catch(e){console.warn('App Store packs unavailable:',e&&(e.message||e.code)||e);}
+}
+// Asks the server to read the member's purchases from RevenueCat and put them on their account
+async function storeSync(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)return {ok:false,data:{}};
+  try{
+    const r=await fetch(FN_BASE+'store-purchases',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token},body:JSON.stringify({action:'sync'})});
+    return {ok:r.ok,data:await r.json().catch(()=>({}))};
+  }catch(e){return {ok:false,data:{}};}
+}
+const storeCancelled=e=>!!e&&(e.userCancelled===true||String(e.code)==='1');
+function storeError(e,what){
+  if(storeCancelled(e))return; // closed Apple's sheet: nothing to say
+  const code=e&&String(e.code);
+  showToast(code==='3'?'Purchases aren’t allowed on this iPhone (check Screen Time settings).'
+    :code==='6'?'Your payment is waiting for approval. Your plan will start once it’s approved.'
+    :`Sorry, the App Store couldn’t complete ${what} just now. You haven’t been charged. Please try again shortly.`,true,4500);
+}
+// Buy BASED+ or Gold through Apple
+async function storeBuy(tier){
+  if(storeBusy)return;
+  if(planPaidThrough()==='stripe'&&mySubStatusLive()){storeManageElsewhere();return;}
+  storeBusy=true;busyModal('Opening the App Store…');
+  try{
+    if(!(await storeInit())||!storeProducts[tier]){removeModal();showToast('The App Store isn’t available just now. Please try again shortly.',true,4000);return;}
+    await RC().purchaseStoreProduct({product:storeProducts[tier].product});
+    busyModal('Confirming your purchase…');
+    await storeAfterPurchase();
+  }catch(e){removeModal();storeError(e,'your purchase');}
+  finally{storeBusy=false;}
+}
+// After Apple confirms: the server sets the plan (RevenueCat's webhook does it too, whichever comes first)
+async function storeAfterPurchase(){
+  let got='none';
+  for(let i=0;i<5;i++){
+    const {ok,data}=await storeSync();
+    if(ok&&data.tier&&data.tier!=='none'){got=data.tier;break;}
+    await wait(1500);
+  }
+  removeModal();
+  if(got!=='none'&&myVerificationStatus==='approved'){closeUpgradeScreens();congratulate(got);} // shown once, however the new plan is noticed
+  await refreshPermissions(true);reloadMySubscription();
+  if(got==='none')showToast('Payment received — your plan will switch on in a moment',false,4000);
+  else if(myVerificationStatus!=='approved')showPaidVerifyPrompt(TIER_LABEL[got]); // paid plans start once the ID is verified
+}
+// A top-up pack through Apple
+async function storeBuyTopUp(id){
+  if(storeBusy)return;
+  const o=((TOPUP&&TOPUP.offers)||[]).find(x=>Number(x.id)===Number(id));
+  const pr=o&&storeTopUps[o.store_product_id];
+  if(!pr){showToast('That top-up isn’t available just now.',true,3000);return;}
+  storeBusy=true;busyModal('Opening the App Store…');
+  try{
+    await RC().purchaseStoreProduct({product:pr});
+    busyModal('Adding your top-up…');
+    let added=0;
+    for(let i=0;i<5&&!added;i++){const {ok,data}=await storeSync();if(ok&&data.added)added=data.added;else await wait(1500);}
+    removeModal();
+    TOPUP=null;await loadPermissions();
+    try{await loadBrowseProfiles();renderProfiles(parseInt(document.getElementById('filter-min').value)||0);}catch(e){}
+    if(added){launchConfetti(null);showToast('Your top-up has been added ✓',false,3500);checkNotices();}
+    else showToast('Payment received. Your top-up will appear in a moment.',false,4000);
+  }catch(e){removeModal();storeError(e,'your top-up');}
+  finally{storeBusy=false;}
+}
+// Settings → Restore purchases (e.g. a new iPhone, or the app reinstalled)
+async function storeRestore(){
+  if(storeBusy)return;
+  storeBusy=true;busyModal('Restoring your purchases…');
+  try{
+    if(!(await storeInit()))throw new Error('store unavailable');
+    await RC().restorePurchases();
+    const {ok,data}=await storeSync();
+    await refreshPermissions(true);reloadMySubscription();
+    removeModal();
+    showToast(ok&&data.tier&&data.tier!=='none'?`Restored: you’re on ${TIER_LABEL[data.tier]} ✓`:'There was no plan to restore for this Apple ID.',false,3500);
+  }catch(e){removeModal();storeError(e,'the restore');}
+  finally{storeBusy=false;}
+}
+// Manage, cancel or resume a plan that isn't paid for here
+function storeManageElsewhere(){
+  const by=planPaidThrough();
+  if(STORE_PAY&&by==='apple'){window.open('https://apps.apple.com/account/subscriptions','_blank');return;}
+  const msg=by==='apple'?'Your plan is paid for through the App Store. To change or cancel it, on your iPhone go to <b>Settings</b>, tap your name, then <b>Subscriptions</b>.'
+    :by==='google'?'Your plan is paid for through Google Play. To change or cancel it, open the <b>Play Store</b> app, tap your profile picture, then <b>Payments and subscriptions</b>.'
+    :'Your plan is paid for on the BASED website, so it’s changed or cancelled there, signed in with this account.';
+  showModal(`<p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:10px;text-align:center">Your plan</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:22px;text-align:center">${msg}</p><button class="btn-primary" style="font-size:15px" onclick="removeModal()">OK</button>`);
+}
+// Apple's required wording beside a subscription (price, length, renewal, how to cancel)
+function storeTermsNote(sel,intro){
+  const first=sel&&intro?`${intro} for your first month, then ${TIER_PRICE[sel]} a month. `:sel?`${TIER_PRICE[sel]} a month. `:'';
+  return `${first}Payment is charged to your Apple ID. Your subscription renews automatically each month unless you cancel at least 24 hours before the end of the current month. Manage or cancel any time in your Apple ID settings.`;
+}
+function storeLinks(from){
+  const l='color:var(--gold);text-decoration:underline;text-underline-offset:2px;cursor:pointer';
+  return `<br><span style="${l}" onclick="openTerms('terms','${from}')">Terms</span> · <span style="${l}" onclick="openTerms('privacy','${from}')">Privacy notice</span> · <a href="${APPLE_TERMS_URL}" target="_blank" rel="noopener" style="${l}">Apple’s licence terms</a> · <span style="${l}" onclick="storeRestore()">Restore purchases</span>`;
+}
+
 // Stripe's page for changing card, seeing receipts or cancelling
 async function openBilling(){
+  if(planPaidThrough()!=='stripe'||STORE_PAY){storeManageElsewhere();return;}
   busyModal('Opening your billing page…');
   const {ok,data}=await callStripe('portal');
   if(ok&&data.url){goToStripe('billing',data.url);return;}
@@ -5352,15 +5571,16 @@ function subNextOf(p){
 async function reloadMySubscription(){
   if(!currentUser)return;
   try{
-    const {data,error}=await sb.from('profiles').select('subscription_tier,subscription_status,subscription_expires_at,subscription_cancel_at,subscription_next_tier,subscription_next_at,subscription_next_amount,subscription_next_currency').eq('id',currentUser.id).maybeSingle();
+    const {data,error}=await sb.from('profiles').select('subscription_tier,subscription_status,subscription_expires_at,subscription_cancel_at,subscription_next_tier,subscription_next_at,subscription_next_amount,subscription_next_currency,subscription_source').eq('id',currentUser.id).maybeSingle();
     if(error||!data)return; // e.g. before SQL 66
     mySubTier=data.subscription_tier||null;mySubStatus=data.subscription_status||null;mySubEnd=data.subscription_expires_at||null;
-    myCancelAt=data.subscription_cancel_at||null;mySubNext=subNextOf(data);renderPlanRow();
+    myCancelAt=data.subscription_cancel_at||null;mySubNext=subNextOf(data);mySubSource=data.subscription_source||null;renderPlanRow();
   }catch(e){}
 }
 // Settings → Cancel plan: Stripe's own cancel step for the current subscription (it asks to confirm,
 // and the plan carries on until the end of the month already paid for)
 async function cancelPlan(){
+  if(planPaidThrough()!=='stripe'||STORE_PAY){storeManageElsewhere();return;}
   busyModal('Opening the cancel page…');
   const {ok,data}=await callStripe('portal',{flow:'cancel'});
   if(ok&&data.url){goToStripe('billing',data.url);return;}
@@ -5841,6 +6061,7 @@ function onMyDobMaybeChanged(p){
 let lastPlanKey=null,permRefreshAt=0;
 function onMyPlanMaybeChanged(p){
   if(p&&p.stripe_customer_id)myStripeCustomer=true;
+  if(p&&'subscription_source' in p)mySubSource=p.subscription_source||null;
   if(p&&'subscription_cancel_at' in p&&(p.subscription_cancel_at||null)!==myCancelAt){myCancelAt=p.subscription_cancel_at||null;renderPlanRow();}
   if(p&&'subscription_status' in p){mySubStatus=p.subscription_status||null;mySubEnd=p.subscription_expires_at||null;if('subscription_tier' in p)mySubTier=p.subscription_tier||null;if('subscription_next_tier' in p)mySubNext=subNextOf(p);renderPlanRow();}
   const key=(p.subscription_tier||'none')+'|'+(p.subscription_expires_at||'');
@@ -5971,14 +6192,15 @@ function renderPlanRow(){
   // Manage = Stripe's page to change card, see receipts or cancel (only once you've paid through Stripe)
   // With no paid plan running, Stripe's page only has receipts and saved cards, so it's labelled that way
   const planRunning=['plus','gold'].includes(mySubTier)&&['active','trialing','past_due'].includes(mySubStatus||'');
-  const manage=myStripeCustomer?`<button onclick="openBilling()" style="background:transparent;border:1px solid rgba(255,255,255,0.26);color:var(--text-muted);${bs}">${planRunning?'Manage':'Receipts'}</button>`:'';
+  const by=planPaidThrough(),appPlan=by==='apple'||by==='google';
+  const manage=by&&(planRunning||(!appPlan&&!STORE_PAY))?`<button onclick="openBilling()" style="background:transparent;border:1px solid rgba(255,255,255,0.26);color:var(--text-muted);${bs}">${planRunning?'Manage':'Receipts'}</button>`:'';
   // Cancelled but still paid up: offer to carry on instead of upgrading
-  const resume=ending&&myStripeCustomer?`<button onclick="resumePlan()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Resume</button>`:'';
+  const resume=ending&&by?`<button onclick="resumePlan()" style="background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.4);color:var(--verified);${bs}">Resume</button>`:'';
   const btn=`<div style="display:flex;gap:8px">${manage}${resume}${up}</div>`;
   // Cancel plan: straight to Stripe's cancel step (shown while a paid subscription is running and not already cancelled)
-  const canCancel=myStripeCustomer&&!ending&&['plus','gold'].includes(mySubTier)&&['active','trialing','past_due'].includes(mySubStatus||'');
+  const canCancel=!!by&&!ending&&['plus','gold'].includes(mySubTier)&&['active','trialing','past_due'].includes(mySubStatus||'');
   const cancelLink=canCancel?`<button onclick="cancelPlan()" style="display:block;background:none;border:none;padding:8px 0 2px;min-height:32px;color:var(--text-muted);font-size:12px;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-family:var(--sans)">Cancel plan</button>`:'';
-  row.innerHTML=`<i class="ti ti-crown" style="font-size:24px;color:${paid||waitingFor?'var(--gold)':'var(--text-muted)'}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Current plan</p><p style="font-size:13px;color:${paid||waitingFor?'var(--gold-light)':'var(--text-muted)'}">${next?esc(nextLine):name}${gift?` until ${gift.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`:''}</p>${gift?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">A free gift from BASED</p>`:ending?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">Cancels ${ending.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p>`:''}${cancelLink}</div>${btn}`;
+  row.innerHTML=`<i class="ti ti-crown" style="font-size:24px;color:${paid||waitingFor?'var(--gold)':'var(--text-muted)'}"></i><div style="flex:1"><p style="font-size:15px;color:var(--text-on-dark);margin-bottom:3px">Current plan</p><p style="font-size:13px;color:${paid||waitingFor?'var(--gold-light)':'var(--text-muted)'}">${next?esc(nextLine):name}${gift?` until ${gift.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`:''}</p>${gift?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">A free gift from BASED</p>`:ending?`<p style="font-size:12px;color:var(--text-muted);margin-top:3px">Cancels ${ending.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p>`:''}${cancelLink}${STORE_PAY?`<button onclick="storeRestore()" style="display:block;background:none;border:none;padding:8px 0 2px;min-height:32px;color:var(--text-muted);font-size:12px;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-family:var(--sans)">Restore purchases</button>`:''}</div>${btn}`;
 }
 // The upgrade screen without a particular feature in mind: both paid plans from Free,
 // just Gold from BASED+
@@ -7980,7 +8202,7 @@ async function executeDelete(){
     await hardSignOut();
   }
   const wasPremium=isPremium;
-  excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;dealbreakers=new Set();pendingDealbreakers=null;hideWithChildren=false;pendingHideChildren=null;LEGAL_NEED=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
+  excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;mySubSource=null;dealbreakers=new Set();pendingDealbreakers=null;hideWithChildren=false;pendingHideChildren=null;LEGAL_NEED=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
   isPremium=false;currentUser=null;
   resetSignupForm();myPhotos=[];editPhotos=null;
   myAnswers=new Array(NUM_Q).fill(0);
@@ -8050,7 +8272,7 @@ document.head.appendChild(spinStyle);
   else if(restored&&signupTakesOver()){} // carrying on with an unfinished profile
   else if(restored){
     restoreFilterPrefs(); // first — the server search uses the sliders
-    await loadBrowseProfiles();
+    await Promise.race([loadBrowseProfiles(),wait(2500)]); // slow connection: show Search (with the demo profiles) and fill it when the results come
     const minPct=parseInt(document.getElementById('filter-min').value)||0;
     const dist=parseInt(document.getElementById('filter-dist').value)||50;
     document.getElementById('filter-min-val').textContent=minPct+'%';
