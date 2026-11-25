@@ -6582,13 +6582,21 @@ function applyLocationModeUI(){
   renderSearchStatus(); // the Travel mode switch shows whether you're searching from where you are now
 }
 
+let travelWait=0; // set while waiting for a location fix for Travel mode
 function toggleLocationMode(){
   if(locationMode==='home'&&!canUse('travel_mode')){showUpgradePrompt('travel_mode');return;}
+  // Still waiting for a location: a second tap cancels it and puts the switch back
+  if(locationMode==='home'&&travelWait){travelWait=0;applyLocationModeUI();return;}
   if(locationMode==='home'){
     if(!navigator.geolocation){showToast("Your device doesn't support location access.",true);return;}
     const t=document.getElementById('travel-toggle');if(t)t.classList.add('on','busy'); // flips straight away while waiting for a GPS fix
+    const ask=++travelWait;
+    // Some phones never answer at all (e.g. location permission missing): give up after 25 seconds
+    const giveUp=setTimeout(()=>{if(travelWait!==ask)return;travelWait=0;applyLocationModeUI();
+      showToast(IS_APP?"BASED couldn't get your location. Check Settings → Privacy & Security → Location Services → BASED is set to While Using the App, then try again.":"Couldn't get your location — check location access is allowed for this site, then try again.",true,8000);},25000);
     navigator.geolocation.getCurrentPosition(
       async pos=>{
+        clearTimeout(giveUp);if(travelWait!==ask)return;travelWait=0; // cancelled meanwhile
         liveLocationCoords={lat:pos.coords.latitude,lng:pos.coords.longitude};
         locationMode='current';
         applyLocationModeUI();
@@ -6597,11 +6605,14 @@ function toggleLocationMode(){
         showToast('Using your current location',false,2000);
       },
       err=>{
+        clearTimeout(giveUp);if(travelWait!==ask)return;travelWait=0;
         applyLocationModeUI(); // reverts the icon back to home, since the mode never actually changed
         // Give a specific message per failure type so the fix is obvious
         let msg;
         if(err.code===1){
-          msg=/iPhone|iPad|iPod/.test(navigator.userAgent)
+          msg=IS_APP
+            ? "BASED isn't allowed to use your location. Go to Settings → Privacy & Security → Location Services → BASED → While Using the App, then try again."
+            : /iPhone|iPad|iPod/.test(navigator.userAgent)
             ? "Location is blocked. On iPhone: Settings → Privacy & Security → Location Services → Safari Websites → While Using the App, then try again."
             : "Location is blocked for this site. Allow location in your browser's site settings, then try again.";
         }else if(err.code===3){
