@@ -2948,11 +2948,12 @@ async function browseSearchCall(args,onRetry){
 // A line at the top of Search while it's slow, or when it couldn't get through
 let searchShowWhenDone=false;
 function setSearchStatus(kind){
-  let el=document.getElementById('search-status');
+  // (its own id: 'search-status' is the allowance strip above the results)
+  let el=document.getElementById('search-conn');
   const cards=document.getElementById('profile-cards');
   if(!el){
     if(!kind||!cards||!cards.parentNode)return;
-    el=document.createElement('div');el.id='search-status';el.setAttribute('role','status');
+    el=document.createElement('div');el.id='search-conn';el.setAttribute('role','status');
     el.style.cssText='display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:10px 13px;border-radius:12px;background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.35);font-size:13px;line-height:1.4;color:var(--text-on-dark)';
     cards.parentNode.insertBefore(el,cards);
   }
