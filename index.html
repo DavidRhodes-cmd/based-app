@@ -6631,6 +6631,8 @@ function toggleLocationMode(){
     applyLocationModeUI();
     renderProfiles(parseInt(document.getElementById('filter-min').value)||0);
     showToast('Using your saved postcode',false,2000);
+    // The distance filter now counts from home again: fetch the list for there
+    loadBrowseProfiles().then(()=>renderProfiles(parseInt(document.getElementById('filter-min').value)||0)).catch(()=>{});
   }
 }
 
