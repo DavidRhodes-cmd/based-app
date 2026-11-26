@@ -227,6 +227,9 @@ body{height:100%;width:100%;margin:0;background:#0f1220;display:flex;align-items
 .slider-bubble{position:absolute;bottom:calc(100% + 8px);transform:translateX(-50%);min-width:38px;padding:5px 9px;border-radius:10px;background:var(--gold);color:var(--navy);font-family:var(--sans);font-size:16px;font-weight:700;text-align:center;line-height:1.1;pointer-events:none;opacity:0;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.35);}
 .slider-bubble::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--gold);}
 .slider-bubble.on{opacity:1;}
+.menu-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.menu-avatar.has-photo{border:1.5px solid var(--gold);box-shadow:0 1px 6px rgba(0,0,0,0.35);background:#1a1f2e}
+.menu-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .q-slider::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--gold);cursor:pointer;border:2.5px solid var(--navy);}
 .ad-card{background:var(--navy-mid);border:0.5px solid rgba(201,168,76,0.3);border-radius:17px;overflow:hidden;margin-bottom:12px;cursor:pointer;position:relative;}
 .ad-tag{position:absolute;top:9px;left:9px;background:rgba(15,18,28,0.78);color:var(--text-on-dark);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:8px;z-index:1}
@@ -801,7 +804,7 @@ button.ins-tile:active{opacity:0.75;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:9px"><div class="brand-lockup" role="img" aria-label="BASED on values"><span class="brand-words"><span class="brand-name"><span class="bl-word"><span class="bl-ring"><svg aria-hidden="true" viewBox="0 0 160 160"><use href="#based-rings"/></svg><span class="bl-b">B</span></span><span class="bl-ased">ASED</span></span></span><span class="brand-tag">on values</span></span></div><i id="header-verified-tick" class="ti ti-discount-check-filled" title="You’re verified" style="display:none;font-size:22px;line-height:22px;color:var(--verified)"></i><span id="hdr-tier-icon" style="display:none;flex-shrink:0;line-height:0"></span></div>
     <button id="get-verified-btn" onclick="openVerifyScreen('header')" style="display:none;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.45);border-radius:10px;padding:6px 10px;color:var(--verified);font-size:14px;font-weight:600;font-family:var(--sans);line-height:20px;cursor:pointer;white-space:nowrap;margin-left:auto;margin-right:10px"><i class="ti ti-discount-check" style="font-size:16px"></i>Verify ID</button>
-    <div style="position:relative"><button id="settings-btn" aria-label="Menu" aria-haspopup="true" onclick="toggleMainMenu(event)" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:24px;padding:4px;line-height:1"><i class="ti ti-dots"></i></button>
+    <div style="position:relative"><button id="settings-btn" aria-label="Menu" aria-haspopup="true" onclick="toggleMainMenu(event)" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:24px;padding:2px;line-height:1;display:flex;align-items:center"><span id="menu-avatar" class="menu-avatar"><i class="ti ti-dots"></i></span></button>
       <div id="main-menu" class="chat-menu" role="menu" style="min-width:180px"><button role="menuitem" data-menu="verify" onclick="closeMainMenu();openVerifyScreen('header')"><i class="ti ti-discount-check"></i>Verify ID</button><button role="menuitem" data-menu="upgrade" onclick="closeMainMenu();upgradeState=null;openPlans()"><i class="ti ti-sparkles"></i>Upgrade</button><button role="menuitem" data-menu="topup" onclick="closeMainMenu();openTopUp()"><i class="ti ti-circle-plus"></i>Top up</button><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openEditProfile()"><i class="ti ti-settings"></i>Settings</button><button role="menuitem" onclick="closeMainMenu();menuReturn='screen-main';openSupport()"><i class="ti ti-lifebuoy"></i>Support</button><button role="menuitem" onclick="closeMainMenu();openFollowUs()"><i class="ti ti-brand-instagram"></i>Follow us</button><button role="menuitem" onclick="closeMainMenu();confirmLogout()"><i class="ti ti-logout"></i>Log out</button></div></div>
   </div>
   <div class="tab-bar">
@@ -1336,6 +1339,14 @@ function fullAnswers(a){const out=new Array(NUM_Q).fill(0);if(Array.isArray(a))a
 const RELIGIONS=["Atheist","Agnostic","Christian","Hindu","Jewish","Sikh","Muslim","Other"];
 
 // ─── Demo profiles (kept for testing while real users are few) ────────────────
+// The demo people have no religion on file: those with a faith get one (the same one every time), so the
+// Faith question sorts them into Aligned / Close / Differs like real members
+function demoReligion(p){
+  if(FAITH_Q_INDEX<0||!((p.answers||[])[FAITH_Q_INDEX]>0))return null;
+  let h=0;for(const c of String(p.id||p.name))h=(h*31+c.charCodeAt(0))>>>0;
+  const pick=['Christian','Christian','Christian','Christian','Christian','Muslim','Muslim','Jewish','Hindu','Sikh','Agnostic','Other'];
+  return pick[h%pick.length];
+}
 let DEMO_PROFILES=[]; // loaded at startup from demo-profiles.json (600 profiles: 300 male / 300 female across Leeds, Manchester, Sheffield, York)
 async function loadDemoProfiles(){
   try{
@@ -1773,6 +1784,7 @@ async function refreshPhotoLinks(force){
     myPhotos=myPhotos.map(x=>({path:x.path,url:signed[x.path]||x.url}));
     myPhotosSignedAt=Date.now();
     if(myPhotos[0])myProfile.photo=myPhotos[0].url;
+    updateMenuAvatar();
     if(editPhotos){editPhotos.forEach(x=>{if(x.path&&signed[x.path]&&!x.file)x.url=signed[x.path];});renderEditPhotos();}
   }
   if(force||now-browseLoadedAt>PHOTO_LINK_REFRESH){
@@ -2736,7 +2748,7 @@ async function restoreSession(){
     profileLoaded=true;
     myProfile={name:p.name,surname:p.surname||null,dob:p.dob,dob_changes:p.dob_changes||0,location:p.location,sex:p.sex,photo:null,photo_ref:p.photo_url||null,photo_file:null,lat:p.lat||null,lng:p.lng||null,religion:p.religion||null,country:p.country||'GB',units:p.units||defaultUnitsFor(p.country||'GB')};
     // Your own photo is private too — open it through a short-lived signed link
-    await loadMyPhotos(p);myProfile.photo=myPhotos[0]?myPhotos[0].url:null;
+    await loadMyPhotos(p);myProfile.photo=myPhotos[0]?myPhotos[0].url:null;updateMenuAvatar();
     myAnswers=fullAnswers(myStoredAnswers);
     isPremium=p.is_premium||false;
     loadReligionFilter(p);
@@ -2890,7 +2902,7 @@ async function loadBrowseProfiles(){
   }
   const oppSex=myProfile.sex==='male'?'female':'male';
   console.log('loadBrowseProfiles: looking for', oppSex, 'profiles');
-  const demoForSex=DEMO_PROFILES.filter(p=>p.sex===oppSex).map(p=>({...p,isDemo:true}));
+  const demoForSex=DEMO_PROFILES.filter(p=>p.sex===oppSex).map(p=>({...p,isDemo:true,religion:p.religion||demoReligion(p)}));
   // Secure server lookup: returns only what the app needs, plus distances
   // from your home postcode and (if known) your current location.
   // The server applies the sliders and sends one page (best matches first), plus — whatever
@@ -4104,7 +4116,7 @@ function openRightRectify(){
     <p style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);text-align:left;margin:0 0 6px">Anything else that’s wrong? (optional)</p>
     <textarea id="rectify-text" maxlength="2000" rows="3" placeholder="What’s wrong, and what should it say? We’ll put it right within one month." style="width:100%;box-sizing:border-box;font-family:var(--sans);font-size:15px;line-height:1.45;padding:12px 13px;border-radius:11px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-on-dark);resize:vertical;margin-bottom:6px"></textarea>
     <p id="rectify-msg" style="font-size:13px;line-height:1.5;min-height:1em;margin-bottom:8px;text-align:left"></p>
-    <div style="display:flex;flex-direction:column;gap:10px"><button class="btn-primary" id="rectify-send" onclick="sendCorrectionRequest()">${verified?'Send and check my ID':'Send'}</button><button style="background:transparent;border:none;color:var(--text-muted);font-size:14px;font-family:var(--sans);cursor:pointer;padding:8px" onclick="removeModal()">Cancel</button></div></div>
+    <div style="display:flex;flex-direction:column;gap:10px"><button class="btn-primary" id="rectify-send" onclick="sendCorrectionRequest()">${verified?'Save and check my ID':'Save'}</button><button style="background:transparent;border:none;color:var(--text-muted);font-size:14px;font-family:var(--sans);cursor:pointer;padding:8px" onclick="removeModal()">Cancel</button></div></div>
     <div id="rectify-past"></div>`);
   sb.rpc('my_identity_changes').then(({data,error})=>{
     rectifyInfo=error?{used:[],waiting:null}:(data||{used:[],waiting:null});
@@ -4115,7 +4127,7 @@ function openRightRectify(){
       const list=Object.entries(w.changes||{}).map(([k,v])=>`${RF_LABEL[k]}: <b style="color:var(--text-on-dark)">${esc(k==='dob'?isoToDobDisplay(v):k==='sex'?(v==='male'?'Male':'Female'):v)}</b>`).join('<br>');
       wb.innerHTML=`<div style="text-align:left;border:0.5px solid rgba(201,168,76,0.45);border-radius:11px;padding:12px;margin-bottom:14px"><p style="font-size:13.5px;color:var(--gold);margin:0 0 6px"><i class="ti ti-hourglass" style="margin-right:5px"></i>Waiting for your ID check</p><p style="font-size:13.5px;color:var(--text-muted);line-height:1.55;margin:0 0 10px">${list}</p><div style="display:flex;gap:8px"><button class="btn-primary" style="flex:1" onclick="startChangeCheck()">Check my ID now</button><button class="btn-ghost" style="flex:1" onclick="withdrawIdentityChange()">Withdraw</button></div></div>`;
       document.getElementById('rf-fields').innerHTML='<p style="font-size:13px;color:var(--text-muted);text-align:left;margin:0 0 12px">You can correct your name, sex or date of birth again once this one is finished or withdrawn.</p>';
-      ['rf-only','rf-idwarn'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});const sb2=document.getElementById('rectify-send');if(sb2)sb2.textContent='Send';
+      ['rf-only','rf-idwarn'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});const sb2=document.getElementById('rectify-send');if(sb2)sb2.textContent='Save';
     }
   });
   // Earlier requests and their answers
@@ -4140,24 +4152,33 @@ async function sendCorrectionRequest(){
   const identity=!!(nm&&nm!==myProfile.name||sn&&sn!==myProfile.surname||sx||dob&&dob!==String(myProfile.dob||'').slice(0,10));
   if(!identity&&other.length<5){say(nm||sn||dob?'That’s already what your profile says.':'Please fill in what needs correcting.');return;}
   if(sx&&!document.getElementById('rf-sex-ok').checked){say('Please tick the box to confirm you understand your connections will be removed.');return;}
-  btn.disabled=true;btn.textContent='Sending…';
+  btn.disabled=true;btn.textContent='Saving…';
   let result=null;
   if(identity){
     const {data,error}=await sb.rpc('request_identity_change',{p_name:nm||null,p_surname:sn||null,p_sex:sx||null,p_dob:dob});
-    if(error){btn.disabled=false;btn.textContent=myVerificationStatus==='approved'?'Send and check my ID':'Send';
+    if(error){btn.disabled=false;btn.textContent=myVerificationStatus==='approved'?'Save and check my ID':'Save';
       const m=error.message||'',k=(m.match(/ALREADY_CHANGED:(\w+)/)||[])[1];
       say(k?`Your ${RF_LABEL[k].toLowerCase()} has already been corrected once. To change it again, email support@baseddatingonline.com.`:Object.keys(RF_ERRORS).find(c=>m.includes(c))?RF_ERRORS[Object.keys(RF_ERRORS).find(c=>m.includes(c))]:/NOTHING_TO_CHANGE/.test(m)?'That’s already what your profile says.':'Sorry, that didn’t send. Please try again.');return;}
     result=data;
   }
   if(other.length>=5){
     const {error}=await sb.rpc('request_correction',{p_text:other});
-    if(error&&!result){btn.disabled=false;btn.textContent='Send';say(/Please|Too many/.test(error.message)?error.message:'Sorry, that didn’t send. Please try again.');return;}
+    if(error&&!result){btn.disabled=false;btn.textContent='Save';say(/Please|Too many/.test(error.message)?error.message:'Sorry, that didn’t save. Please try again.');return;}
   }
   removeModal();
   if(result&&result.needs_id){startChangeCheck();return;}
   if(result&&result.applied){
+    // Corrected after an ID check was held back for this reason? Check the same ID again straight away
+    const recheck=['name_mismatch','name_swapped','sex_mismatch','dob_mismatch'].includes(myVerificationIssue)&&myVerificationStatus!=='approved';
+    if(recheck&&!result.sex_changed){
+      if(nm)myProfile.name=nm;if(sn)myProfile.surname=sn;if(dob)myProfile.dob=dob;
+      showModal(RIGHT_ICON('ti-circle-check','var(--green)')+RIGHT_H('Saved')+
+        RIGHT_P('Your profile now shows the corrected details. We’ll now check your ID against them again. You won’t need to scan it again.',18)+
+        `<button class="btn-primary" style="width:100%" onclick="removeModal();openVerifyScreen('header')">Check my ID again</button>`);
+      return;
+    }
     showModal(RIGHT_ICON('ti-circle-check','var(--green)')+RIGHT_H('Your details have been updated')+
-      RIGHT_P(result.sex_changed?'Your sex has been changed and your previous connections removed. BASED will now reload so Search shows the right people.':'Your profile now shows the corrected details.'+(other.length>=5?' We’ll look at the rest of your request and let you know here.':''),18)+
+      RIGHT_P(result.sex_changed?'Your sex has been changed and your previous connections removed. BASED will now reload so Search shows the right people.'+(recheck?' Then tap <b>Verify ID</b> and we’ll check your ID against your corrected details. You won’t need to scan it again.':''):'Your profile now shows the corrected details.'+(other.length>=5?' We’ll look at the rest of your request and let you know here.':''),18)+
       `<button class="btn-primary" style="width:100%" onclick="removeModal();location.reload()">OK</button>`);
     return;
   }
@@ -4584,6 +4605,16 @@ function sqBubble(show){
   if(show)b.classList.add('on');
   if(!show||!sqDragging)sqBubbleTimer=setTimeout(()=>{if(!sqDragging)b.classList.remove('on');},show?900:600);
 }
+// The same number bubble on the sliders in Modify my answers (the bubble sits just before each slider)
+function rowBubble(sl,show){
+  const b=sl&&sl.parentElement&&sl.parentElement.querySelector('.slider-bubble');if(!b)return;
+  const v=parseInt(sl.value)||0,min=+sl.min,max=+sl.max,thumb=26;
+  b.textContent=ansLabel(v);
+  b.style.left=(thumb/2+(v-min)/(max-min)*(sl.offsetWidth-thumb))+'px';
+  clearTimeout(sl._bt);
+  if(show)b.classList.add('on');
+  if(!show||!sl.dataset.drag)sl._bt=setTimeout(()=>{if(!sl.dataset.drag)b.classList.remove('on');},show?900:600);
+}
 // The statement at each end of a question's slider
 // Same lettering as the statements on the sign-up questions, grey, a little smaller
 function stmtPairHtml(q){return `<div style="display:flex;gap:10px;font-family:var(--serif);font-size:14px;line-height:1.4;color:var(--text-muted);margin:8px 0 8px"><span style="flex:1;text-align:left">${esc(q.left)}</span><span style="align-self:flex-end;font-size:11px;line-height:1;color:rgba(255,255,255,0.2)" aria-hidden="true">|</span><span style="flex:1;text-align:right">${esc(q.right)}</span></div>`;}
@@ -4634,8 +4665,8 @@ function renderModifyAnswers(){
         <button class="info-icon-btn" onclick="showInfoPopup(${i})" aria-label="What does this mean?">i</button>
       </div>
       ${stmtPairHtml(q)}
-      <div style="position:relative"><div aria-hidden="true" style="position:absolute;left:50%;top:50%;width:1px;height:16px;background:rgba(255,255,255,0.35);transform:translate(-50%,-50%);pointer-events:none"></div>
-      <input type="range" class="q-slider" style="width:100%;position:relative;display:block;background:transparent;background-image:linear-gradient(rgba(255,255,255,0.12),rgba(255,255,255,0.12));background-size:100% 5px;background-repeat:no-repeat;background-position:center;height:26px" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${s}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=ansLabel(this.value);${extraOninput}" /></div>
+      <div style="position:relative"><div class="slider-bubble" aria-hidden="true"></div><div aria-hidden="true" style="position:absolute;left:50%;top:50%;width:1px;height:16px;background:rgba(255,255,255,0.35);transform:translate(-50%,-50%);pointer-events:none"></div>
+      <input type="range" class="q-slider" style="width:100%;position:relative;display:block;background:transparent;background-image:linear-gradient(rgba(255,255,255,0.12),rgba(255,255,255,0.12));background-size:100% 5px;background-repeat:no-repeat;background-position:center;height:26px" min="-10" max="10" step="1" value="${v}" oninput="modifyTempAnswers[${s}]=parseInt(this.value);document.getElementById('modify-val-${i}').textContent=ansLabel(this.value);rowBubble(this,true);${extraOninput}" onpointerdown="this.dataset.drag='1';rowBubble(this,true)" onpointerup="this.dataset.drag='';rowBubble(this,false)" onpointercancel="this.dataset.drag='';rowBubble(this,false)" ontouchend="this.dataset.drag='';rowBubble(this,false)" onchange="rowBubble(this,false)" onblur="this.dataset.drag='';rowBubble(this,false)" /></div>
       ${picker}
       ${q.id===CHILDREN_QID?kidsTickHtml('modify-has-children',modifyTempChildren,'modifyTempChildren=this.checked',true):''}
     </div>`;
@@ -5688,7 +5719,19 @@ const HDR_ICONS={
   gold:'<svg width="22" height="22" viewBox="0 0 24 23" role="img" aria-label="BASED Gold" style="flex-shrink:0"><defs><linearGradient id="hdr-ig-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ecd38a"/><stop offset=".55" stop-color="#c9a84c"/><stop offset="1" stop-color="#9c7a2c"/></linearGradient></defs><path d="M12 5l4 6l5 -4l-2 10.5h-14l-2 -10.5l5 4z" fill="none" stroke="url(#hdr-ig-g)" stroke-width="1.7" stroke-linejoin="round"/><line x1="5.2" y1="20.5" x2="18.8" y2="20.5" stroke="url(#hdr-ig-g)" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="3.4" r="1.3" fill="#ecd38a"/><circle cx="2.7" cy="5.6" r="1.1" fill="#ecd38a"/><circle cx="21.3" cy="5.6" r="1.1" fill="#ecd38a"/></svg>'
 };
 let hdrTierShown=null;
+// The menu button at the top right is a small copy of the member's main photo (the ⋯ until there is one)
+let menuAvatarShown=null;
+function updateMenuAvatar(){
+  const el=document.getElementById('menu-avatar');if(!el)return;
+  const url=currentUser&&myPhotos&&myPhotos[0]&&myPhotos[0].url||null;
+  if(url===menuAvatarShown)return;menuAvatarShown=url;
+  el.classList.toggle('has-photo',!!url);
+  if(!url){el.innerHTML='<i class="ti ti-dots"></i>';return;}
+  const img=new Image();img.alt='';img.src=url;img.onerror=()=>{menuAvatarShown=null;el.classList.remove('has-photo');el.innerHTML='<i class="ti ti-dots"></i>';};
+  el.innerHTML='';el.appendChild(img);
+}
 function updateHeaderTierIcon(tier){
+  updateMenuAvatar();
   const el=document.getElementById('hdr-tier-icon');if(!el)return;
   const k=currentUser&&(tier==='plus'||tier==='gold')?tier:'none';
   if(k===hdrTierShown)return;hdrTierShown=k;el.innerHTML=HDR_ICONS[k];el.style.display=HDR_ICONS[k]?'inline-flex':'none';
@@ -5768,13 +5811,13 @@ function showVerifyIssue(issue){
   if(issue==='name_mismatch'){
     btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
     skip.style.display='block';skip.textContent='Correct my name';skip.onclick=()=>openRightRectify();
-    setVerifyMsg('The name on this ID doesn’t match the name on your profile, so we couldn’t verify you. The ID has to be your own. If your profile name is wrong, correct it with the button below (check your first name and surname are in the right boxes), then tap <b>Check again</b>. Otherwise, <a href="#" onclick="event.preventDefault();startVerification()" style="color:var(--verified)">try again with your own ID</a>.','error');
+    setVerifyMsg('Your ID itself checked out, but the name on it doesn’t match the name on your profile, so we couldn’t verify you. The ID has to be your own. If your profile name is wrong, correct it with the button below (check your first name and surname are in the right boxes), then tap <b>Check again</b>. Otherwise, <a href="#" onclick="event.preventDefault();startVerification()" style="color:var(--verified)">try again with your own ID</a>.','error');
     return true;
   }
   if(issue==='sex_mismatch'){
     btn.textContent='Check again';btn.onclick=()=>pollVerification(1);
     skip.style.display='block';skip.textContent='Correct my sex';skip.onclick=()=>openRightRectify();
-    setVerifyMsg('The sex on this ID doesn’t match the one on your profile, so we couldn’t verify you. The ID has to be your own. If your profile is wrong, correct it with the button below, then tap <b>Check again</b>.','error');
+    setVerifyMsg('Your ID itself checked out, but the sex on it doesn’t match the one on your profile, so we couldn’t verify you. The ID has to be your own. If your profile is wrong, correct it with the button below, then tap <b>Check again</b>.','error');
     return true;
   }
   if(issue==='no_dob'||issue==='no_name'||issue==='no_sex'){
@@ -5802,7 +5845,12 @@ function openVerifyScreen(context){
   const start=document.getElementById('verify-start-btn');
   start.disabled=false;start.style.opacity='1';diditBusy=false; // nothing can be starting as the screen opens
   setVerifyMsg('');
-  if(myVerificationIssue&&myVerificationStatus!=='approved'&&showVerifyIssue(myVerificationIssue)){goTo('screen-verify');return;}
+  if(myVerificationIssue&&myVerificationStatus!=='approved'&&showVerifyIssue(myVerificationIssue)){
+    goTo('screen-verify');
+    // The member may have corrected their profile since: check the same ID against it again before offering a correction
+    if(['name_mismatch','name_swapped','sex_mismatch','dob_mismatch'].includes(myVerificationIssue))pollVerification(1);
+    return;
+  }
   if(myVerificationStatus==='in_review'){
     setVerifyMsg('Your verification is being reviewed, usually within a few minutes. We’ll email you as soon as it’s done, and this page will update by itself.');
     start.textContent='Check again';start.onclick=()=>pollVerification(1);
@@ -5863,9 +5911,22 @@ function askForSurname(){
   skip.onclick=()=>{openEditProfile();setTimeout(()=>document.getElementById('edit-surname').focus(),300);};
   setVerifyMsg('Please add your surname to your profile first. It needs to match the name on your ID. Other members only ever see its first letter.','error');
 }
-async function startVerification(){
+async function startVerification(confirmed){
   if(diditStarting())return;
   if(!(myProfile.surname||'').trim()){askForSurname();return;}
+  // Didit's own screen only checks the ID itself, then BASED checks it matches the profile. Show what
+  // has to match first, so a wrong profile is put right before the scan, not after.
+  if(confirmed!==true){
+    const sx=myProfile.sex==='male'?'Male':myProfile.sex==='female'?'Female':'';
+    showModal(RIGHT_ICON('ti-id')+RIGHT_H('Check your details first')+
+      RIGHT_P('Your ID must show the same details as your BASED profile:',10)+
+      `<div style="text-align:left;border:0.5px solid rgba(201,168,76,0.4);border-radius:11px;padding:12px 14px;margin-bottom:14px;font-size:15px;line-height:1.7;color:var(--text-on-dark)">
+        <div><span style="color:var(--text-muted)">Name:</span> <b>${esc(myProfile.name||'')} ${esc(myProfile.surname||'')}</b></div>
+        ${sx?`<div><span style="color:var(--text-muted)">Sex:</span> <b>${sx}</b></div>`:''}</div>`+
+      RIGHT_P('A shortened first name is fine (Dave for David). Your date of birth is taken from your ID.',16)+
+      `<div style="display:flex;flex-direction:column;gap:10px"><button class="btn-primary" onclick="removeModal();startVerification(true)">They match: start</button><button class="btn-ghost" onclick="removeModal();openRightRectify()">Correct my details</button></div>`);
+    return;
+  }
   const btn=document.getElementById('verify-start-btn');
   setDiditBusy(true,btn);
   setVerifyMsg('<i class="ti ti-loader" style="animation:spin 1s linear infinite;margin-right:6px"></i>Starting verification…');
@@ -7543,7 +7604,7 @@ async function openIncomingProfile(pid){
   const compat=calcCompat(p.answers);
   // Opening someone from the Interest tab doesn't use a free view — you've either
   // seen them already or they came to you.
-  openProfile(p.answers,compat,p.basedScore,p.initials,p.name,p.age,p.location,p.photo_url,pid,'incoming',p.religion||null);
+  openProfile(p.answers,compat,p.basedScore,p.initials,p.name,p.age,p.location,p.photo_url,pid,'incoming',p.religion||(String(p.id||'').startsWith('demo-')?demoReligion(p):null));
 }
 
 async function renderConversationsTab(){
@@ -7859,6 +7920,7 @@ async function saveProfile(){
     if(dobChanged)myProfile.dob_changes=(myProfile.dob_changes||0)+1;
     if(photoPlan){
       myPhotos=photoPlan.saving;myProfile.photo=myPhotos[0].url;myProfile.photo_ref=photoUpdate.photo_url;myProfile.photo_file=null;
+      updateMenuAvatar();
       if(photoPlan.removed.length)sb.storage.from('avatars').remove(photoPlan.removed).then(({error})=>{if(error)console.warn('Removing old photos failed:',error.message);});
     }
     editPhotos=null;
@@ -7944,7 +8006,7 @@ async function openInsightPerson(id,k){
   if(!p){showToast('This profile isn’t available right now.',false,2200);return;}
   if(mutualMatches.has(id)&&k.startsWith('msgs')){openChat(id,p.initials,p.name,p.photo_url||'');return;}
   if(!p.answers){p=await fetchProfileDetails(id);if(!p)return;}
-  openProfile(p.answers,calcCompat(p.answers),p.basedScore,p.initials,p.name,p.age,p.location,p.photo_url,id,'incoming',p.religion||null);
+  openProfile(p.answers,calcCompat(p.answers),p.basedScore,p.initials,p.name,p.age,p.location,p.photo_url,id,'incoming',p.religion||(String(p.id||'').startsWith('demo-')?demoReligion(p):null));
   document.getElementById('profile-back-btn').onclick=()=>goTo('screen-insight-list');
 }
 
@@ -8218,7 +8280,7 @@ async function executeDelete(){
   const wasPremium=isPremium;
   excludedReligions=new Set();pendingReligions=null;includedPlanets=new Set(['earth']);pendingPlanets=null;savedIntro='';myStripeCustomer=false;myCancelAt=null;stripeTrip=null;mySubSource=null;dealbreakers=new Set();pendingDealbreakers=null;hideWithChildren=false;pendingHideChildren=null;LEGAL_NEED=null;clearTimeout(filterSaveTimer);mySearchFilters={};try{restoreFilterPrefs();}catch(e){}
   isPremium=false;currentUser=null;
-  resetSignupForm();myPhotos=[];editPhotos=null;
+  resetSignupForm();myPhotos=[];editPhotos=null;updateMenuAvatar();
   myAnswers=new Array(NUM_Q).fill(0);
   expressedInterest=new Set();mutualMatches=new Set();hiddenForever=new Set();passedProfiles=new Set();viewedProfiles=new Set();incomingInterest=new Set();matchCreatedAt={};incomingInterestAt={};myInterestedAt={};dismissedIncoming=new Set();mySuper=new Set();theirSuper=new Set();profileHidden=false;
   document.getElementById('upload-preview').style.display='none';document.getElementById('upload-placeholder').style.display='block';document.getElementById('upload-area').classList.remove('has-photo');
