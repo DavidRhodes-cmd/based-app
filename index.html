@@ -8129,7 +8129,7 @@ function confirmDelete(){
 }
 
 function confirmLogout(){
-  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-logout" style="font-size:24px;color:var(--text-on-dark)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;text-align:center">Log out?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px;text-align:center">You can sign back in anytime with your email and password.</p><div style="display:flex;gap:10px"><button onclick="removeModal()" class="btn-ghost" style="flex:1">Cancel</button><button onclick="executeLogout()" class="btn-primary" style="flex:1">Log out</button></div>`);
+  showModal(`<div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 18px"><i class="ti ti-logout" style="font-size:24px;color:var(--text-on-dark)"></i></div><p style="font-family:var(--serif);font-size:20px;color:var(--text-on-dark);margin-bottom:12px;text-align:center">Log out?</p><p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:${PUSH_ON?14:24}px;text-align:center">You can sign back in anytime with your email and password.</p>${PUSH_ON?`<div style="font-size:13.5px;color:var(--text-on-dark);line-height:1.55;background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.35);border-radius:11px;padding:11px 13px;margin-bottom:20px;text-align:left"><i class="ti ti-info-circle" style="color:var(--gold);margin-right:6px"></i>While you’re logged out, this phone won’t get alerts for new messages or interest.<br><span style="color:var(--text-muted)">Just want to close BASED? ${PUSH_PLATFORM==='ios'?'Swipe up from the bottom of the screen and flick BASED away':'Open your recent apps and swipe BASED away'} instead, and you’ll keep your alerts.</span></div>`:''}<div style="display:flex;gap:10px"><button onclick="removeModal()" class="btn-ghost" style="flex:1">Cancel</button><button onclick="executeLogout()" class="btn-primary" style="flex:1">Log out</button></div>`);
 }
 // Signs out on this device whatever happens. sb.auth.signOut() can stall (waiting on a
 // token refresh, or a slow / dropped connection) or give up without clearing the saved
@@ -8141,7 +8141,7 @@ async function hardSignOut(){
   }catch(e){}
   try{await Promise.race([pushForgetThisPhone(),new Promise(r=>setTimeout(r,2500))]);}catch(e){} // no alerts here once signed out
   try{
-    await Promise.race([sb.auth.signOut(),new Promise(r=>setTimeout(()=>r({error:{message:'timed out'}}),4000))])
+    await Promise.race([sb.auth.signOut({scope:'local'}),new Promise(r=>setTimeout(()=>r({error:{message:'timed out'}}),4000))]) // this device only: signing out on the computer mustn't sign the phone out (and stop its alerts)
       .then(r=>{if(r&&r.error)console.warn('Sign-out:',r.error.message);});
   }catch(e){console.warn('Sign-out error:',e);}
   try{localStorage.setItem(SIGNED_OUT_FLAG,'1');Object.keys(localStorage).filter(k=>/^sb-.*-auth-token/.test(k)).forEach(k=>localStorage.removeItem(k));}catch(e){}
@@ -8401,7 +8401,7 @@ document.head.appendChild(spinStyle);
   if(splash)splash.remove(); // signed in and on the right screen now
   if(!authLinkError&&(authLinkMessage||emailChangeLink))showEmailChangeStep(emailChangeLink?'done':authLinkMessage);
   if(authLinkError){
-    try{await sb.auth.signOut();}catch(e){}
+    try{await sb.auth.signOut({scope:'local'});}catch(e){}
     currentUser=null;
     showLinkExpired();
   }
